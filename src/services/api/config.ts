@@ -19,7 +19,8 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   async config => {
     const token = await AsyncStorage.getItem('authToken');
-    if (token) {
+    // Only add token if it exists and is not "null" string
+    if (token && token !== 'null' && token.trim() !== '') {
       config.headers.Authorization = `Bearer ${token}`;
     }
     console.log('API Request:', config.method?.toUpperCase(), config.url);
@@ -37,10 +38,15 @@ apiClient.interceptors.response.use(
   async error => {
     console.error('API Error:', error.response?.status, error.config?.url);
 
-    // Handle 401 Unauthorized - token expired or invalid
+    // Handle 401 Unauthorized - token expired or invalid.
+    // We no longer clear the token here to avoid logging the user out
+    // on transient or backend-side issues. Instead, higher-level auth
+    // flows (authApi.isAuthenticated / logout) decide when to clear it.
     if (error.response?.status === 401) {
-      await AsyncStorage.multiRemove(['authToken', 'userId', 'userName']);
-      console.log('Authentication failed - please login again');
+      console.warn(
+        'Received 401 Unauthorized from API. Endpoint:',
+        error.config?.url,
+      );
     }
 
     if (error.response) {

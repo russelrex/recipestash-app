@@ -1,5 +1,5 @@
-import apiClient from './config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import apiClient from './config';
 
 export interface AuthResponse {
   success: boolean;
@@ -74,14 +74,22 @@ class AuthApi {
   async validateToken(): Promise<boolean> {
     try {
       const token = await AsyncStorage.getItem('authToken');
-      if (!token) return false;
+      // Check if token exists and is not null/undefined/empty/"null" string
+      if (!token || token === 'null' || token.trim() === '') {
+        return false;
+      }
 
-      const response = await apiClient.post('/auth/validate', null, {
+      const response = await apiClient.post('/auth/validate', {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      return response.data.success;
-    } catch {
+      return response.data.success === true;
+    } catch (error: any) {
+      console.error('Token validation error:', error);
+      // If validation fails, clear potentially corrupted token
+      if (error.response?.status === 400 || error.response?.status === 401) {
+        await this.logout();
+      }
       return false;
     }
   }
@@ -101,7 +109,10 @@ class AuthApi {
 
   async isAuthenticated(): Promise<boolean> {
     const token = await AsyncStorage.getItem('authToken');
-    if (!token) return false;
+    // Validate token exists and is not "null" string
+    if (!token || token === 'null' || token.trim() === '') {
+      return false;
+    }
     return this.validateToken();
   }
 
@@ -118,11 +129,23 @@ class AuthApi {
   }
 
   private async storeAuthData(token: string, userId: string, userName: string): Promise<void> {
+    // Validate token before storing
+    if (!token || token.trim() === '') {
+      throw new Error('Invalid token provided');
+    }
+    
     await AsyncStorage.multiSet([
       ['authToken', token],
       ['userId', userId],
       ['userName', userName],
     ]);
+    
+    // Verify token was stored correctly
+    const storedToken = await AsyncStorage.getItem('authToken');
+    if (!storedToken || storedToken !== token) {
+      console.error('Token storage verification failed');
+      throw new Error('Failed to store authentication token');
+    }
   }
 }
 

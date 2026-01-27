@@ -1,5 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Asset } from 'expo-asset';
 import { Dimensions, ImageBackground, StyleSheet, View } from 'react-native';
 import { Button, Surface, Text, useTheme } from 'react-native-paper';
 
@@ -8,6 +9,72 @@ const { height } = Dimensions.get('window');
 export default function HomePage() {
   const navigation = useNavigation();
   const theme = useTheme();
+  const [bgLoaded, setBgLoaded] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    Asset.fromModule(require('../../assets/images/homepage_bg02.jpg'))
+      .downloadAsync()
+      .finally(() => {
+        if (isMounted) {
+          setBgLoaded(true);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const content = (
+    <View style={styles.overlay}>
+      {/* Center Section - Authentication */}
+      <View style={styles.centerSection}>
+        <Surface style={styles.authCard} elevation={3}>
+          <Text variant="headlineSmall" style={styles.welcomeText}>
+            Welcome!
+          </Text>
+          <Text variant="bodyMedium" style={styles.subText}>
+            Sign in or create an account to get started
+          </Text>
+
+          <Button
+            mode="contained"
+            onPress={() => navigation.navigate('Login' as never)}
+            style={styles.primaryButton}
+            contentStyle={styles.buttonContent}
+          >
+            Sign In
+          </Button>
+
+          <Button
+            mode="outlined"
+            onPress={() => navigation.navigate('Registration' as never)}
+            style={styles.secondaryButton}
+            contentStyle={styles.buttonContent}
+          >
+            Create Account
+          </Button>
+        </Surface>
+      </View>
+
+      {/* Bottom Section - Description */}
+      <View style={styles.bottomSection}>
+        <Text variant="bodyMedium" style={styles.description}>
+          Organize, save, and discover your favorite recipes all in one place
+        </Text>
+        <Text variant="bodySmall" style={styles.tagline}>
+          Your personal cooking companion
+        </Text>
+      </View>
+    </View>
+  );
+
+  // While the background image is downloading, show the same layout on a solid background
+  if (!bgLoaded) {
+    return <View style={[styles.background, { backgroundColor: '#FAFAF8' }]}>{content}</View>;
+  }
 
   return (
     <ImageBackground
@@ -15,48 +82,7 @@ export default function HomePage() {
       style={styles.background}
       resizeMode="cover"
     >
-      <View style={styles.overlay}>
-
-        {/* Center Section - Authentication */}
-        <View style={styles.centerSection}>
-          <Surface style={styles.authCard} elevation={3}>
-            <Text variant="headlineSmall" style={styles.welcomeText}>
-              Welcome!
-            </Text>
-            <Text variant="bodyMedium" style={styles.subText}>
-              Sign in or create an account to get started
-            </Text>
-
-            <Button
-              mode="contained"
-              onPress={() => navigation.navigate('Login' as never)}
-              style={styles.primaryButton}
-              contentStyle={styles.buttonContent}
-            >
-              Sign In
-            </Button>
-
-            <Button
-              mode="outlined"
-              onPress={() => navigation.navigate('Registration' as never)}
-              style={styles.secondaryButton}
-              contentStyle={styles.buttonContent}
-            >
-              Create Account
-            </Button>
-          </Surface>
-        </View>
-
-        {/* Bottom Section - Description */}
-        <View style={styles.bottomSection}>
-          <Text variant="bodyMedium" style={styles.description}>
-            Organize, save, and discover your favorite recipes all in one place
-          </Text>
-          <Text variant="bodySmall" style={styles.tagline}>
-            Your personal cooking companion
-          </Text>
-        </View>
-      </View>
+      {content}
     </ImageBackground>
   );
 }

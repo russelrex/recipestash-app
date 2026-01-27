@@ -1,10 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
-import { Text, Card, FAB, Chip, Avatar, ActivityIndicator, Snackbar } from 'react-native-paper';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Dimensions, ImageBackground, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Avatar, Card, Chip, FAB, Snackbar, Text } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authApi, recipesApi, type Recipe, type RecipeStats } from '../services/api';
 
+const { height } = Dimensions.get('window');
+
 export default function Dashboard() {
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [userName, setUserName] = useState('');
   const [stats, setStats] = useState<RecipeStats>({
     totalRecipes: 0,
@@ -85,21 +90,33 @@ export default function Dashboard() {
 
   if (loading && !refreshing) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading your dashboard...</Text>
-      </View>
+      <ImageBackground
+        source={require('../../assets/images/dashboard_bg.jpg')}
+        style={styles.background}
+        resizeMode="cover"
+      >
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#8BC34A" />
+          <Text style={styles.loadingText}>Loading your dashboard...</Text>
+        </View>
+      </ImageBackground>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
+    <ImageBackground
+      source={require('../../assets/images/dashboard_bg.jpg')}
+      style={styles.background}
+      resizeMode="cover"
+    >
+      <View style={styles.overlay}>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
         <Text variant="headlineMedium" style={styles.greeting}>
           Hello, {userName}! 👋
         </Text>
@@ -196,36 +213,41 @@ export default function Dashboard() {
             </Text>
           </Card.Content>
         </Card>
-      </ScrollView>
+        </ScrollView>
 
-      <FAB
-        icon="plus"
-        label="Add Recipe"
-        style={styles.fab}
-        onPress={() => console.log('Add new recipe')}
-      />
+        <FAB
+          icon="plus"
+          label="Add Recipe"
+          style={[styles.fab, { bottom: insets.bottom + 80 }]}
+          onPress={() => navigation.navigate('AddRecipe' as never)}
+        />
 
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={3000}
-      >
-        {snackbarMessage}
-      </Snackbar>
-    </View>
+        <Snackbar
+          visible={snackbarVisible}
+          onDismiss={() => setSnackbarVisible(false)}
+          duration={3000}
+        >
+          {snackbarMessage}
+        </Snackbar>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FAFAF8',
+  background: {
+    width: '100%',
+    height,
   },
-  loadingContainer: {
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(250, 250, 248, 0.3)',
+  },
+  loadingOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FAFAF8',
+    backgroundColor: 'rgba(250, 250, 248, 0.3)',
   },
   loadingText: {
     marginTop: 10,
@@ -238,6 +260,7 @@ const styles = StyleSheet.create({
   greeting: {
     fontWeight: 'bold',
     marginBottom: 5,
+    color: '#37474F',
   },
   subtitle: {
     color: '#37474F',
@@ -251,6 +274,8 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     elevation: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderRadius: 12,
   },
   statContent: {
     alignItems: 'center',
@@ -273,6 +298,8 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: 16,
     elevation: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderRadius: 12,
   },
   chipContainer: {
     flexDirection: 'row',

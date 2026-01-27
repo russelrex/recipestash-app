@@ -1,2 +1,7 @@
-// Use the new RecipeStash HomePage as the main index screen
-export { default } from '@/src/screens/HomePage';
+import AppNavigator from "../../src/navigation/AppNavigator";
+
+// This is the main entry point that expo-router will match
+// AppNavigator handles all navigation logic
+export default function Index() {
+  return <AppNavigator />;
+}
