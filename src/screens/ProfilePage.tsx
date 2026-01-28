@@ -1,30 +1,30 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  RefreshControl,
+  View,
 } from 'react-native';
 import {
-  Text,
-  Card,
-  Avatar,
-  IconButton,
-  Chip,
   ActivityIndicator,
-  Snackbar,
+  Avatar,
+  Card,
+  Chip,
   Divider,
+  IconButton,
+  Snackbar,
+  Text,
 } from 'react-native-paper';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import {
   authApi,
   followsApi,
-  recipesApi,
   postsApi,
+  recipesApi,
   type FollowStats,
-  type Recipe,
   type Post,
+  type Recipe,
 } from '../services/api';
 
 export default function ProfilePage() {
@@ -272,11 +272,14 @@ export default function ProfilePage() {
               <View style={styles.recipeGrid}>
                 {recipes.slice(0, 6).map(recipe => (
                   <TouchableOpacity
-                    key={recipe.id}
+                    key={recipe._id}
                     style={styles.recipeGridItem}
-                    onPress={() => {
-                      console.log('Navigate to recipe:', recipe.id);
-                    }}
+                    onPress={() =>
+                      navigation.navigate(
+                        'RecipeDetail' as never,
+                        { recipeId: recipe._id } as never,
+                      )
+                    }
                   >
                     {recipe.imageUrl ? (
                       <Card.Cover

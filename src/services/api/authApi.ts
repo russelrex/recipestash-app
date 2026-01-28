@@ -6,7 +6,7 @@ export interface AuthResponse {
   message: string;
   data: {
     user: {
-      id: string;
+      _id: string;
       name: string;
       createdAt: string;
       updatedAt: string;
@@ -17,7 +17,7 @@ export interface AuthResponse {
 }
 
 export interface UserProfile {
-  id: string;
+  _id: string;
   name: string;
   createdAt: string;
   updatedAt: string;
@@ -34,7 +34,7 @@ class AuthApi {
       if (response.data.success) {
         await this.storeAuthData(
           response.data.data.token,
-          response.data.data.user.id,
+          response.data.data.user._id,
           response.data.data.user.name,
         );
       }
@@ -53,11 +53,11 @@ class AuthApi {
       const response = await apiClient.post<AuthResponse>('/auth/login', {
         name,
       });
-
+      console.log('Login response:', response.data);
       if (response.data.success) {
         await this.storeAuthData(
           response.data.data.token,
-          response.data.data.user.id,
+          response.data.data.user._id,
           response.data.data.user.name,
         );
       }

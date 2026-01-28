@@ -1,15 +1,13 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Dimensions, ImageBackground, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Avatar, Card, Chip, FAB, Snackbar, Text } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Dimensions, ImageBackground, RefreshControl, ScrollView, StyleSheet, View, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, Avatar, Card, Chip, Snackbar, Text } from 'react-native-paper';
 import { authApi, recipesApi, type Recipe, type RecipeStats } from '../services/api';
 
 const { height } = Dimensions.get('window');
 
 export default function Dashboard() {
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
   const [userName, setUserName] = useState('');
   const [stats, setStats] = useState<RecipeStats>({
     totalRecipes: 0,
@@ -178,18 +176,28 @@ export default function Dashboard() {
           <Card.Content>
             {recentRecipes.length > 0 ? (
               recentRecipes.map(recipe => (
-                <View key={recipe.id} style={styles.recipeItem}>
-                  <Avatar.Icon icon={getRecipeIcon(recipe.category)} size={40} />
-                  <View style={styles.recipeInfo}>
-                    <Text variant="titleMedium">{recipe.title}</Text>
-                    <Text variant="bodySmall" style={styles.recipeTime}>
-                      ⏱️ {recipe.prepTime + recipe.cookTime} mins • {recipe.difficulty}
-                    </Text>
+                <TouchableOpacity
+                  key={recipe.id}
+                  onPress={() =>
+                    navigation.navigate(
+                      'RecipeDetail' as never,
+                      { recipeId: recipe.id } as never,
+                    )
+                  }
+                >
+                  <View style={styles.recipeItem}>
+                    <Avatar.Icon icon={getRecipeIcon(recipe.category)} size={40} />
+                    <View style={styles.recipeInfo}>
+                      <Text variant="titleMedium">{recipe.title}</Text>
+                      <Text variant="bodySmall" style={styles.recipeTime}>
+                        ⏱️ {recipe.prepTime + recipe.cookTime} mins • {recipe.difficulty}
+                      </Text>
+                    </View>
+                    {recipe.isFavorite && (
+                      <Avatar.Icon icon="heart" size={24} color="#e91e63" />
+                    )}
                   </View>
-                  {recipe.isFavorite && (
-                    <Avatar.Icon icon="heart" size={24} color="#e91e63" />
-                  )}
-                </View>
+                </TouchableOpacity>
               ))
             ) : (
               <Text variant="bodyMedium" style={styles.emptyText}>
@@ -214,13 +222,6 @@ export default function Dashboard() {
           </Card.Content>
         </Card>
         </ScrollView>
-
-        <FAB
-          icon="plus"
-          label="Add Recipe"
-          style={[styles.fab, { bottom: insets.bottom + 80 }]}
-          onPress={() => navigation.navigate('AddRecipe' as never)}
-        />
 
         <Snackbar
           visible={snackbarVisible}
@@ -328,13 +329,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     paddingVertical: 20,
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#8BC34A',
   },
 });
 

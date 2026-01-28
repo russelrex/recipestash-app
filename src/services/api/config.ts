@@ -29,19 +29,11 @@ apiClient.interceptors.request.use(
   error => Promise.reject(error),
 );
 
-// Response interceptor - Handle auth errors
 apiClient.interceptors.response.use(
   response => {
-    console.log('API Response:', response.status, response.config.url);
     return response;
   },
   async error => {
-    console.error('API Error:', error.response?.status, error.config?.url);
-
-    // Handle 401 Unauthorized - token expired or invalid.
-    // We no longer clear the token here to avoid logging the user out
-    // on transient or backend-side issues. Instead, higher-level auth
-    // flows (authApi.isAuthenticated / logout) decide when to clear it.
     if (error.response?.status === 401) {
       console.warn(
         'Received 401 Unauthorized from API. Endpoint:',

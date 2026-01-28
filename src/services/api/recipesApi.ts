@@ -1,7 +1,7 @@
 import apiClient from './config';
 
 export interface Recipe {
-  id: string;
+  _id: string;
   userId: string;
   title: string;
   description: string;
@@ -20,6 +20,9 @@ export interface Recipe {
 }
 
 export interface CreateRecipeData {
+  userId: string;
+  ownerId: string;
+  ownerName: string;
   title: string;
   description: string;
   ingredients: string[];

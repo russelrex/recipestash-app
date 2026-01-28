@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
-import { FAB, ActivityIndicator, Text, Snackbar } from 'react-native-paper';
+import { ActivityIndicator, Text, Snackbar } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import PostCard from '../components/PostCard';
-import { authApi, postsApi, type Post } from '../services/api';
+import { postsApi, type Post } from '../services/api';
 
 export default function NewsfeedPage() {
   const navigation = useNavigation();
@@ -70,18 +70,10 @@ export default function NewsfeedPage() {
       );
     } catch (error: any) {
       console.error('Error toggling like:', error);
-      if (error?.message === 'Authentication required') {
-        await authApi.logout();
-        setSnackbarMessage('Session expired. Please log in again.');
-        setSnackbarVisible(true);
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Home' as never }],
-        });
-      } else {
-        setSnackbarMessage('Failed to update like');
-        setSnackbarVisible(true);
-      }
+      // Do NOT auto-logout on 401/Authentication errors.
+      // Just show the message and let the user decide next steps.
+      setSnackbarMessage(error?.message || 'Failed to update like');
+      setSnackbarVisible(true);
     }
   };
 
@@ -162,13 +154,6 @@ export default function NewsfeedPage() {
         ListEmptyComponent={renderEmpty}
       />
 
-      <FAB
-        icon="plus"
-        label="Post"
-        style={styles.fab}
-        onPress={() => navigation.navigate('CreatePost' as never)}
-      />
-
       <Snackbar
         visible={snackbarVisible}
         onDismiss={() => setSnackbarVisible(false)}
@@ -218,12 +203,5 @@ const styles = StyleSheet.create({
   footer: {
     padding: 16,
     alignItems: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#d84315',
   },
 });

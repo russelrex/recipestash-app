@@ -1,39 +1,29 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Divider, List, Switch, Text } from 'react-native-paper';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Button, Dialog, Divider, List, Portal, Switch, Text } from 'react-native-paper';
 import { authApi } from '../services/api';
 
 export default function SettingsPage() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
   const navigation = useNavigation();
 
   const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      {
-        text: 'Cancel',
-        style: 'cancel',
-      },
-      {
-        text: 'Logout',
-        onPress: async () => {
-          try {
-            await authApi.logout();
-            // Ensure we reset the root navigator back to Home
-            const rootNav: any =
-              // If we're inside nested navigators, bubble up to the root
-              (navigation as any).getParent?.() || navigation;
-            rootNav.reset({
-              index: 0,
-              routes: [{ name: 'Home' as never }],
-            });
-          } catch (error) {
-            console.error('Error during logout:', error);
-          }
-        },
-        style: 'destructive',
-      },
-    ]);
+    setLogoutDialogVisible(true);
+  };
+
+  const confirmLogout = async () => {
+    setLogoutDialogVisible(false);
+    try {
+      await authApi.logout();
+      (navigation as any).reset({
+        index: 0,
+        routes: [{ name: 'Home' }],
+      });
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
   };
 
   return (
@@ -138,6 +128,22 @@ export default function SettingsPage() {
           Made with ❤️ for food lovers
         </Text>
       </View>
+
+      <Portal>
+        <Dialog
+          visible={logoutDialogVisible}
+          onDismiss={() => setLogoutDialogVisible(false)}
+        >
+          <Dialog.Title>Logout</Dialog.Title>
+          <Dialog.Content>
+            <Text>Are you sure you want to logout?</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setLogoutDialogVisible(false)}>Cancel</Button>
+            <Button onPress={confirmLogout}>Logout</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </ScrollView>
   );
 }

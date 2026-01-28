@@ -64,18 +64,9 @@ export default function PostDetailPage() {
       setPost(updatedPost);
     } catch (error: any) {
       console.error('Error toggling like:', error);
-      if (error?.message === 'Authentication required') {
-        await authApi.logout();
-        setSnackbarMessage('Session expired. Please log in again.');
-        setSnackbarVisible(true);
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Home' as never }],
-        });
-      } else {
-        setSnackbarMessage('Failed to update like');
-        setSnackbarVisible(true);
-      }
+      // Do NOT auto-logout on auth errors here; just show feedback.
+      setSnackbarMessage(error?.message || 'Failed to update like');
+      setSnackbarVisible(true);
     }
   };
 

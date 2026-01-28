@@ -233,9 +233,12 @@ export default function PostCard({
 
         {localPost.recipeId && localPost.recipeTitle && (
           <TouchableOpacity
-            onPress={() => {
-              console.log('Navigate to recipe:', localPost.recipeId);
-            }}
+            onPress={() =>
+              navigation.navigate(
+                'RecipeDetail' as never,
+                { recipeId: localPost.recipeId } as never,
+              )
+            }
           >
             <Chip
               icon="book-open-page-variant"

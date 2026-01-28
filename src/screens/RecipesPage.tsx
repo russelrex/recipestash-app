@@ -1,8 +1,7 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Dimensions, ImageBackground, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Avatar, Card, Chip, FAB, IconButton, Menu, Searchbar, Snackbar, Text } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, Avatar, Card, Chip, IconButton, Menu, Searchbar, Snackbar, Text } from 'react-native-paper';
 import { Recipe, recipesApi } from '../services/api';
 
 const { height } = Dimensions.get('window');
@@ -11,7 +10,6 @@ type FilterType = 'all' | 'favorites' | 'recent' | 'az';
 
 export default function RecipesPage() {
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -245,7 +243,16 @@ export default function RecipesPage() {
             </View>
           ) : (
             filteredRecipes.map(recipe => (
-              <Card key={recipe.id} style={styles.recipeCard}>
+              <Card
+                key={recipe.id}
+                style={styles.recipeCard}
+                onPress={() =>
+                  navigation.navigate(
+                    'RecipeDetail' as never,
+                    { recipeId: recipe.id } as never,
+                  )
+                }
+              >
                 {recipe.imageUrl ? (
                   <Card.Cover source={{ uri: recipe.imageUrl }} />
                 ) : (
@@ -324,13 +331,6 @@ export default function RecipesPage() {
             ))
           )}
         </ScrollView>
-
-        <FAB
-          icon="plus"
-          label="New Recipe"
-          style={[styles.fab, { bottom: insets.bottom + 120 }]}
-          onPress={() => navigation.navigate('AddRecipe' as never)}
-        />
 
         <Snackbar
           visible={snackbarVisible}
@@ -439,12 +439,6 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#37474F',
     textAlign: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    backgroundColor: '#8BC34A',
   },
 });
 

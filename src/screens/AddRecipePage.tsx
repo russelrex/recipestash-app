@@ -15,7 +15,7 @@ import {
   TextInput,
   useTheme
 } from 'react-native-paper';
-import { CreateRecipeData, recipesApi } from '../services/api';
+import { authApi, CreateRecipeData, recipesApi } from '../services/api';
 
 const { height } = Dimensions.get('window');
 
@@ -55,6 +55,22 @@ export default function AddRecipePage() {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const buildOwnerInfo = async () => {
+    const storedUserId = await authApi.getCurrentUserId();
+    const storedId = await authApi.getCurrentUserId();
+    const storedName = await authApi.getCurrentUserName();
+
+    if (!storedId || !storedUserId) {
+      throw new Error('Missing owner id. Please log in again.');
+    }
+
+    return {
+      userId: storedUserId,
+      ownerId: storedId,
+      ownerName: storedName || 'You',
+    };
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -107,10 +123,14 @@ export default function AddRecipePage() {
     setLoading(true);
 
     try {
+      const { userId, ownerId, ownerName } = await buildOwnerInfo();
       const validIngredients = ingredients.filter(i => i.trim());
       const validInstructions = instructions.filter(i => i.trim());
 
       const recipeData: CreateRecipeData = {
+        userId,
+        ownerId,
+        ownerName,
         title: title.trim(),
         description: description.trim(),
         category,
@@ -134,7 +154,11 @@ export default function AddRecipePage() {
       }, 1500);
     } catch (error: any) {
       console.error('Error creating recipe:', error);
-      setSnackbarMessage(error.message || 'Failed to create recipe');
+      setSnackbarMessage(
+        error.message === 'Missing owner id. Please log in again.'
+          ? 'Your session seems to have expired. Please log in again before creating a recipe.'
+          : error.message || 'Failed to create recipe',
+      );
       setSnackbarVisible(true);
     } finally {
       setLoading(false);
@@ -156,6 +180,7 @@ export default function AddRecipePage() {
             style={styles.scrollView} 
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
           >
             <View style={styles.content}>
           {/* Header Section */}
@@ -241,21 +266,28 @@ export default function AddRecipePage() {
             </View>
             <Divider style={styles.divider} />
             <View style={styles.chipContainer}>
-              {CATEGORIES.map((cat) => (
-                <Chip
-                  key={cat.value}
-                  selected={category === cat.value}
-                  onPress={() => setCategory(cat.value)}
-                  style={[
-                    styles.chip,
-                    category === cat.value && { backgroundColor: theme.colors.primaryContainer }
-                  ]}
-                  icon={cat.icon}
-                  selectedColor={category === cat.value ? theme.colors.onPrimaryContainer : undefined}
-                >
-                  {cat.label}
-                </Chip>
-              ))}
+              {CATEGORIES.map(cat => {
+                const isSelected = category === cat.value;
+                return (
+                  <Chip
+                    key={cat.value}
+                    mode={isSelected ? 'flat' : 'outlined'}
+                    selected={isSelected}
+                    onPress={() => setCategory(cat.value)}
+                    style={[
+                      styles.chip,
+                      isSelected && { backgroundColor: theme.colors.primary },
+                    ]}
+                    icon={cat.icon}
+                    textStyle={{
+                      color: isSelected ? theme.colors.onPrimary : '#37474F',
+                      fontWeight: isSelected ? '700' : '500',
+                    }}
+                  >
+                    {cat.label}
+                  </Chip>
+                );
+              })}
             </View>
           </Surface>
 
