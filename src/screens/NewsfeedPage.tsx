@@ -1,16 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl, ImageBackground, Dimensions } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
 import { FAB, ActivityIndicator, Text, Snackbar } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import PostCard from '../components/PostCard';
-import { postsApi, Post } from '../services/api';
-
-const { height } = Dimensions.get('window');
+import { authApi, postsApi, type Post } from '../services/api';
 
 export default function NewsfeedPage() {
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -23,7 +19,7 @@ export default function NewsfeedPage() {
   useFocusEffect(
     useCallback(() => {
       loadPosts(1);
-    }, [])
+    }, []),
   );
 
   const loadPosts = async (pageNum: number = 1) => {
@@ -70,12 +66,22 @@ export default function NewsfeedPage() {
     try {
       const updatedPost = await postsApi.toggleLike(postId);
       setPosts(prev =>
-        prev.map(post => (post.id === postId ? updatedPost : post))
+        prev.map(post => (post.id === postId ? updatedPost : post)),
       );
     } catch (error: any) {
       console.error('Error toggling like:', error);
-      setSnackbarMessage('Failed to update like');
-      setSnackbarVisible(true);
+      if (error?.message === 'Authentication required') {
+        await authApi.logout();
+        setSnackbarMessage('Session expired. Please log in again.');
+        setSnackbarVisible(true);
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Home' as never }],
+        });
+      } else {
+        setSnackbarMessage('Failed to update like');
+        setSnackbarVisible(true);
+      }
     }
   };
 
@@ -109,8 +115,14 @@ export default function NewsfeedPage() {
     if (loading) return null;
     return (
       <View style={styles.emptyContainer}>
+        <Text variant="displaySmall" style={styles.emptyIcon}>
+          📱
+        </Text>
+        <Text variant="headlineSmall" style={styles.emptyTitle}>
+          No posts yet
+        </Text>
         <Text variant="bodyLarge" style={styles.emptyText}>
-          No posts yet. Be the first to share!
+          Be the first to share your cooking journey!
         </Text>
       </View>
     );
@@ -126,81 +138,81 @@ export default function NewsfeedPage() {
   }
 
   return (
-    <ImageBackground
-      source={require('../../assets/images/dashboard_bg.jpg')}
-      style={styles.background}
-      resizeMode="cover"
-    >
-      <View style={styles.overlay}>
-        <FlatList
-          data={posts}
-          renderItem={({ item }) => (
-            <PostCard
-              post={item}
-              onLike={handleLike}
-              onDelete={handleDelete}
-              onUpdate={handleUpdate}
-            />
-          )}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={renderFooter}
-          ListEmptyComponent={renderEmpty}
-        />
+    <View style={styles.container}>
+      <FlatList
+        data={posts}
+        renderItem={({ item }) => (
+          <PostCard
+            post={item}
+            onLike={handleLike}
+            onDelete={handleDelete}
+            onUpdate={handleUpdate}
+            showComments={true}
+            maxCommentsPreview={2}
+          />
+        )}
+        keyExtractor={item => item.id}
+        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={renderFooter}
+        ListEmptyComponent={renderEmpty}
+      />
 
-        <FAB
-          icon="plus"
-          label="Post"
-          style={[styles.fab, { bottom: insets.bottom + 80 }]}
-          onPress={() => navigation.navigate('CreatePost' as never)}
-        />
+      <FAB
+        icon="plus"
+        label="Post"
+        style={styles.fab}
+        onPress={() => navigation.navigate('CreatePost' as never)}
+      />
 
-        <Snackbar
-          visible={snackbarVisible}
-          onDismiss={() => setSnackbarVisible(false)}
-          duration={3000}
-        >
-          {snackbarMessage}
-        </Snackbar>
-      </View>
-    </ImageBackground>
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={3000}
+      >
+        {snackbarMessage}
+      </Snackbar>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
-    width: '100%',
-    height,
-  },
-  overlay: {
+  container: {
     flex: 1,
-    backgroundColor: 'rgba(250, 250, 248, 0.3)',
+    backgroundColor: '#fff8e1',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(250, 250, 248, 0.3)',
+    backgroundColor: '#fff8e1',
   },
   loadingText: {
     marginTop: 10,
-    color: '#37474F',
+    color: '#666',
   },
   listContent: {
     padding: 16,
-    paddingBottom: 100,
   },
   emptyContainer: {
     padding: 40,
     alignItems: 'center',
   },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
   emptyText: {
-    color: '#37474F',
+    color: '#999',
     textAlign: 'center',
   },
   footer: {
@@ -211,6 +223,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     margin: 16,
     right: 0,
-    backgroundColor: '#8BC34A',
+    bottom: 0,
+    backgroundColor: '#d84315',
   },
 });

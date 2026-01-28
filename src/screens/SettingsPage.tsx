@@ -1,42 +1,86 @@
-import React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
-import { List, Divider, Switch, RadioButton, Text } from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
+import React, { useState } from 'react';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Button, Divider, List, Switch, Text } from 'react-native-paper';
+import { authApi } from '../services/api';
 
 export default function SettingsPage() {
-  const [darkMode, setDarkMode] = React.useState(false);
-  const [autoUpdate, setAutoUpdate] = React.useState(true);
-  const [theme, setTheme] = React.useState<'system' | 'light' | 'dark'>('system');
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const navigation = useNavigation();
+
+  const handleLogout = () => {
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Logout',
+        onPress: async () => {
+          try {
+            await authApi.logout();
+            // Ensure we reset the root navigator back to Home
+            const rootNav: any =
+              // If we're inside nested navigators, bubble up to the root
+              (navigation as any).getParent?.() || navigation;
+            rootNav.reset({
+              index: 0,
+              routes: [{ name: 'Home' as never }],
+            });
+          } catch (error) {
+            console.error('Error during logout:', error);
+          }
+        },
+        style: 'destructive',
+      },
+    ]);
+  };
 
   return (
     <ScrollView style={styles.container}>
       <List.Section>
-        <List.Subheader>Appearance</List.Subheader>
+        <List.Subheader>Preferences</List.Subheader>
         <List.Item
-          title="Dark Mode"
-          description="Enable dark theme"
-          left={props => <List.Icon {...props} icon="theme-light-dark" />}
-          right={() => <Switch value={darkMode} onValueChange={setDarkMode} />}
+          title="Notifications"
+          description="Enable push notifications"
+          left={props => <List.Icon {...props} icon="bell" />}
+          right={() => (
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={setNotificationsEnabled}
+            />
+          )}
         />
         <Divider />
-
-        <List.Accordion
-          title="Theme Preference"
-          left={props => <List.Icon {...props} icon="palette" />}>
-          <RadioButton.Group onValueChange={value => setTheme(value as typeof theme)} value={theme}>
-            <RadioButton.Item label="System Default" value="system" />
-            <RadioButton.Item label="Light" value="light" />
-            <RadioButton.Item label="Dark" value="dark" />
-          </RadioButton.Group>
-        </List.Accordion>
+        <List.Item
+          title="Dietary Preferences"
+          description="Set your dietary restrictions"
+          left={props => <List.Icon {...props} icon="food-apple" />}
+          right={props => <List.Icon {...props} icon="chevron-right" />}
+        />
+        <Divider />
+        <List.Item
+          title="Measurement Units"
+          description="Metric or Imperial"
+          left={props => <List.Icon {...props} icon="ruler" />}
+          right={props => <List.Icon {...props} icon="chevron-right" />}
+        />
       </List.Section>
 
       <List.Section>
-        <List.Subheader>App Settings</List.Subheader>
+        <List.Subheader>Data & Storage</List.Subheader>
         <List.Item
-          title="Auto Update"
-          description="Automatically update content"
-          left={props => <List.Icon {...props} icon="update" />}
-          right={() => <Switch value={autoUpdate} onValueChange={setAutoUpdate} />}
+          title="Export Recipes"
+          description="Backup your recipe collection"
+          left={props => <List.Icon {...props} icon="export" />}
+          right={props => <List.Icon {...props} icon="chevron-right" />}
+        />
+        <Divider />
+        <List.Item
+          title="Import Recipes"
+          description="Import from other apps"
+          left={props => <List.Icon {...props} icon="import" />}
+          right={props => <List.Icon {...props} icon="chevron-right" />}
         />
         <Divider />
         <List.Item
@@ -45,30 +89,55 @@ export default function SettingsPage() {
           left={props => <List.Icon {...props} icon="delete-sweep" />}
           right={props => <List.Icon {...props} icon="chevron-right" />}
         />
+      </List.Section>
+
+      <List.Section>
+        <List.Subheader>Account</List.Subheader>
+        <List.Item
+          title="Privacy Settings"
+          description="Manage your privacy"
+          left={props => <List.Icon {...props} icon="shield-account" />}
+          right={props => <List.Icon {...props} icon="chevron-right" />}
+        />
         <Divider />
         <List.Item
-          title="Data Usage"
-          description="Manage data consumption"
-          left={props => <List.Icon {...props} icon="database" />}
+          title="Blocked Users"
+          description="Manage blocked accounts"
+          left={props => <List.Icon {...props} icon="account-cancel" />}
           right={props => <List.Icon {...props} icon="chevron-right" />}
         />
       </List.Section>
 
       <List.Section>
-        <List.Subheader>Advanced</List.Subheader>
+        <List.Subheader>Support</List.Subheader>
         <List.Item
-          title="Developer Mode"
-          description="Enable advanced features"
-          left={props => <List.Icon {...props} icon="code-braces" />}
+          title="Help Center"
+          left={props => <List.Icon {...props} icon="help-circle" />}
           right={props => <List.Icon {...props} icon="chevron-right" />}
         />
         <Divider />
         <List.Item
-          title="App Version"
-          description="1.0.0"
+          title="About RecipeStash"
+          description="Version 1.0.0"
           left={props => <List.Icon {...props} icon="information" />}
         />
       </List.Section>
+
+      <Button
+        mode="contained"
+        buttonColor="#d84315"
+        style={styles.logoutButton}
+        onPress={handleLogout}
+        icon="logout"
+      >
+        Logout
+      </Button>
+
+      <View style={styles.footer}>
+        <Text variant="bodySmall" style={styles.footerText}>
+          Made with ❤️ for food lovers
+        </Text>
+      </View>
     </ScrollView>
   );
 }
@@ -76,7 +145,18 @@ export default function SettingsPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAF8',
+    backgroundColor: '#fff8e1',
+  },
+  logoutButton: {
+    margin: 16,
+    marginTop: 8,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  footerText: {
+    color: '#888',
   },
 });
 

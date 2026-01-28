@@ -328,7 +328,7 @@ export default function RecipesPage() {
         <FAB
           icon="plus"
           label="New Recipe"
-          style={[styles.fab, { bottom: insets.bottom + 80 }]}
+          style={[styles.fab, { bottom: insets.bottom + 120 }]}
           onPress={() => navigation.navigate('AddRecipe' as never)}
         />
 

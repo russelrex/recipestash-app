@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, ImageBackground, Dimensions } from 'react-native';
+import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import {
   TextInput,
   Button,
@@ -7,20 +7,16 @@ import {
   Text,
   Snackbar,
   IconButton,
-  Surface,
+  Avatar,
 } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import PostCard from '../components/PostCard';
 import CommentItem from '../components/CommentItem';
-import { postsApi, Post, Comment } from '../services/api';
-
-const { height } = Dimensions.get('window');
+import { authApi, postsApi, type Post, type Comment } from '../services/api';
 
 export default function PostDetailPage() {
   const route = useRoute();
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
   const postId = (route.params as any)?.postId as string;
 
   const [post, setPost] = useState<Post | null>(null);
@@ -30,10 +26,17 @@ export default function PostDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [currentUserName, setCurrentUserName] = useState('');
 
   useEffect(() => {
     loadPostAndComments();
+    loadUserName();
   }, [postId]);
+
+  const loadUserName = async () => {
+    const name = await authApi.getCurrentUserName();
+    if (name) setCurrentUserName(name);
+  };
 
   const loadPostAndComments = async () => {
     try {
@@ -61,8 +64,18 @@ export default function PostDetailPage() {
       setPost(updatedPost);
     } catch (error: any) {
       console.error('Error toggling like:', error);
-      setSnackbarMessage('Failed to update like');
-      setSnackbarVisible(true);
+      if (error?.message === 'Authentication required') {
+        await authApi.logout();
+        setSnackbarMessage('Session expired. Please log in again.');
+        setSnackbarVisible(true);
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Home' as never }],
+        });
+      } else {
+        setSnackbarMessage('Failed to update like');
+        setSnackbarVisible(true);
+      }
     }
   };
 
@@ -99,13 +112,12 @@ export default function PostDetailPage() {
       });
       setComments(prev => [...prev, newComment]);
       setCommentText('');
-      
-      // Update post comments count
+
       if (post) {
         setPost({ ...post, commentsCount: post.commentsCount + 1 });
       }
-      
-      setSnackbarMessage('Comment added!');
+
+      setSnackbarMessage('Comment added! 💬');
       setSnackbarVisible(true);
     } catch (error: any) {
       console.error('Error adding comment:', error);
@@ -120,12 +132,14 @@ export default function PostDetailPage() {
     try {
       await postsApi.deleteComment(commentId);
       setComments(prev => prev.filter(c => c.id !== commentId));
-      
-      // Update post comments count
+
       if (post) {
-        setPost({ ...post, commentsCount: post.commentsCount - 1 });
+        setPost({
+          ...post,
+          commentsCount: Math.max(0, post.commentsCount - 1),
+        });
       }
-      
+
       setSnackbarMessage('Comment deleted');
       setSnackbarVisible(true);
     } catch (error: any) {
@@ -137,31 +151,21 @@ export default function PostDetailPage() {
 
   if (loading) {
     return (
-      <ImageBackground
-        source={require('../../assets/images/dashboard_bg.jpg')}
-        style={styles.background}
-        resizeMode="cover"
-      >
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" />
-          <Text style={styles.loadingText}>Loading post...</Text>
-        </View>
-      </ImageBackground>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+        <Text style={styles.loadingText}>Loading post...</Text>
+      </View>
     );
   }
 
   if (!post) {
     return (
-      <ImageBackground
-        source={require('../../assets/images/dashboard_bg.jpg')}
-        style={styles.background}
-        resizeMode="cover"
-      >
-        <View style={styles.errorOverlay}>
-          <Text variant="titleLarge">Post not found</Text>
-          <Button onPress={() => navigation.goBack()}>Go Back</Button>
-        </View>
-      </ImageBackground>
+      <View style={styles.errorContainer}>
+        <Text variant="headlineSmall" style={styles.errorText}>
+          Post not found
+        </Text>
+        <Button onPress={() => navigation.goBack()}>Go Back</Button>
+      </View>
     );
   }
 
@@ -169,65 +173,73 @@ export default function PostDetailPage() {
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <ImageBackground
-        source={require('../../assets/images/dashboard_bg.jpg')}
-        style={styles.background}
-        resizeMode="cover"
-      >
-        <View style={styles.overlay}>
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]}
-            showsVerticalScrollIndicator={false}
-          >
-            <PostCard
-              post={post}
-              onLike={handleLike}
-              onDelete={handleDelete}
-              onUpdate={handleUpdate}
-            />
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.content}>
+          <PostCard
+            post={post}
+            onLike={handleLike}
+            onDelete={handleDelete}
+            onUpdate={handleUpdate}
+            showComments={false}
+          />
 
-            <Surface style={styles.commentsSurface} elevation={2}>
-              <Text variant="titleLarge" style={styles.commentsTitle}>
-                Comments ({comments.length})
-              </Text>
+          <View style={styles.commentsSection}>
+            <Text variant="titleLarge" style={styles.commentsTitle}>
+              Comments ({comments.length})
+            </Text>
 
-              {comments.length === 0 ? (
-                <Text variant="bodyMedium" style={styles.noComments}>
-                  No comments yet. Be the first to comment!
+            {comments.length === 0 ? (
+              <View style={styles.noCommentsContainer}>
+                <Text variant="displaySmall" style={styles.noCommentsIcon}>
+                  💬
                 </Text>
-              ) : (
-                comments.map(comment => (
-                  <CommentItem
-                    key={comment.id}
-                    comment={comment}
-                    onDelete={handleDeleteComment}
-                  />
-                ))
-              )}
-            </Surface>
-          </ScrollView>
-
-          <Surface style={[styles.commentInputContainer, { bottom: insets.bottom }]} elevation={4}>
-            <TextInput
-              placeholder="Write a comment..."
-              value={commentText}
-              onChangeText={setCommentText}
-              mode="outlined"
-              style={styles.commentInput}
-              multiline
-              right={
-                <TextInput.Icon
-                  icon="send"
-                  onPress={handleAddComment}
-                  disabled={!commentText.trim() || submitting}
+                <Text variant="bodyLarge" style={styles.noComments}>
+                  No comments yet
+                </Text>
+                <Text variant="bodyMedium" style={styles.noCommentsSubtext}>
+                  Be the first to comment!
+                </Text>
+              </View>
+            ) : (
+              comments.map(comment => (
+                <CommentItem
+                  key={comment.id}
+                  comment={comment}
+                  onDelete={handleDeleteComment}
                 />
-              }
-            />
-          </Surface>
+              ))
+            )}
+          </View>
         </View>
-      </ImageBackground>
+      </ScrollView>
+
+      <View style={styles.commentInputContainer}>
+        <Avatar.Text
+          size={36}
+          label={currentUserName.substring(0, 2).toUpperCase()}
+          style={styles.commentAvatar}
+        />
+        <TextInput
+          value={commentText}
+          onChangeText={setCommentText}
+          placeholder="Write a comment..."
+          mode="outlined"
+          style={styles.commentInput}
+          multiline
+          maxLength={500}
+          disabled={submitting}
+        />
+        <IconButton
+          icon="send"
+          size={24}
+          onPress={handleAddComment}
+          disabled={submitting || !commentText.trim()}
+          loading={submitting}
+          iconColor={commentText.trim() ? '#d84315' : '#999'}
+        />
+      </View>
 
       <Snackbar
         visible={snackbarVisible}
@@ -243,72 +255,72 @@ export default function PostDetailPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff8e1',
   },
-  background: {
-    width: '100%',
-    height,
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(250, 250, 248, 0.3)',
-  },
-  loadingOverlay: {
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(250, 250, 248, 0.3)',
-  },
-  errorOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(250, 250, 248, 0.3)',
-    padding: 20,
+    backgroundColor: '#fff8e1',
   },
   loadingText: {
     marginTop: 10,
-    color: '#37474F',
+    color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#fff8e1',
+  },
+  errorText: {
+    marginBottom: 16,
+    color: '#666',
   },
   scrollView: {
     flex: 1,
   },
   content: {
     padding: 16,
+    paddingBottom: 100,
   },
-  commentsSurface: {
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    borderRadius: 16,
-    padding: 20,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.9)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
+  commentsSection: {
+    marginTop: 8,
   },
   commentsTitle: {
     fontWeight: 'bold',
     marginBottom: 16,
-    color: '#37474F',
+  },
+  noCommentsContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  noCommentsIcon: {
+    fontSize: 48,
+    marginBottom: 12,
   },
   noComments: {
-    color: '#37474F',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    paddingVertical: 20,
+    color: '#999',
+    marginBottom: 4,
+  },
+  noCommentsSubtext: {
+    color: '#bbb',
   },
   commentInputContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.9)',
-    padding: 8,
+    borderTopColor: '#e0e0e0',
+    gap: 8,
+  },
+  commentAvatar: {
+    backgroundColor: '#d84315',
   },
   commentInput: {
-    backgroundColor: 'transparent',
+    flex: 1,
+    maxHeight: 100,
   },
 });

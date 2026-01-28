@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { Text, Avatar, IconButton } from 'react-native-paper';
-import { Comment } from '../services/api/postsApi';
-import { authApi } from '../services/api';
+import { useNavigation } from '@react-navigation/native';
+import { authApi, type Comment } from '../services/api';
 
 interface CommentItemProps {
   comment: Comment;
@@ -10,6 +10,7 @@ interface CommentItemProps {
 }
 
 export default function CommentItem({ comment, onDelete }: CommentItemProps) {
+  const navigation = useNavigation();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -22,43 +23,69 @@ export default function CommentItem({ comment, onDelete }: CommentItemProps) {
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      'Delete Comment',
-      'Are you sure you want to delete this comment?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => onDelete?.(comment.id),
-        },
-      ]
-    );
+    Alert.alert('Delete Comment', 'Are you sure you want to delete this comment?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => onDelete?.(comment.id),
+      },
+    ]);
+  };
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays < 7) return `${diffDays}d`;
+    return date.toLocaleDateString();
   };
 
   const isOwnComment = currentUserId === comment.userId;
 
   return (
     <View style={styles.container}>
-      <Avatar.Text
-        label={comment.userName.charAt(0).toUpperCase()}
-        size={32}
-        style={styles.avatar}
-      />
+      <TouchableOpacity
+        onPress={() =>
+          navigation.navigate('UserProfile' as never, { userId: comment.userId } as never)
+        }
+      >
+        <Avatar.Text
+          size={32}
+          label={comment.userName.substring(0, 2).toUpperCase()}
+          style={styles.avatar}
+        />
+      </TouchableOpacity>
       <View style={styles.content}>
-        <View style={styles.header}>
-          <Text variant="bodyMedium" style={styles.userName}>
-            {comment.userName}
+        <View style={styles.commentBubble}>
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('UserProfile' as never, { userId: comment.userId } as never)
+              }
+            >
+              <Text variant="titleSmall" style={styles.userName}>
+                {comment.userName}
+              </Text>
+            </TouchableOpacity>
+            {isOwnComment && (
+              <IconButton icon="delete-outline" size={16} onPress={handleDelete} />
+            )}
+          </View>
+          <Text variant="bodyMedium" style={styles.commentText}>
+            {comment.content}
           </Text>
-          {isOwnComment && (
-            <IconButton
-              icon="delete-outline"
-              size={18}
-              onPress={handleDelete}
-            />
-          )}
         </View>
-        <Text variant="bodyMedium">{comment.content}</Text>
+        <Text variant="bodySmall" style={styles.timestamp}>
+          {formatTimestamp(comment.createdAt)}
+        </Text>
       </View>
     </View>
   );
@@ -67,17 +94,19 @@ export default function CommentItem({ comment, onDelete }: CommentItemProps) {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    padding: 12,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    marginBottom: 8,
+    marginBottom: 12,
+    gap: 8,
   },
   avatar: {
-    backgroundColor: '#8BC34A',
+    backgroundColor: '#d84315',
   },
   content: {
     flex: 1,
-    marginLeft: 12,
+  },
+  commentBubble: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    padding: 10,
   },
   header: {
     flexDirection: 'row',
@@ -87,5 +116,13 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontWeight: 'bold',
+  },
+  commentText: {
+    lineHeight: 20,
+  },
+  timestamp: {
+    color: '#999',
+    marginTop: 4,
+    marginLeft: 12,
   },
 });

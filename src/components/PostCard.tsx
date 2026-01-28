@@ -1,45 +1,148 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Text, Avatar, IconButton, Chip, Menu, Surface } from 'react-native-paper';
-import { Post } from '../services/api/postsApi';
+import {
+  Card,
+  Text,
+  Avatar,
+  IconButton,
+  Chip,
+  Menu,
+  TextInput,
+  Button,
+  Divider,
+} from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
-import { authApi } from '../services/api';
+import { authApi, postsApi, type Post, type Comment } from '../services/api';
+import CommentItem from './CommentItem';
 
 interface PostCardProps {
   post: Post;
   onLike: (postId: string) => void;
   onDelete?: (postId: string) => void;
   onUpdate?: (post: Post) => void;
+  showComments?: boolean;
+  maxCommentsPreview?: number;
 }
 
-export default function PostCard({ post, onLike, onDelete, onUpdate }: PostCardProps) {
+export default function PostCard({
+  post,
+  onLike,
+  onDelete,
+  onUpdate,
+  showComments = true,
+  maxCommentsPreview = 2,
+}: PostCardProps) {
   const navigation = useNavigation();
   const [menuVisible, setMenuVisible] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showCommentInput, setShowCommentInput] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [commentsLoaded, setCommentsLoaded] = useState(false);
+  const [localPost, setLocalPost] = useState(post);
 
   useEffect(() => {
     loadCurrentUserId();
   }, []);
+
+  useEffect(() => {
+    setLocalPost(post);
+  }, [post]);
 
   const loadCurrentUserId = async () => {
     const userId = await authApi.getCurrentUserId();
     setCurrentUserId(userId);
   };
 
+  const loadComments = async () => {
+    if (commentsLoaded) return;
+
+    try {
+      setLoadingComments(true);
+      const fetchedComments = await postsApi.getComments(localPost.id);
+      setComments(fetchedComments);
+      setCommentsLoaded(true);
+    } catch (error) {
+      console.error('Error loading comments:', error);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  const handleLikePress = () => {
+    const isLiked = currentUserId
+      ? localPost.likes.includes(currentUserId)
+      : false;
+
+    const newLikes = isLiked
+      ? localPost.likes.filter(id => id !== currentUserId)
+      : [...localPost.likes, currentUserId!];
+
+    setLocalPost({
+      ...localPost,
+      likes: newLikes,
+      likesCount: newLikes.length,
+    });
+
+    onLike(localPost.id);
+  };
+
+  const handleCommentPress = async () => {
+    if (!commentsLoaded) {
+      await loadComments();
+    }
+    setShowCommentInput(!showCommentInput);
+  };
+
+  const handleAddComment = async () => {
+    if (!commentText.trim()) return;
+
+    try {
+      setSubmittingComment(true);
+      const newComment = await postsApi.createComment(localPost.id, {
+        content: commentText.trim(),
+      });
+
+      setComments(prev => [...prev, newComment]);
+      setCommentText('');
+      setLocalPost({
+        ...localPost,
+        commentsCount: localPost.commentsCount + 1,
+      });
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      Alert.alert('Error', 'Failed to add comment');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      await postsApi.deleteComment(commentId);
+      setComments(prev => prev.filter(c => c.id !== commentId));
+      setLocalPost({
+        ...localPost,
+        commentsCount: Math.max(0, localPost.commentsCount - 1),
+      });
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      Alert.alert('Error', 'Failed to delete comment');
+    }
+  };
+
   const handleDelete = () => {
     setMenuVisible(false);
-    Alert.alert(
-      'Delete Post',
-      'Are you sure you want to delete this post?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => onDelete?.(post.id),
-        },
-      ]
-    );
+    Alert.alert('Delete Post', 'Are you sure you want to delete this post?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => onDelete?.(localPost.id),
+      },
+    ]);
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -57,29 +160,43 @@ export default function PostCard({ post, onLike, onDelete, onUpdate }: PostCardP
     return date.toLocaleDateString();
   };
 
-  const isOwnPost = currentUserId === post.userId;
-  const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
+  const isOwnPost = currentUserId === localPost.userId;
+  const isLiked = currentUserId
+    ? localPost.likes.includes(currentUserId)
+    : false;
+
+  const visibleComments = showComments
+    ? comments.slice(0, maxCommentsPreview)
+    : [];
+  const hasMoreComments = comments.length > maxCommentsPreview;
 
   return (
-    <Surface style={styles.card} elevation={2}>
-      <View style={styles.content}>
-        {/* Header */}
+    <Card style={styles.card}>
+      <Card.Content>
         <View style={styles.header}>
-          <View style={styles.userInfo}>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate(
+                'UserProfile' as never,
+                { userId: localPost.userId } as never,
+              )
+            }
+            style={styles.userInfo}
+          >
             <Avatar.Text
-              label={post.userName.charAt(0).toUpperCase()}
               size={40}
+              label={localPost.userName.substring(0, 2).toUpperCase()}
               style={styles.avatar}
             />
             <View style={styles.userDetails}>
               <Text variant="titleMedium" style={styles.userName}>
-                {post.userName}
+                {localPost.userName}
               </Text>
               <Text variant="bodySmall" style={styles.timestamp}>
-                {formatTimestamp(post.createdAt)}
+                {formatTimestamp(localPost.createdAt)}
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
           {isOwnPost && (
             <Menu
@@ -96,7 +213,7 @@ export default function PostCard({ post, onLike, onDelete, onUpdate }: PostCardP
               <Menu.Item
                 onPress={() => {
                   setMenuVisible(false);
-                  onUpdate?.(post);
+                  onUpdate?.(localPost);
                 }}
                 title="Edit"
                 leadingIcon="pencil"
@@ -110,78 +227,183 @@ export default function PostCard({ post, onLike, onDelete, onUpdate }: PostCardP
           )}
         </View>
 
-        {/* Content */}
-        <Text variant="bodyLarge" style={styles.postContent}>
-          {post.content}
+        <Text variant="bodyLarge" style={styles.content}>
+          {localPost.content}
         </Text>
 
-        {/* Linked Recipe */}
-        {post.recipeId && post.recipeTitle && (
+        {localPost.recipeId && localPost.recipeTitle && (
           <TouchableOpacity
             onPress={() => {
-              // Navigate to recipe detail (implement later)
-              console.log('Navigate to recipe:', post.recipeId);
+              console.log('Navigate to recipe:', localPost.recipeId);
             }}
           >
-            <Chip icon="book-open-page-variant" style={styles.recipeChip}>
-              {post.recipeTitle}
+            <Chip
+              icon="book-open-page-variant"
+              style={styles.recipeChip}
+              mode="outlined"
+            >
+              {localPost.recipeTitle}
             </Chip>
           </TouchableOpacity>
         )}
 
-        {/* Image */}
-        {post.imageUrl && (
-          <Surface style={styles.imageContainer} elevation={1}>
-            <View style={styles.imageWrapper}>
-              <Text style={styles.imagePlaceholder}>Image: {post.imageUrl}</Text>
-            </View>
-          </Surface>
+        {localPost.imageUrl && (
+          <Card.Cover source={{ uri: localPost.imageUrl }} style={styles.image} />
         )}
 
-        {/* Actions */}
+        {(localPost.likesCount > 0 || localPost.commentsCount > 0) && (
+          <View style={styles.countsContainer}>
+            {localPost.likesCount > 0 && (
+              <Text variant="bodySmall" style={styles.countText}>
+                {localPost.likesCount}{' '}
+                {localPost.likesCount === 1 ? 'like' : 'likes'}
+              </Text>
+            )}
+            {localPost.commentsCount > 0 && (
+              <Text variant="bodySmall" style={styles.countText}>
+                {localPost.commentsCount}{' '}
+                {localPost.commentsCount === 1 ? 'comment' : 'comments'}
+              </Text>
+            )}
+          </View>
+        )}
+
+        <Divider style={styles.divider} />
+
         <View style={styles.actions}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => onLike(post.id)}
+            onPress={handleLikePress}
+            activeOpacity={0.7}
           >
             <IconButton
               icon={isLiked ? 'heart' : 'heart-outline'}
-              iconColor={isLiked ? '#e91e63' : '#37474F'}
+              iconColor={isLiked ? '#e91e63' : '#666'}
               size={24}
-              onPress={() => {}}
+              style={styles.actionIcon}
             />
-            <Text style={styles.actionText}>{post.likesCount}</Text>
+            <Text
+              variant="bodyMedium"
+              style={[styles.actionText, isLiked && styles.actionTextActive]}
+            >
+              Like
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate('PostDetail' as never, { postId: post.id } as never)}
+            onPress={handleCommentPress}
+            activeOpacity={0.7}
           >
-            <IconButton icon="comment-outline" size={24} iconColor="#37474F" onPress={() => {}} />
-            <Text style={styles.actionText}>{post.commentsCount}</Text>
+            <IconButton
+              icon="comment-outline"
+              iconColor="#666"
+              size={24}
+              style={styles.actionIcon}
+            />
+            <Text variant="bodyMedium" style={styles.actionText}>
+              Comment
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() =>
+              navigation.navigate(
+                'PostDetail' as never,
+                { postId: localPost.id } as never,
+              )
+            }
+            activeOpacity={0.7}
+          >
+            <IconButton
+              icon="eye-outline"
+              iconColor="#666"
+              size={24}
+              style={styles.actionIcon}
+            />
+            <Text variant="bodyMedium" style={styles.actionText}>
+              View
+            </Text>
           </TouchableOpacity>
         </View>
-      </View>
-    </Surface>
+
+        <Divider style={styles.divider} />
+
+        {showComments && commentsLoaded && (
+          <View style={styles.commentsSection}>
+            {visibleComments.map(comment => (
+              <CommentItem
+                key={comment.id}
+                comment={comment}
+                onDelete={handleDeleteComment}
+              />
+            ))}
+
+            {hasMoreComments && (
+              <TouchableOpacity
+                style={styles.viewAllComments}
+                onPress={() =>
+                  navigation.navigate(
+                    'PostDetail' as never,
+                    { postId: localPost.id } as never,
+                  )
+                }
+              >
+                <Text variant="bodyMedium" style={styles.viewAllCommentsText}>
+                  View all {comments.length} comments
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {loadingComments && (
+          <Text variant="bodySmall" style={styles.loadingComments}>
+            Loading comments...
+          </Text>
+        )}
+
+        {showCommentInput && (
+          <View style={styles.commentInputContainer}>
+            <Avatar.Text
+              size={32}
+              label={
+                currentUserId
+                  ? localPost.userName.substring(0, 2).toUpperCase()
+                  : '?'
+              }
+              style={styles.commentAvatar}
+            />
+            <TextInput
+              value={commentText}
+              onChangeText={setCommentText}
+              placeholder="Write a comment..."
+              mode="outlined"
+              style={styles.commentInput}
+              multiline
+              maxLength={500}
+              disabled={submittingComment}
+              dense
+            />
+            <IconButton
+              icon="send"
+              size={20}
+              onPress={handleAddComment}
+              disabled={submittingComment || !commentText.trim()}
+              iconColor={commentText.trim() ? '#d84315' : '#999'}
+            />
+          </View>
+        )}
+      </Card.Content>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    marginBottom: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.9)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-    overflow: 'hidden',
-  },
-  content: {
-    padding: 20,
+    marginBottom: 12,
+    elevation: 2,
   },
   header: {
     flexDirection: 'row',
@@ -195,56 +417,88 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    backgroundColor: '#8BC34A',
+    backgroundColor: '#d84315',
   },
   userDetails: {
     marginLeft: 12,
   },
   userName: {
     fontWeight: 'bold',
-    color: '#37474F',
   },
   timestamp: {
     color: '#666',
   },
-  postContent: {
+  content: {
     marginBottom: 12,
     lineHeight: 22,
-    color: '#37474F',
   },
   recipeChip: {
     alignSelf: 'flex-start',
     marginBottom: 12,
   },
-  imageContainer: {
+  image: {
     marginBottom: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    overflow: 'hidden',
+    borderRadius: 8,
   },
-  imageWrapper: {
-    padding: 16,
-    alignItems: 'center',
+  countsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
-  imagePlaceholder: {
-    color: '#37474F',
-    fontSize: 12,
+  countText: {
+    color: '#666',
+  },
+  divider: {
+    marginVertical: 8,
   },
   actions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.1)',
-    paddingTop: 12,
-    marginTop: 8,
+    justifyContent: 'space-around',
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  actionIcon: {
+    margin: 0,
   },
   actionText: {
-    color: '#37474F',
-    marginLeft: 4,
+    color: '#666',
+    fontWeight: '600',
+    marginLeft: -8,
+  },
+  actionTextActive: {
+    color: '#e91e63',
+  },
+  commentsSection: {
+    marginTop: 8,
+  },
+  viewAllComments: {
+    paddingVertical: 8,
+  },
+  viewAllCommentsText: {
+    color: '#666',
+    fontWeight: '600',
+  },
+  loadingComments: {
+    color: '#999',
+    textAlign: 'center',
+    paddingVertical: 8,
+  },
+  commentInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+  commentAvatar: {
+    backgroundColor: '#d84315',
+  },
+  commentInput: {
+    flex: 1,
+    maxHeight: 100,
   },
 });

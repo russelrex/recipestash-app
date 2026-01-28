@@ -10,6 +10,8 @@ import { authApi } from '../services/api';
 import AddRecipePage from '../screens/AddRecipePage';
 import CreatePostPage from '../screens/CreatePostPage';
 import Dashboard from '../screens/Dashboard';
+import FollowersPage from '../screens/FollowersPage';
+import FollowingPage from '../screens/FollowingPage';
 import HomePage from '../screens/HomePage';
 import LoginPage from '../screens/LoginPage';
 import NewsfeedPage from '../screens/NewsfeedPage';
@@ -17,6 +19,8 @@ import PostDetailPage from '../screens/PostDetailPage';
 import ProfilePage from '../screens/ProfilePage';
 import RecipesPage from '../screens/RecipesPage';
 import RegistrationPage from '../screens/RegistrationPage';
+import SettingsPage from '../screens/SettingsPage';
+import UserProfilePage from '../screens/UserProfilePage';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -70,8 +74,8 @@ function TabNavigator() {
 
           return <Icon name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#8BC34A',
-        tabBarInactiveTintColor: '#37474F',
+        tabBarActiveTintColor: '#d84315',
+        tabBarInactiveTintColor: 'gray',
         tabBarStyle: {
           backgroundColor: 'rgba(255, 255, 255, 0.18)',
           borderTopWidth: 1,
@@ -174,6 +178,42 @@ export default function AppNavigator() {
             headerShown: true,
             title: 'Post Details',
             header: (props) => <CustomAppBar {...props} />,
+          }}
+        />
+        <Stack.Screen 
+          name="UserProfile" 
+          component={UserProfilePage}
+          options={{ 
+            headerShown: true,
+            title: 'User Profile',
+            header: (props) => <CustomAppBar {...props} />,
+          }}
+        />
+        <Stack.Screen 
+          name="Followers" 
+          component={FollowersPage}
+          options={{ 
+            headerShown: true,
+            title: 'Followers',
+            header: (props) => <CustomAppBar {...props} />,
+          }}
+        />
+        <Stack.Screen 
+          name="Following" 
+          component={FollowingPage}
+          options={{ 
+            headerShown: true,
+            title: 'Following',
+            header: (props) => <CustomAppBar {...props} />,
+          }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsPage}
+          options={{
+            headerShown: true,
+            title: 'Settings',
+            header: props => <CustomAppBar {...props} />,
           }}
         />
       </Stack.Navigator>

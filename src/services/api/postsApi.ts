@@ -42,10 +42,42 @@ export interface PostsResponse {
 }
 
 class PostsApi {
+  private normalizePost(raw: any): Post {
+    const id = raw?.id ?? raw?._id;
+    return {
+      ...raw,
+      id,
+      likes: Array.isArray(raw?.likes) ? raw.likes : [],
+      likesCount:
+        typeof raw?.likesCount === 'number'
+          ? raw.likesCount
+          : Array.isArray(raw?.likes)
+            ? raw.likes.length
+            : 0,
+      commentsCount: typeof raw?.commentsCount === 'number' ? raw.commentsCount : 0,
+    } as Post;
+  }
+
+  private normalizeComment(raw: any): Comment {
+    const id = raw?.id ?? raw?._id;
+    const postId = raw?.postId ?? raw?.post ?? raw?.post?._id ?? raw?.post?.id;
+    return {
+      ...raw,
+      id,
+      postId,
+    } as Comment;
+  }
+
+  private assertId(id: string | undefined | null, label: string): asserts id is string {
+    if (!id || id === 'null' || id.trim?.() === '') {
+      throw new Error(`${label} is missing`);
+    }
+  }
+
   async createPost(data: CreatePostData): Promise<Post> {
     try {
       const response = await apiClient.post('/posts', data);
-      return response.data.data;
+      return this.normalizePost(response.data.data);
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to create post');
     }
@@ -56,7 +88,11 @@ class PostsApi {
       const response = await apiClient.get('/posts', {
         params: { page, limit },
       });
-      return response.data.data;
+      const data = response.data.data;
+      return {
+        ...data,
+        posts: Array.isArray(data?.posts) ? data.posts.map((p: any) => this.normalizePost(p)) : [],
+      } as PostsResponse;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch posts');
     }
@@ -65,7 +101,9 @@ class PostsApi {
   async getMyPosts(): Promise<Post[]> {
     try {
       const response = await apiClient.get('/posts/my-posts');
-      return response.data.data;
+      return Array.isArray(response.data.data)
+        ? response.data.data.map((p: any) => this.normalizePost(p))
+        : [];
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch your posts');
     }
@@ -74,7 +112,9 @@ class PostsApi {
   async getUserPosts(userId: string): Promise<Post[]> {
     try {
       const response = await apiClient.get(`/posts/user/${userId}`);
-      return response.data.data;
+      return Array.isArray(response.data.data)
+        ? response.data.data.map((p: any) => this.normalizePost(p))
+        : [];
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch user posts');
     }
@@ -83,7 +123,9 @@ class PostsApi {
   async getPostsByRecipe(recipeId: string): Promise<Post[]> {
     try {
       const response = await apiClient.get(`/posts/recipe/${recipeId}`);
-      return response.data.data;
+      return Array.isArray(response.data.data)
+        ? response.data.data.map((p: any) => this.normalizePost(p))
+        : [];
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch recipe posts');
     }
@@ -92,7 +134,7 @@ class PostsApi {
   async getPost(id: string): Promise<Post> {
     try {
       const response = await apiClient.get(`/posts/${id}`);
-      return response.data.data;
+      return this.normalizePost(response.data.data);
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch post');
     }
@@ -101,7 +143,7 @@ class PostsApi {
   async updatePost(id: string, data: Partial<CreatePostData>): Promise<Post> {
     try {
       const response = await apiClient.patch(`/posts/${id}`, data);
-      return response.data.data;
+      return this.normalizePost(response.data.data);
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to update post');
     }
@@ -117,8 +159,9 @@ class PostsApi {
 
   async toggleLike(postId: string): Promise<Post> {
     try {
+      this.assertId(postId, 'postId');
       const response = await apiClient.patch(`/posts/${postId}/like`);
-      return response.data.data;
+      return this.normalizePost(response.data.data);
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to toggle like');
     }
@@ -127,8 +170,9 @@ class PostsApi {
   // Comments
   async createComment(postId: string, data: CreateCommentData): Promise<Comment> {
     try {
+      this.assertId(postId, 'postId');
       const response = await apiClient.post(`/posts/${postId}/comments`, data);
-      return response.data.data;
+      return this.normalizeComment(response.data.data);
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to add comment');
     }
@@ -136,8 +180,11 @@ class PostsApi {
 
   async getComments(postId: string): Promise<Comment[]> {
     try {
+      this.assertId(postId, 'postId');
       const response = await apiClient.get(`/posts/${postId}/comments`);
-      return response.data.data;
+      return Array.isArray(response.data.data)
+        ? response.data.data.map((c: any) => this.normalizeComment(c))
+        : [];
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch comments');
     }
@@ -145,6 +192,7 @@ class PostsApi {
 
   async deleteComment(commentId: string): Promise<void> {
     try {
+      this.assertId(commentId, 'commentId');
       await apiClient.delete(`/posts/comments/${commentId}`);
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to delete comment');
