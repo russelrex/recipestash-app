@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Dimensions, ImageBackground, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Avatar, Card, Chip, IconButton, Menu, Searchbar, Snackbar, Text } from 'react-native-paper';
 import { Recipe, recipesApi } from '../services/api';
+import { Colors } from '../theme';
 
 const { height } = Dimensions.get('window');
 
@@ -160,7 +161,7 @@ export default function RecipesPage() {
         resizeMode="cover"
       >
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#8BC34A" />
+          <ActivityIndicator size="large" color={Colors.secondary.main} />
           <Text style={styles.loadingText}>Loading recipes...</Text>
         </View>
       </ImageBackground>
@@ -361,7 +362,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    color: '#37474F',
+    color: Colors.text.primary,
   },
   searchbar: {
     margin: 16,
@@ -386,7 +387,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontWeight: 'bold',
     marginBottom: 15,
-    color: '#37474F',
+    color: Colors.text.primary,
   },
   recipeCard: {
     marginBottom: 16,
@@ -397,12 +398,12 @@ const styles = StyleSheet.create({
   },
   imagePlaceholder: {
     height: 200,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.border.light,
     justifyContent: 'center',
     alignItems: 'center',
   },
   placeholderIcon: {
-    backgroundColor: '#8BC34A',
+    backgroundColor: Colors.secondary.main,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -415,7 +416,7 @@ const styles = StyleSheet.create({
   description: {
     marginTop: 8,
     marginBottom: 12,
-    color: '#37474F',
+    color: Colors.text.primary,
   },
   cardFooter: {
     flexDirection: 'row',
@@ -430,14 +431,14 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   favoriteIcon: {
-    backgroundColor: '#FF9800',
+    backgroundColor: Colors.primary.light,
   },
   emptyContainer: {
     padding: 40,
     alignItems: 'center',
   },
   emptyText: {
-    color: '#37474F',
+    color: Colors.text.primary,
     textAlign: 'center',
   },
 });

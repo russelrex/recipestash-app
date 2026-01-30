@@ -4,6 +4,7 @@ import { Card, Text, Avatar } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import FollowButton from './FollowButton';
 import { authApi } from '../services/api';
+import { Colors } from '../theme';
 
 interface UserCardProps {
   userId: string;
@@ -98,7 +99,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    backgroundColor: '#8BC34A',
+    backgroundColor: Colors.secondary.main,
   },
   details: {
     marginLeft: 12,
@@ -106,14 +107,14 @@ const styles = StyleSheet.create({
   },
   name: {
     fontWeight: 'bold',
-    color: '#37474F',
+    color: Colors.text.primary,
   },
   stats: {
     flexDirection: 'row',
     marginTop: 4,
   },
   stat: {
-    color: '#666',
+    color: Colors.text.secondary,
     marginRight: 8,
   },
 });

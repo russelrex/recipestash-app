@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { Button, ActivityIndicator } from 'react-native-paper';
 import { followsApi } from '../services/api';
+import { Colors } from '../theme';
 
 interface FollowButtonProps {
   userId: string;
@@ -63,7 +64,7 @@ export default function FollowButton({ userId, onFollowChange }: FollowButtonPro
       loading={loading}
       disabled={loading}
       style={styles.button}
-      buttonColor={isFollowing ? undefined : '#8BC34A'}
+      buttonColor={isFollowing ? undefined : Colors.secondary.main}
     >
       {isFollowing ? 'Following' : 'Follow'}
     </Button>

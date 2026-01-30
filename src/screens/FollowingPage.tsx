@@ -3,6 +3,7 @@ import { View, FlatList, StyleSheet, ImageBackground, Dimensions } from 'react-n
 import { Text, ActivityIndicator, Snackbar } from 'react-native-paper';
 import { useRoute } from '@react-navigation/native';
 import { followsApi, Follow } from '../services/api';
+import { Colors } from '../theme';
 import UserCard from '../components/UserCard';
 
 const { height } = Dimensions.get('window');
@@ -42,7 +43,7 @@ export default function FollowingPage() {
         resizeMode="cover"
       >
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#8BC34A" />
+          <ActivityIndicator size="large" color={Colors.secondary.main} />
           <Text style={styles.loadingText}>Loading following...</Text>
         </View>
       </ImageBackground>
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    color: '#37474F',
+    color: Colors.text.primary,
   },
   listContent: {
     padding: 16,
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: '#999',
+    color: Colors.text.disabled,
     textAlign: 'center',
     paddingVertical: 40,
   },

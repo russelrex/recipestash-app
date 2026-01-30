@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Asset } from 'expo-asset';
 import { Dimensions, ImageBackground, StyleSheet, View } from 'react-native';
 import { Button, Surface, Text, useTheme } from 'react-native-paper';
+import { Colors } from '../theme';
 
 const { height } = Dimensions.get('window');
 
@@ -73,7 +74,7 @@ export default function HomePage() {
 
   // While the background image is downloading, show the same layout on a solid background
   if (!bgLoaded) {
-    return <View style={[styles.background, { backgroundColor: '#FAFAF8' }]}>{content}</View>;
+    return <View style={[styles.background, { backgroundColor: Colors.background.default }]}>{content}</View>;
   }
 
   return (
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   subText: {
-    color: '#37474F',
+    color: Colors.text.primary,
     marginBottom: 32,
     textAlign: 'center',
   },
@@ -162,13 +163,13 @@ const styles = StyleSheet.create({
   },
   description: {
     textAlign: 'center',
-    color: '#37474F',
+    color: Colors.text.primary,
     marginBottom: 8,
     lineHeight: 22,
   },
   tagline: {
     textAlign: 'center',
-    color: '#37474F',
+    color: Colors.text.primary,
     fontStyle: 'italic',
   },
 });

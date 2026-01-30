@@ -16,6 +16,7 @@ import {
   useTheme
 } from 'react-native-paper';
 import { authApi, CreateRecipeData, recipesApi } from '../services/api';
+import { Colors } from '../theme';
 
 const { height } = Dimensions.get('window');
 
@@ -580,11 +581,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 4,
     textAlign: 'center',
-    color: '#8BC34A',
+    color: Colors.secondary.main,
   },
   headerSubtitle: {
     textAlign: 'center',
-    color: '#37474F',
+    color: Colors.text.primary,
     fontWeight: '500',
     fontSize: 15,
   },
@@ -607,20 +608,20 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionIcon: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: Colors.border.light,
     marginRight: 12,
   },
   sectionTitle: {
     fontWeight: 'bold',
     flex: 1,
-    color: '#37474F',
+    color: Colors.text.primary,
     fontSize: 20,
   },
   subsectionTitle: {
     fontWeight: '600',
     marginBottom: 8,
     marginTop: 4,
-    color: '#37474F',
+    color: Colors.text.primary,
     fontSize: 16,
   },
   divider: {
@@ -705,7 +706,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontSize: 15,
     paddingTop: 4,
-    color: '#37474F',
+    color: Colors.text.primary,
     fontWeight: '500',
   },
   removeButton: {

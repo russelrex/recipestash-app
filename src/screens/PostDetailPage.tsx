@@ -13,6 +13,7 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import PostCard from '../components/PostCard';
 import CommentItem from '../components/CommentItem';
 import { authApi, postsApi, type Post, type Comment } from '../services/api';
+import { Colors } from '../theme';
 
 export default function PostDetailPage() {
   const route = useRoute();
@@ -228,7 +229,7 @@ export default function PostDetailPage() {
           onPress={handleAddComment}
           disabled={submitting || !commentText.trim()}
           loading={submitting}
-          iconColor={commentText.trim() ? '#d84315' : '#999'}
+          iconColor={commentText.trim() ? Colors.primary.main : Colors.text.disabled}
         />
       </View>
 
@@ -246,28 +247,28 @@ export default function PostDetailPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff8e1',
+    backgroundColor: Colors.background.default,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff8e1',
+    backgroundColor: Colors.background.default,
   },
   loadingText: {
     marginTop: 10,
-    color: '#666',
+    color: Colors.text.secondary,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#fff8e1',
+    backgroundColor: Colors.background.default,
   },
   errorText: {
     marginBottom: 16,
-    color: '#666',
+    color: Colors.text.secondary,
   },
   scrollView: {
     flex: 1,
@@ -292,7 +293,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   noComments: {
-    color: '#999',
+    color: Colors.text.disabled,
     marginBottom: 4,
   },
   noCommentsSubtext: {
@@ -302,13 +303,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.background.paper,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: Colors.border.main,
     gap: 8,
   },
   commentAvatar: {
-    backgroundColor: '#d84315',
+    backgroundColor: Colors.primary.main,
   },
   commentInput: {
     flex: 1,

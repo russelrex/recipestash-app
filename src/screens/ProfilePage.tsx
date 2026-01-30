@@ -26,6 +26,7 @@ import {
   type Post,
   type Recipe,
 } from '../services/api';
+import { Colors } from '../theme';
 
 export default function ProfilePage() {
   const navigation = useNavigation();
@@ -411,17 +412,17 @@ export default function ProfilePage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff8e1',
+    backgroundColor: Colors.background.default,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff8e1',
+    backgroundColor: Colors.background.default,
   },
   loadingText: {
     marginTop: 10,
-    color: '#666',
+    color: Colors.text.secondary,
   },
   scrollView: {
     flex: 1,
@@ -442,7 +443,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   avatar: {
-    backgroundColor: '#d84315',
+    backgroundColor: Colors.primary.main,
   },
   settingsButton: {
     margin: 0,
@@ -452,7 +453,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   bio: {
-    color: '#666',
+    color: Colors.text.secondary,
     marginTop: 4,
     marginBottom: 16,
   },
@@ -462,7 +463,7 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: Colors.border.light,
   },
   statItem: {
     alignItems: 'center',
@@ -470,14 +471,14 @@ const styles = StyleSheet.create({
   },
   statDivider: {
     width: 1,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: Colors.border.main,
   },
   statNumber: {
     fontWeight: 'bold',
-    color: '#d84315',
+    color: Colors.primary.main,
   },
   statLabel: {
-    color: '#666',
+    color: Colors.text.secondary,
     marginTop: 4,
     fontSize: 12,
   },
@@ -495,7 +496,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   featuredDescription: {
-    color: '#666',
+    color: Colors.text.secondary,
     marginBottom: 12,
     lineHeight: 20,
   },
@@ -528,7 +529,7 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
   },
   emptyText: {
-    color: '#999',
+    color: Colors.text.disabled,
     marginBottom: 8,
   },
   emptySubtext: {
@@ -545,7 +546,7 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.border.light,
   },
   recipeGridImage: {
     width: '100%',
@@ -556,10 +557,10 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#e0e0e0',
+    backgroundColor: Colors.border.main,
   },
   recipePlaceholderIcon: {
-    backgroundColor: '#d84315',
+    backgroundColor: Colors.primary.main,
   },
   recipeGridOverlay: {
     position: 'absolute',
@@ -579,7 +580,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   viewAllText: {
-    color: '#d84315',
+    color: Colors.primary.main,
     fontWeight: 'bold',
   },
   postItem: {
@@ -600,7 +601,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   postStat: {
-    color: '#666',
+    color: Colors.text.secondary,
   },
   postRecipeChip: {
     height: 28,

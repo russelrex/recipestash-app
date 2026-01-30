@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Dialog, Divider, List, Portal, Switch, Text } from 'react-native-paper';
 import { authApi } from '../services/api';
+import { Colors } from '../theme';
 
 export default function SettingsPage() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -115,7 +116,7 @@ export default function SettingsPage() {
 
       <Button
         mode="contained"
-        buttonColor="#d84315"
+        buttonColor={Colors.primary.main}
         style={styles.logoutButton}
         onPress={handleLogout}
         icon="logout"
@@ -151,7 +152,7 @@ export default function SettingsPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff8e1',
+    backgroundColor: Colors.background.default,
   },
   logoutButton: {
     margin: 16,
@@ -162,7 +163,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   footerText: {
-    color: '#888',
+    color: Colors.text.disabled,
   },
 });
 

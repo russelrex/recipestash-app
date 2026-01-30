@@ -1,19 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, Alert } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
 import {
-  Text,
-  Card,
-  Chip,
-  Button,
-  IconButton,
-  Avatar,
+  Alert,
+  Dimensions,
+  Image,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {
   ActivityIndicator,
-  Snackbar,
   Divider,
   Menu,
+  Snackbar,
+  Text,
 } from 'react-native-paper';
-import { useRoute, useNavigation } from '@react-navigation/native';
-import { recipesApi, postsApi, authApi, type Recipe, type Post } from '../services/api';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { authApi, postsApi, recipesApi, type Post, type Recipe } from '../services/api';
+import { Colors } from '../theme';
+
+const { width } = Dimensions.get('window');
+const HEADER_HEIGHT = 400;
 
 export default function RecipeDetailPage() {
   const route = useRoute();
@@ -27,6 +35,7 @@ export default function RecipeDetailPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [activeTab, setActiveTab] = useState<'ingredients' | 'instructions'>('ingredients');
 
   useEffect(() => {
     loadRecipeDetails();
@@ -61,12 +70,10 @@ export default function RecipeDetailPage() {
     if (!recipe) return;
 
     try {
-      const updatedRecipe = await recipesApi.toggleFavorite(recipe.id);
+      const updatedRecipe = await recipesApi.toggleFavorite(recipe._id);
       setRecipe(updatedRecipe);
       setSnackbarMessage(
-        updatedRecipe.isFavorite
-          ? 'Added to favorites ❤️'
-          : 'Removed from favorites',
+        updatedRecipe.isFavorite ? 'Added to favorites ❤️' : 'Removed from favorites',
       );
       setSnackbarVisible(true);
     } catch (error) {
@@ -77,15 +84,16 @@ export default function RecipeDetailPage() {
   };
 
   const handleEdit = () => {
+    if (!recipe) return;
     setMenuVisible(false);
-    navigation.navigate('AddRecipe' as never, { recipe } as never);
+    (navigation as any).navigate('AddRecipe', { recipeId: recipe._id });
   };
 
   const handleDelete = () => {
     setMenuVisible(false);
     Alert.alert(
       'Delete Recipe',
-      'Are you sure you want to delete this recipe? This action cannot be undone.',
+      'Are you sure you want to delete this recipe?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -93,7 +101,7 @@ export default function RecipeDetailPage() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await recipesApi.deleteRecipe(recipeId);
+              await recipesApi.deleteRecipe(recipe?._id || recipeId);
               setSnackbarMessage('Recipe deleted successfully');
               setSnackbarVisible(true);
               setTimeout(() => {
@@ -110,28 +118,6 @@ export default function RecipeDetailPage() {
     );
   };
 
-  const getRecipeIcon = (category: string) => {
-    const icons: Record<string, string> = {
-      breakfast: 'coffee',
-      lunch: 'bowl-mix',
-      dinner: 'food-drumstick',
-      dessert: 'cake',
-      drinks: 'bottle-soda',
-      vegetarian: 'leaf',
-      snacks: 'food-apple',
-    };
-    return icons[category.toLowerCase()] || 'food';
-  };
-
-  const getDifficultyColor = (difficulty: string) => {
-    const colors: Record<string, string> = {
-      easy: '#4caf50',
-      medium: '#ff9800',
-      hard: '#f44336',
-    };
-    return colors[difficulty.toLowerCase()] || '#999';
-  };
-
   const getDifficultyIcon = (difficulty: string) => {
     const icons: Record<string, string> = {
       easy: 'emoticon-happy',
@@ -144,7 +130,7 @@ export default function RecipeDetailPage() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={Colors.primary.main} />
         <Text style={styles.loadingText}>Loading recipe...</Text>
       </View>
     );
@@ -153,10 +139,11 @@ export default function RecipeDetailPage() {
   if (!recipe) {
     return (
       <View style={styles.errorContainer}>
-        <Text variant="headlineSmall" style={styles.errorText}>
-          Recipe not found
-        </Text>
-        <Button onPress={() => navigation.goBack()}>Go Back</Button>
+        <Icon name="alert-circle-outline" size={64} color={Colors.text.secondary} />
+        <Text style={styles.errorText}>Recipe not found</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.errorButton}>
+          <Text style={styles.errorButtonText}>Go Back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -166,264 +153,188 @@ export default function RecipeDetailPage() {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        {/* Header Image */}
-        {recipe.imageUrl && (
-          <Card.Cover
-            source={{ uri: recipe.imageUrl }}
-            style={styles.headerImage}
-          />
-        )}
-
-        {/* Title and Actions */}
-        <View style={styles.headerSection}>
-          <View style={styles.titleContainer}>
-            <Text variant="headlineMedium" style={styles.title}>
-              {recipe.title}
-            </Text>
-            <View style={styles.headerActions}>
-              <IconButton
-                icon={recipe.isFavorite ? 'heart' : 'heart-outline'}
-                iconColor={recipe.isFavorite ? '#e91e63' : '#666'}
-                size={28}
-                onPress={handleToggleFavorite}
-              />
-              {isOwnRecipe && (
-                <Menu
-                  visible={menuVisible}
-                  onDismiss={() => setMenuVisible(false)}
-                  anchor={
-                    <IconButton
-                      icon="dots-vertical"
-                      size={24}
-                      onPress={() => setMenuVisible(true)}
-                    />
-                  }
-                >
-                  <Menu.Item
-                    onPress={handleEdit}
-                    title="Edit"
-                    leadingIcon="pencil"
-                  />
-                  <Menu.Item
-                    onPress={handleDelete}
-                    title="Delete"
-                    leadingIcon="delete"
-                  />
-                </Menu>
-              )}
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Header Image with Overlay */}
+        <View style={styles.headerContainer}>
+          {recipe.imageUrl ? (
+            <Image source={{ uri: recipe.imageUrl }} style={styles.headerImage} />
+          ) : (
+            <View style={[styles.headerImage, styles.placeholderContainer]}>
+              <Icon name="food" size={80} color={Colors.text.disabled} />
+              <Text style={styles.placeholderText}>No Image</Text>
             </View>
+          )}
+          <View style={styles.headerOverlay} />
+
+          {/* Back Button */}
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-left" size={24} color={Colors.text.inverse} />
+          </TouchableOpacity>
+
+          {/* Action Buttons */}
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.actionButton} onPress={handleToggleFavorite}>
+              <Icon
+                name={recipe.isFavorite ? 'heart' : 'heart-outline'}
+                size={24}
+                color={recipe.isFavorite ? Colors.interaction.like : Colors.text.inverse}
+              />
+            </TouchableOpacity>
+            {isOwnRecipe && (
+              <Menu
+                visible={menuVisible}
+                onDismiss={() => setMenuVisible(false)}
+                anchor={
+                  <TouchableOpacity style={styles.actionButton} onPress={() => setMenuVisible(true)}>
+                    <Icon name="dots-vertical" size={24} color={Colors.text.inverse} />
+                  </TouchableOpacity>
+                }
+              >
+                <Menu.Item onPress={handleEdit} title="Edit" leadingIcon="pencil" />
+                <Menu.Item onPress={handleDelete} title="Delete" leadingIcon="delete" />
+              </Menu>
+            )}
           </View>
-
-          <Text variant="bodyLarge" style={styles.description}>
-            {recipe.description}
-          </Text>
-
-          {/* Meta Info */}
-          <View style={styles.metaContainer}>
-            <Chip
-              icon={getRecipeIcon(recipe.category)}
-              style={styles.metaChip}
-              textStyle={styles.metaChipText}
-            >
-              {recipe.category}
-            </Chip>
-            <Chip
-              icon="clock-outline"
-              style={styles.metaChip}
-              textStyle={styles.metaChipText}
-            >
-              {totalTime} mins
-            </Chip>
-            <Chip
-              icon={getDifficultyIcon(recipe.difficulty)}
-              style={[
-                styles.metaChip,
-                { backgroundColor: `${getDifficultyColor(recipe.difficulty)}20` },
-              ]}
-              textStyle={[
-                styles.metaChipText,
-                { color: getDifficultyColor(recipe.difficulty) },
-              ]}
-            >
-              {recipe.difficulty}
-            </Chip>
-          </View>
-
-          {/* Time Breakdown */}
-          <Card style={styles.timeCard}>
-            <Card.Content>
-              <View style={styles.timeBreakdown}>
-                <View style={styles.timeItem}>
-                  <Avatar.Icon
-                    icon="chef-hat"
-                    size={40}
-                    style={styles.timeIcon}
-                  />
-                  <Text variant="bodySmall" style={styles.timeLabel}>
-                    Prep Time
-                  </Text>
-                  <Text variant="titleMedium" style={styles.timeValue}>
-                    {recipe.prepTime} min
-                  </Text>
-                </View>
-                <Divider style={styles.timeDivider} />
-                <View style={styles.timeItem}>
-                  <Avatar.Icon
-                    icon="pot-steam"
-                    size={40}
-                    style={styles.timeIcon}
-                  />
-                  <Text variant="bodySmall" style={styles.timeLabel}>
-                    Cook Time
-                  </Text>
-                  <Text variant="titleMedium" style={styles.timeValue}>
-                    {recipe.cookTime} min
-                  </Text>
-                </View>
-                <Divider style={styles.timeDivider} />
-                <View style={styles.timeItem}>
-                  <Avatar.Icon
-                    icon="silverware-fork-knife"
-                    size={40}
-                    style={styles.timeIcon}
-                  />
-                  <Text variant="bodySmall" style={styles.timeLabel}>
-                    Servings
-                  </Text>
-                  <Text variant="titleMedium" style={styles.timeValue}>
-                    {recipe.servings}
-                  </Text>
-                </View>
-              </View>
-            </Card.Content>
-          </Card>
         </View>
 
-        {/* Ingredients Section */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <View style={styles.sectionHeader}>
-              <Avatar.Icon
-                icon="format-list-bulleted"
-                size={32}
-                style={styles.sectionIcon}
-              />
-              <Text variant="titleLarge" style={styles.sectionTitle}>
-                Ingredients
-              </Text>
-            </View>
-            {recipe.ingredients.map((ingredient, index) => (
-              <View key={index} style={styles.listItem}>
-                <View style={styles.bulletPoint} />
-                <Text variant="bodyLarge" style={styles.listText}>
-                  {ingredient}
-                </Text>
-              </View>
-            ))}
-          </Card.Content>
-        </Card>
+        {/* Profile Card Overlay */}
+        <View style={styles.profileCard}>
+          <Text style={styles.recipeName}>{recipe.title}</Text>
+          <Text style={styles.recipeCategory}>{recipe.category}</Text>
 
-        {/* Instructions Section */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <View style={styles.sectionHeader}>
-              <Avatar.Icon
-                icon="clipboard-text"
-                size={32}
-                style={styles.sectionIcon}
-              />
-              <Text variant="titleLarge" style={styles.sectionTitle}>
-                Instructions
-              </Text>
+          {/* Stats Row */}
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <View
+                style={[styles.statIconContainer, { backgroundColor: Colors.primary.light + '20' }]}
+              >
+                <Icon name="clock-outline" size={20} color={Colors.primary.main} />
+              </View>
+              <Text style={styles.statValue}>{totalTime}</Text>
+              <Text style={styles.statLabel}>Total time</Text>
             </View>
-            {recipe.instructions.map((instruction, index) => (
-              <View key={index} style={styles.instructionItem}>
-                <View style={styles.stepNumber}>
-                  <Text variant="titleMedium" style={styles.stepNumberText}>
-                    {index + 1}
-                  </Text>
-                </View>
-                <Text variant="bodyLarge" style={styles.instructionText}>
-                  {instruction}
-                </Text>
-              </View>
-            ))}
-          </Card.Content>
-        </Card>
 
-        {/* Related Posts Section */}
-        {relatedPosts.length > 0 && (
-          <Card style={styles.card}>
-            <Card.Content>
-              <View style={styles.sectionHeader}>
-                <Avatar.Icon
-                  icon="newspaper-variant"
-                  size={32}
-                  style={styles.sectionIcon}
-                />
-                <Text variant="titleLarge" style={styles.sectionTitle}>
-                  Posts with this Recipe ({relatedPosts.length})
-                </Text>
+            <View style={styles.statItem}>
+              <View
+                style={[styles.statIconContainer, { backgroundColor: Colors.primary.main + '20' }]}
+              >
+                <Icon name="food-fork-drink" size={20} color={Colors.primary.main} />
               </View>
-              {relatedPosts.map(post => (
-                <Card
-                  key={post.id}
-                  style={styles.postCard}
-                  onPress={() =>
-                    navigation.navigate(
-                      'PostDetail' as never,
-                      { postId: post.id } as never,
-                    )
-                  }
-                >
-                  <Card.Content>
-                    <View style={styles.postHeader}>
-                      <Avatar.Text
-                        size={32}
-                        label={post.userName.substring(0, 2).toUpperCase()}
-                        style={styles.postAvatar}
-                      />
-                      <View style={styles.postUserInfo}>
-                        <Text variant="titleSmall" style={styles.postUserName}>
-                          {post.userName}
-                        </Text>
-                        <Text
-                          variant="bodySmall"
-                          style={styles.postTimestamp}
-                        >
-                          {new Date(post.createdAt).toLocaleDateString()}
-                        </Text>
+              <Text style={styles.statValue}>{recipe.servings}</Text>
+              <Text style={styles.statLabel}>Servings</Text>
+            </View>
+
+            <View style={styles.statItem}>
+              <View
+                style={[styles.statIconContainer, { backgroundColor: Colors.secondary.main + '20' }]}
+              >
+                <Icon name={getDifficultyIcon(recipe.difficulty)} size={20} color={Colors.secondary.main} />
+              </View>
+              <Text style={styles.statValue}>{recipe.difficulty}</Text>
+              <Text style={styles.statLabel}>Difficulty</Text>
+            </View>
+          </View>
+
+          {/* Description */}
+          {recipe.description && <Text style={styles.description}>{recipe.description}</Text>}
+
+          {/* Related Posts Carousel */}
+          {relatedPosts.length > 0 && (
+            <View style={styles.postsSection}>
+              <Text style={styles.postsSectionTitle}>Posted by</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.postsCarousel}>
+                {relatedPosts.map(post => (
+                  <TouchableOpacity
+                    key={post.id}
+                    style={styles.postThumbnail}
+                    onPress={() => (navigation as any).navigate('PostDetail', { postId: post.id })}
+                  >
+                    {post.imageUrl ? (
+                      <Image source={{ uri: post.imageUrl }} style={styles.postThumbnailImage} />
+                    ) : (
+                      <View style={styles.postThumbnailPlaceholder}>
+                        <Icon name="image-outline" size={24} color={Colors.text.disabled} />
                       </View>
+                    )}
+                    <View style={styles.postThumbnailOverlay}>
+                      <Icon name="account" size={16} color={Colors.text.inverse} />
                     </View>
-                    <Text
-                      variant="bodyMedium"
-                      numberOfLines={3}
-                      style={styles.postContent}
-                    >
-                      {post.content}
-                    </Text>
-                    <View style={styles.postStats}>
-                      <Text variant="bodySmall" style={styles.postStat}>
-                        ❤️ {post.likesCount}
-                      </Text>
-                      <Text variant="bodySmall" style={styles.postStat}>
-                        💬 {post.commentsCount}
-                      </Text>
-                    </View>
-                  </Card.Content>
-                </Card>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity style={styles.postThumbnailMore}>
+                  <Icon name="chevron-right" size={24} color={Colors.text.secondary} />
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          )}
+        </View>
+
+        {/* Tabs */}
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'ingredients' && styles.tabActive]}
+            onPress={() => setActiveTab('ingredients')}
+          >
+            <Text style={[styles.tabText, activeTab === 'ingredients' && styles.tabTextActive]}>
+              Ingredients
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'instructions' && styles.tabActive]}
+            onPress={() => setActiveTab('instructions')}
+          >
+            <Text style={[styles.tabText, activeTab === 'instructions' && styles.tabTextActive]}>
+              Instructions
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Content */}
+        <View style={styles.contentContainer}>
+          {activeTab === 'ingredients' ? (
+            <View style={styles.ingredientsContainer}>
+              {recipe.ingredients.map((ingredient, index) => (
+                <View key={index} style={styles.ingredientItem}>
+                  <View style={styles.ingredientBullet} />
+                  <Text style={styles.ingredientText}>{ingredient}</Text>
+                </View>
               ))}
-            </Card.Content>
-          </Card>
-        )}
+            </View>
+          ) : (
+            <View style={styles.instructionsContainer}>
+              {recipe.instructions.map((instruction, index) => (
+                <View key={index} style={styles.instructionItem}>
+                  <View style={styles.instructionNumber}>
+                    <Text style={styles.instructionNumberText}>{index + 1}</Text>
+                  </View>
+                  <Text style={styles.instructionText}>{instruction}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Time Breakdown */}
+        <View style={styles.timeBreakdown}>
+          <View style={styles.timeItem}>
+            <Icon name="chef-hat" size={24} color={Colors.primary.main} />
+            <View style={styles.timeInfo}>
+              <Text style={styles.timeValue}>{recipe.prepTime} min</Text>
+              <Text style={styles.timeLabel}>Prep time</Text>
+            </View>
+          </View>
+          <Divider style={styles.timeDivider} />
+          <View style={styles.timeItem}>
+            <Icon name="pot-steam" size={24} color={Colors.primary.main} />
+            <View style={styles.timeInfo}>
+              <Text style={styles.timeValue}>{recipe.cookTime} min</Text>
+              <Text style={styles.timeLabel}>Cook time</Text>
+            </View>
+          </View>
+        </View>
       </ScrollView>
 
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={3000}
-      >
+      <Snackbar visible={snackbarVisible} onDismiss={() => setSnackbarVisible(false)} duration={3000}>
         {snackbarMessage}
       </Snackbar>
     </View>
@@ -433,189 +344,306 @@ export default function RecipeDetailPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff8e1',
+    backgroundColor: Colors.background.default,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff8e1',
+    backgroundColor: Colors.background.default,
   },
   loadingText: {
     marginTop: 10,
-    color: '#666',
+    color: Colors.text.secondary,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#fff8e1',
+    backgroundColor: Colors.background.default,
   },
   errorText: {
-    marginBottom: 16,
-    color: '#666',
+    fontSize: 18,
+    marginTop: 16,
+    marginBottom: 24,
+    color: Colors.text.secondary,
+  },
+  errorButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: Colors.primary.main,
+    borderRadius: 8,
+  },
+  errorButtonText: {
+    color: Colors.text.inverse,
+    fontSize: 16,
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
   },
+  headerContainer: {
+    height: HEADER_HEIGHT,
+    position: 'relative',
+  },
   headerImage: {
-    height: 250,
-    borderRadius: 0,
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
-  headerSection: {
-    backgroundColor: '#fff',
-    padding: 16,
-    marginBottom: 8,
+  placeholderContainer: {
+    backgroundColor: Colors.border.light,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  titleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+  placeholderText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: Colors.text.secondary,
   },
-  title: {
-    flex: 1,
-    fontWeight: 'bold',
+  headerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: Colors.overlay,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerActions: {
+    position: 'absolute',
+    top: 50,
+    right: 16,
     flexDirection: 'row',
-    marginLeft: 8,
+    gap: 12,
   },
-  description: {
-    color: '#666',
-    lineHeight: 24,
-    marginBottom: 16,
+  actionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  metaContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
+  profileCard: {
+    backgroundColor: Colors.background.paper,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    marginTop: -30,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
   },
-  metaChip: {
-    height: 36,
+  recipeName: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: Colors.text.primary,
+    marginBottom: 4,
   },
-  metaChipText: {
-    fontSize: 14,
+  recipeCategory: {
+    fontSize: 16,
+    color: Colors.text.secondary,
+    marginBottom: 24,
   },
-  timeCard: {
-    elevation: 2,
-  },
-  timeBreakdown: {
+  statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    marginBottom: 20,
   },
-  timeItem: {
-    flex: 1,
+  statItem: {
     alignItems: 'center',
   },
-  timeIcon: {
-    backgroundColor: '#fff8e1',
-  },
-  timeLabel: {
-    color: '#666',
-    marginTop: 8,
-  },
-  timeValue: {
-    fontWeight: 'bold',
-    color: '#d84315',
-    marginTop: 4,
-  },
-  timeDivider: {
-    width: 1,
-    backgroundColor: '#e0e0e0',
-  },
-  card: {
-    margin: 16,
-    marginTop: 0,
-    elevation: 2,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
+  statIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
-  sectionIcon: {
-    backgroundColor: '#d84315',
-    marginRight: 12,
-  },
-  sectionTitle: {
+  statValue: {
+    fontSize: 18,
     fontWeight: 'bold',
-    flex: 1,
+    color: Colors.text.primary,
+    marginBottom: 2,
   },
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  statLabel: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+  },
+  description: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: Colors.text.secondary,
+    marginBottom: 20,
+  },
+  postsSection: {
+    marginBottom: 8,
+  },
+  postsSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text.primary,
     marginBottom: 12,
   },
-  bulletPoint: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#d84315',
+  postsCarousel: {
+    marginHorizontal: -24,
+    paddingHorizontal: 24,
+  },
+  postThumbnail: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
+    marginRight: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  postThumbnailImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  postThumbnailPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: Colors.border.light,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  postThumbnailOverlay: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  postThumbnailMore: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
+    backgroundColor: Colors.border.light,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.background.paper,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: Colors.primary.main,
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.text.secondary,
+  },
+  tabTextActive: {
+    color: Colors.primary.main,
+    fontWeight: '600',
+  },
+  contentContainer: {
+    backgroundColor: Colors.background.paper,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  ingredientsContainer: {},
+  ingredientItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  ingredientBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.primary.main,
     marginTop: 8,
     marginRight: 12,
   },
-  listText: {
+  ingredientText: {
     flex: 1,
+    fontSize: 16,
     lineHeight: 24,
+    color: Colors.text.primary,
   },
+  instructionsContainer: {},
   instructionItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 20,
   },
-  stepNumber: {
+  instructionNumber: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#d84315',
+    backgroundColor: Colors.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  stepNumberText: {
-    color: '#fff',
+  instructionNumberText: {
+    fontSize: 16,
     fontWeight: 'bold',
+    color: Colors.text.inverse,
   },
   instructionText: {
     flex: 1,
+    fontSize: 16,
     lineHeight: 24,
+    color: Colors.text.primary,
     paddingTop: 4,
   },
-  postCard: {
-    marginBottom: 12,
-    elevation: 1,
+  timeBreakdown: {
+    flexDirection: 'row',
+    backgroundColor: Colors.background.paper,
+    padding: 24,
+    marginTop: 8,
   },
-  postHeader: {
+  timeItem: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
   },
-  postAvatar: {
-    backgroundColor: '#d84315',
+  timeInfo: {
+    marginLeft: 12,
   },
-  postUserInfo: {
-    marginLeft: 8,
-    flex: 1,
-  },
-  postUserName: {
+  timeValue: {
+    fontSize: 16,
     fontWeight: 'bold',
+    color: Colors.text.primary,
   },
-  postTimestamp: {
-    color: '#666',
+  timeLabel: {
+    fontSize: 12,
+    color: Colors.text.secondary,
   },
-  postContent: {
-    marginBottom: 8,
-    lineHeight: 20,
-  },
-  postStats: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  postStat: {
-    color: '#666',
+  timeDivider: {
+    width: 1,
+    marginHorizontal: 16,
+    backgroundColor: Colors.border.main,
   },
 });
-

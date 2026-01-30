@@ -1,27 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, ImageBackground, Dimensions } from 'react-native';
-import {
-  TextInput,
-  Button,
-  Surface,
-  Text,
-  Chip,
-  useTheme,
-  Snackbar,
-  Menu,
-  IconButton,
-  Avatar,
-  Divider,
-} from 'react-native-paper';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { postsApi, recipesApi, Post, Recipe } from '../services/api';
+import React, { useEffect, useState } from 'react';
+import {
+  Dimensions,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {
+  ActivityIndicator,
+  Button,
+  Card,
+  Chip,
+  IconButton,
+  Portal,
+  Searchbar,
+  Snackbar,
+  Text,
+  TextInput
+} from 'react-native-paper';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Post, postsApi, Recipe, recipesApi } from '../services/api';
+import { Colors } from '../theme';
 
-const { height } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function CreatePostPage() {
   const navigation = useNavigation();
   const route = useRoute();
-  const theme = useTheme();
 
   // Edit mode
   const editPost = (route.params as any)?.post as Post | undefined;
@@ -37,21 +47,30 @@ export default function CreatePostPage() {
 
   // Recipe selection
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [recipeMenuVisible, setRecipeMenuVisible] = useState(false);
+  const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
   const [loadingRecipes, setLoadingRecipes] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [drawerVisible, setDrawerVisible] = useState(false);
 
   useEffect(() => {
     loadRecipes();
     if (isEditMode && editPost.recipeId) {
       loadSelectedRecipe(editPost.recipeId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    filterRecipes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, recipes]);
 
   const loadRecipes = async () => {
     try {
       setLoadingRecipes(true);
       const userRecipes = await recipesApi.getAllRecipes();
       setRecipes(userRecipes);
+      setFilteredRecipes(userRecipes);
     } catch (error) {
       console.error('Error loading recipes:', error);
     } finally {
@@ -68,6 +87,40 @@ export default function CreatePostPage() {
     }
   };
 
+  const filterRecipes = () => {
+    if (!searchQuery.trim()) {
+      setFilteredRecipes(recipes);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const filtered = recipes.filter(
+      recipe =>
+        recipe.title.toLowerCase().includes(query) ||
+        recipe.category.toLowerCase().includes(query) ||
+        recipe.description.toLowerCase().includes(query),
+    );
+    setFilteredRecipes(filtered);
+  };
+
+  const handleOpenRecipeSelector = () => {
+    setDrawerVisible(true);
+  };
+
+  const handleCloseRecipeSelector = () => {
+    setDrawerVisible(false);
+    setSearchQuery('');
+  };
+
+  const handleSelectRecipe = (recipe: Recipe) => {
+    setSelectedRecipe(recipe);
+    handleCloseRecipeSelector();
+  };
+
+  const handleRemoveRecipe = () => {
+    setSelectedRecipe(null);
+  };
+
   const handleSubmit = async () => {
     if (!content.trim()) {
       setSnackbarMessage('Please write something to post');
@@ -80,7 +133,7 @@ export default function CreatePostPage() {
     try {
       const postData = {
         content: content.trim(),
-        recipeId: selectedRecipe?.id,
+        recipeId: selectedRecipe?._id,
         imageUrl: imageUrl.trim() || undefined,
       };
 
@@ -106,146 +159,255 @@ export default function CreatePostPage() {
     }
   };
 
+  const getRecipeIcon = (category: string) => {
+    const icons: Record<string, string> = {
+      breakfast: 'coffee',
+      lunch: 'bowl-mix',
+      dinner: 'food-drumstick',
+      dessert: 'cake',
+      drinks: 'bottle-soda',
+      vegetarian: 'leaf',
+      snacks: 'food-apple',
+    };
+    return icons[category.toLowerCase()] || 'food';
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ImageBackground
-        source={require('../../assets/images/addrecipe_bg.jpg')}
-        style={styles.background}
-        resizeMode="cover"
-      >
-        <View style={styles.overlay}>
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.content}>
-              <Surface style={styles.surface} elevation={2}>
-                <View style={styles.sectionHeader}>
-                  <Avatar.Icon icon="pencil" size={32} style={styles.sectionIcon} />
-                  <Text variant="titleLarge" style={styles.sectionTitle}>
-                    {isEditMode ? 'Edit Post' : 'Create Post'}
-                  </Text>
-                </View>
-                <Divider style={styles.divider} />
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.content}>
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleLarge" style={styles.sectionTitle}>
+                {isEditMode ? 'Edit Post' : 'Create Post'}
+              </Text>
 
-                <TextInput
-                  label="What's on your mind?"
-                  value={content}
-                  onChangeText={setContent}
+              <TextInput
+                label="What's on your mind?"
+                value={content}
+                onChangeText={setContent}
+                mode="outlined"
+                style={styles.input}
+                placeholder="Share your cooking journey..."
+                multiline
+                numberOfLines={6}
+                outlineColor={Colors.border.main}
+                activeOutlineColor={Colors.primary.main}
+              />
+
+              <TextInput
+                label="Image URL (Optional)"
+                value={imageUrl}
+                onChangeText={setImageUrl}
+                mode="outlined"
+                style={styles.input}
+                placeholder="https://example.com/image.jpg"
+                outlineColor={Colors.border.main}
+                activeOutlineColor={Colors.primary.main}
+              />
+
+              <Text variant="titleMedium" style={styles.label}>
+                Link a Recipe (Optional)
+              </Text>
+
+              {selectedRecipe ? (
+                <Card style={styles.selectedRecipeCard}>
+                  <Card.Content style={styles.selectedRecipeContent}>
+                    {selectedRecipe.imageUrl ? (
+                      <Image
+                        source={{ uri: selectedRecipe.imageUrl }}
+                        style={styles.selectedRecipeImage}
+                      />
+                    ) : (
+                      <View style={styles.selectedRecipePlaceholder}>
+                        <Icon
+                          name={getRecipeIcon(selectedRecipe.category)}
+                          size={32}
+                          color={Colors.primary.main}
+                        />
+                      </View>
+                    )}
+                    <View style={styles.selectedRecipeInfo}>
+                      <Text variant="titleMedium" style={styles.selectedRecipeTitle}>
+                        {selectedRecipe.title}
+                      </Text>
+                      <Text variant="bodySmall" style={styles.selectedRecipeCategory}>
+                        {selectedRecipe.category} • {selectedRecipe.prepTime + selectedRecipe.cookTime} mins
+                      </Text>
+                    </View>
+                    <IconButton
+                      icon="close-circle"
+                      size={24}
+                      iconColor={Colors.text.secondary}
+                      onPress={handleRemoveRecipe}
+                    />
+                  </Card.Content>
+                </Card>
+              ) : (
+                <Button
                   mode="outlined"
-                  style={styles.input}
-                  placeholder="Share your cooking experience..."
-                  multiline
-                  numberOfLines={6}
-                  left={<TextInput.Icon icon="text" />}
-                  contentStyle={styles.inputContent}
-                />
+                  onPress={handleOpenRecipeSelector}
+                  icon="book-open-page-variant"
+                  style={styles.selectButton}
+                  textColor={Colors.primary.main}
+                  disabled={loadingRecipes}
+                >
+                  {loadingRecipes ? 'Loading recipes...' : 'Select Recipe'}
+                </Button>
+              )}
+            </Card.Content>
+          </Card>
+        </View>
+      </ScrollView>
 
-                <TextInput
-                  label="Image URL (Optional)"
-                  value={imageUrl}
-                  onChangeText={setImageUrl}
-                  mode="outlined"
-                  style={styles.input}
-                  placeholder="https://example.com/image.jpg"
-                  left={<TextInput.Icon icon="image" />}
-                  contentStyle={styles.inputContent}
-                />
+      {/* Fixed Bottom Buttons */}
+      <View style={styles.bottomButtonsContainer}>
+        <Button
+          mode="contained"
+          onPress={handleSubmit}
+          style={styles.submitButton}
+          contentStyle={styles.submitButtonContent}
+          loading={loading}
+          disabled={loading}
+          buttonColor={Colors.primary.main}
+        >
+          {loading ? (isEditMode ? 'Updating...' : 'Posting...') : isEditMode ? 'Update Post' : 'Post'}
+        </Button>
 
-                <Text variant="bodyLarge" style={styles.label}>
-                  Link a Recipe (Optional)
+        <Button
+          mode="text"
+          onPress={() => navigation.goBack()}
+          style={styles.cancelButton}
+          disabled={loading}
+          textColor={Colors.text.secondary}
+        >
+          Cancel
+        </Button>
+      </View>
+
+      {/* Bottom Drawer using Portal and Modal */}
+      <Portal>
+        <Modal
+          visible={drawerVisible}
+          onRequestClose={handleCloseRecipeSelector}
+          transparent
+          animationType="slide"
+        >
+          <View style={styles.drawerOverlay}>
+            <TouchableOpacity
+              style={styles.drawerBackdrop}
+              activeOpacity={1}
+              onPress={handleCloseRecipeSelector}
+            />
+            <View style={styles.drawerContainer}>
+              {/* Drawer Handle */}
+              <View style={styles.drawerHandle} />
+
+              {/* Drawer Header */}
+              <View style={styles.drawerHeader}>
+                <Text variant="headlineSmall" style={styles.drawerTitle}>
+                  Select Recipe
                 </Text>
+                <IconButton
+                  icon="close"
+                  size={24}
+                  onPress={handleCloseRecipeSelector}
+                  iconColor={Colors.text.primary}
+                />
+              </View>
 
-                {selectedRecipe ? (
-                  <View style={styles.selectedRecipeContainer}>
-                    <Chip
-                      icon="book-open-page-variant"
-                      onClose={() => setSelectedRecipe(null)}
-                      style={styles.selectedRecipeChip}
-                    >
-                      {selectedRecipe.title}
-                    </Chip>
+              {/* Search Bar */}
+              <View style={styles.searchContainer}>
+                <Searchbar
+                  placeholder="Search recipes..."
+                  onChangeText={setSearchQuery}
+                  value={searchQuery}
+                  style={styles.searchBar}
+                  iconColor={Colors.primary.main}
+                  inputStyle={styles.searchInput}
+                />
+              </View>
+
+              {/* Recipe List */}
+              <ScrollView style={styles.recipeList} showsVerticalScrollIndicator={false}>
+                {loadingRecipes ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={Colors.primary.main} />
+                    <Text style={styles.loadingText}>Loading recipes...</Text>
+                  </View>
+                ) : filteredRecipes.length === 0 ? (
+                  <View style={styles.emptyContainer}>
+                    <Icon name="food-off" size={64} color={Colors.text.disabled} />
+                    <Text variant="titleMedium" style={styles.emptyTitle}>
+                      {searchQuery ? 'No recipes found' : 'No recipes available'}
+                    </Text>
+                    <Text variant="bodyMedium" style={styles.emptyText}>
+                      {searchQuery
+                        ? 'Try a different search term'
+                        : 'Create a recipe to link it to your post'}
+                    </Text>
                   </View>
                 ) : (
-                  <Menu
-                    visible={recipeMenuVisible}
-                    onDismiss={() => setRecipeMenuVisible(false)}
-                    anchor={
-                      <Button
-                        mode="outlined"
-                        onPress={() => setRecipeMenuVisible(true)}
-                        icon="book-open-page-variant"
-                        loading={loadingRecipes}
-                        style={styles.selectButton}
-                      >
-                        Select Recipe
-                      </Button>
-                    }
-                    contentStyle={styles.menuContent}
-                  >
-                    {recipes.length === 0 ? (
-                      <Menu.Item title="No recipes available" disabled />
-                    ) : (
-                      recipes.map(recipe => (
-                        <Menu.Item
-                          key={recipe.id}
-                          onPress={() => {
-                            setSelectedRecipe(recipe);
-                            setRecipeMenuVisible(false);
-                          }}
-                          title={recipe.title}
-                        />
-                      ))
-                    )}
-                  </Menu>
+                  filteredRecipes.map(recipe => (
+                    <TouchableOpacity
+                      key={recipe._id}
+                      onPress={() => handleSelectRecipe(recipe)}
+                      style={styles.recipeItem}
+                      activeOpacity={0.7}
+                    >
+                      <Card style={styles.recipeCard}>
+                        <Card.Content style={styles.recipeCardContent}>
+                          {recipe.imageUrl ? (
+                            <Image source={{ uri: recipe.imageUrl }} style={styles.recipeImage} />
+                          ) : (
+                            <View style={styles.recipePlaceholder}>
+                              <Icon
+                                name={getRecipeIcon(recipe.category)}
+                                size={28}
+                                color={Colors.primary.main}
+                              />
+                            </View>
+                          )}
+                          <View style={styles.recipeInfo}>
+                            <Text variant="titleMedium" style={styles.recipeTitle} numberOfLines={1}>
+                              {recipe.title}
+                            </Text>
+                            <Text variant="bodySmall" style={styles.recipeCategory}>
+                              {recipe.category}
+                            </Text>
+                            <View style={styles.recipeMeta}>
+                              <Chip
+                                icon="clock-outline"
+                                style={styles.recipeChip}
+                                textStyle={styles.recipeChipText}
+                              >
+                                {recipe.prepTime + recipe.cookTime} min
+                              </Chip>
+                              <Chip
+                                icon="silverware-fork-knife"
+                                style={styles.recipeChip}
+                                textStyle={styles.recipeChipText}
+                              >
+                                {recipe.servings} servings
+                              </Chip>
+                            </View>
+                          </View>
+                          <Icon name="chevron-right" size={24} color={Colors.text.secondary} />
+                        </Card.Content>
+                      </Card>
+                    </TouchableOpacity>
+                  ))
                 )}
-              </Surface>
-
-              <Surface style={styles.buttonSurface} elevation={0}>
-                <Button
-                  mode="contained"
-                  onPress={handleSubmit}
-                  style={styles.submitButton}
-                  contentStyle={styles.submitButtonContent}
-                  labelStyle={styles.submitButtonLabel}
-                  icon="check-circle"
-                  loading={loading}
-                  disabled={loading}
-                >
-                  {loading
-                    ? isEditMode
-                      ? 'Updating...'
-                      : 'Posting...'
-                    : isEditMode
-                    ? 'Update Post'
-                    : 'Post'}
-                </Button>
-
-                <Button
-                  mode="outlined"
-                  onPress={() => navigation.goBack()}
-                  style={styles.cancelButton}
-                  contentStyle={styles.cancelButtonContent}
-                  icon="close-circle"
-                  disabled={loading}
-                >
-                  Cancel
-                </Button>
-              </Surface>
+              </ScrollView>
             </View>
-          </ScrollView>
-        </View>
-      </ImageBackground>
+          </View>
+        </Modal>
+      </Portal>
 
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={3000}
-      >
+      <Snackbar visible={snackbarVisible} onDismiss={() => setSnackbarVisible(false)} duration={3000}>
         {snackbarMessage}
       </Snackbar>
     </KeyboardAvoidingView>
@@ -255,101 +417,223 @@ export default function CreatePostPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  background: {
-    width: '100%',
-    height,
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(250, 250, 248, 0.3)',
+    backgroundColor: Colors.background.default,
   },
   scrollView: {
     flex: 1,
   },
-  scrollContent: {
-    paddingBottom: 24,
-  },
   content: {
     padding: 16,
+    paddingBottom: 100, // Add padding so content doesn't get hidden behind buttons
   },
-  surface: {
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.9)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionIcon: {
-    backgroundColor: '#E8F5E9',
-    marginRight: 12,
+  card: {
+    marginBottom: 16,
+    elevation: 2,
   },
   sectionTitle: {
     fontWeight: 'bold',
-    flex: 1,
-    color: '#37474F',
-    fontSize: 20,
-  },
-  divider: {
     marginBottom: 16,
-    marginTop: 4,
+    color: Colors.text.primary,
   },
   input: {
     marginBottom: 16,
-  },
-  inputContent: {
-    minHeight: 56,
+    backgroundColor: Colors.background.paper,
   },
   label: {
     marginBottom: 12,
     fontWeight: '600',
-    color: '#37474F',
+    color: Colors.text.primary,
   },
-  selectedRecipeContainer: {
+  selectedRecipeCard: {
     marginBottom: 16,
+    elevation: 1,
+    backgroundColor: Colors.background.default,
   },
-  selectedRecipeChip: {
-    alignSelf: 'flex-start',
+  selectedRecipeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  selectedRecipeImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  selectedRecipePlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: Colors.primary.light + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  selectedRecipeInfo: {
+    flex: 1,
+  },
+  selectedRecipeTitle: {
+    fontWeight: 'bold',
+    marginBottom: 4,
+    color: Colors.text.primary,
+  },
+  selectedRecipeCategory: {
+    color: Colors.text.secondary,
   },
   selectButton: {
     marginBottom: 16,
+    borderColor: Colors.primary.main,
   },
-  menuContent: {
-    maxHeight: 300,
-  },
-  buttonSurface: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.9)',
+  bottomButtonsContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: Colors.background.paper,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border.light,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   submitButton: {
-    marginBottom: 12,
-    borderRadius: 12,
+    marginBottom: 8,
   },
   submitButtonContent: {
     paddingVertical: 8,
   },
-  submitButtonLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   cancelButton: {
-    borderRadius: 12,
+    marginBottom: 0,
   },
-  cancelButtonContent: {
-    paddingVertical: 6,
+  // Drawer Styles
+  drawerOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  drawerBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  drawerContainer: {
+    height: SCREEN_HEIGHT * 0.75,
+    backgroundColor: Colors.background.paper,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
+  },
+  drawerHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: Colors.border.main,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  drawerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  drawerTitle: {
+    fontWeight: 'bold',
+    color: Colors.text.primary,
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  searchBar: {
+    elevation: 0,
+    backgroundColor: Colors.background.default,
+  },
+  searchInput: {
+    fontSize: 16,
+  },
+  recipeList: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  loadingContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    color: Colors.text.secondary,
+  },
+  emptyContainer: {
+    paddingVertical: 60,
+    alignItems: 'center',
+  },
+  emptyTitle: {
+    marginTop: 16,
+    marginBottom: 8,
+    fontWeight: 'bold',
+    color: Colors.text.primary,
+  },
+  emptyText: {
+    color: Colors.text.secondary,
+    textAlign: 'center',
+  },
+  recipeItem: {
+    marginBottom: 12,
+  },
+  recipeCard: {
+    elevation: 1,
+  },
+  recipeCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  recipeImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 12,
+    marginRight: 12,
+  },
+  recipePlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 12,
+    backgroundColor: Colors.primary.light + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  recipeInfo: {
+    flex: 1,
+  },
+  recipeTitle: {
+    fontWeight: 'bold',
+    marginBottom: 4,
+    color: Colors.text.primary,
+  },
+  recipeCategory: {
+    color: Colors.text.secondary,
+    marginBottom: 8,
+  },
+  recipeMeta: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  recipeChip: {
+    height: 28,
+    backgroundColor: Colors.background.default,
+  },
+  recipeChipText: {
+    fontSize: 11,
   },
 });

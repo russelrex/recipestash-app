@@ -13,6 +13,7 @@ import {
 } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { authApi, postsApi, type Post, type Comment } from '../services/api';
+import { Colors } from '../theme';
 import CommentItem from './CommentItem';
 
 interface PostCardProps {
@@ -281,7 +282,7 @@ export default function PostCard({
           >
             <IconButton
               icon={isLiked ? 'heart' : 'heart-outline'}
-              iconColor={isLiked ? '#e91e63' : '#666'}
+              iconColor={isLiked ? Colors.interaction.like : Colors.text.secondary}
               size={24}
               style={styles.actionIcon}
             />
@@ -300,7 +301,7 @@ export default function PostCard({
           >
             <IconButton
               icon="comment-outline"
-              iconColor="#666"
+              iconColor={Colors.text.secondary}
               size={24}
               style={styles.actionIcon}
             />
@@ -321,7 +322,7 @@ export default function PostCard({
           >
             <IconButton
               icon="eye-outline"
-              iconColor="#666"
+              iconColor={Colors.text.secondary}
               size={24}
               style={styles.actionIcon}
             />
@@ -394,7 +395,7 @@ export default function PostCard({
               size={20}
               onPress={handleAddComment}
               disabled={submittingComment || !commentText.trim()}
-              iconColor={commentText.trim() ? '#d84315' : '#999'}
+              iconColor={commentText.trim() ? Colors.primary.main : Colors.text.disabled}
             />
           </View>
         )}
@@ -420,7 +421,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    backgroundColor: '#d84315',
+    backgroundColor: Colors.primary.main,
   },
   userDetails: {
     marginLeft: 12,
@@ -429,7 +430,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   timestamp: {
-    color: '#666',
+    color: Colors.text.secondary,
   },
   content: {
     marginBottom: 12,
@@ -449,7 +450,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   countText: {
-    color: '#666',
+    color: Colors.text.secondary,
   },
   divider: {
     marginVertical: 8,
@@ -469,12 +470,12 @@ const styles = StyleSheet.create({
     margin: 0,
   },
   actionText: {
-    color: '#666',
+    color: Colors.text.secondary,
     fontWeight: '600',
     marginLeft: -8,
   },
   actionTextActive: {
-    color: '#e91e63',
+    color: Colors.interaction.like,
   },
   commentsSection: {
     marginTop: 8,
@@ -483,11 +484,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   viewAllCommentsText: {
-    color: '#666',
+    color: Colors.text.secondary,
     fontWeight: '600',
   },
   loadingComments: {
-    color: '#999',
+    color: Colors.text.disabled,
     textAlign: 'center',
     paddingVertical: 8,
   },
@@ -498,7 +499,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   commentAvatar: {
-    backgroundColor: '#d84315',
+    backgroundColor: Colors.primary.main,
   },
   commentInput: {
     flex: 1,

@@ -6,6 +6,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Appbar, Text } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { authApi } from '../services/api';
+import { Colors } from '../theme';
 
 import AddRecipePage from '../screens/AddRecipePage';
 import CreatePostPage from '../screens/CreatePostPage';
@@ -90,7 +91,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
               <Icon
                 name={iconName}
                 size={24}
-                color={isFocused ? '#d84315' : '#888'}
+                color={isFocused ? Colors.primary.main : Colors.text.disabled}
               />
             </TouchableOpacity>
           );
@@ -123,11 +124,11 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             }}
           >
             <View style={styles.actionIconContainer}>
-              <Icon name="book-plus" size={24} color="#d84315" />
+              <Icon name="book-plus" size={24} color={Colors.primary.main} />
             </View>
             <View style={styles.actionTextContainer}>
               <View style={styles.actionTitleRow}>
-                <Icon name="book-open-page-variant" size={16} color="#d84315" />
+                <Icon name="book-open-page-variant" size={16} color={Colors.primary.main} />
                 <Text style={styles.actionTitle}>Add Recipe</Text>
               </View>
               <Text style={styles.actionDescription}>Create a new recipe</Text>
@@ -144,11 +145,11 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             }}
           >
             <View style={styles.actionIconContainer}>
-              <Icon name="text-box-plus" size={24} color="#d84315" />
+              <Icon name="text-box-plus" size={24} color={Colors.primary.main} />
             </View>
             <View style={styles.actionTextContainer}>
               <View style={styles.actionTitleRow}>
-                <Icon name="newspaper-variant" size={16} color="#d84315" />
+                <Icon name="newspaper-variant" size={16} color={Colors.primary.main} />
                 <Text style={styles.actionTitle}>Create Post</Text>
               </View>
               <Text style={styles.actionDescription}>Share your cooking journey</Text>
@@ -282,7 +283,7 @@ export default function AppNavigator() {
         <Stack.Screen 
           name="RecipeDetail" 
           component={RecipeDetailPage}
-          options={{ title: 'Recipe' }}
+          options={{ headerShown: false }}
         />
         <Stack.Screen 
           name="PostDetail" 
@@ -318,9 +319,9 @@ const styles = StyleSheet.create({
   tabBarContainer: {
     flexDirection: 'row',
     height: 60,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.background.paper,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: Colors.border.main,
     paddingBottom: 5,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
@@ -346,7 +347,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#d84315',
+    backgroundColor: Colors.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 6,
@@ -369,7 +370,7 @@ const styles = StyleSheet.create({
     bottom: 80,
     left: 20,
     right: 20,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.background.paper,
     borderRadius: 16,
     padding: 8,
     elevation: 8,
@@ -389,7 +390,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#fff8e1',
+    backgroundColor: Colors.background.default,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -405,16 +406,16 @@ const styles = StyleSheet.create({
   actionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: Colors.text.primary,
     marginLeft: 6,
   },
   actionDescription: {
     fontSize: 14,
-    color: '#666',
+    color: Colors.text.secondary,
   },
   actionDivider: {
     height: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: Colors.border.light,
     marginVertical: 4,
   },
 });

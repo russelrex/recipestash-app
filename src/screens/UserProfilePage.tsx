@@ -9,6 +9,7 @@ import {
 } from 'react-native-paper';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { authApi, followsApi, postsApi, Post, FollowStats } from '../services/api';
+import { Colors } from '../theme';
 import PostCard from '../components/PostCard';
 import FollowButton from '../components/FollowButton';
 
@@ -84,7 +85,7 @@ export default function UserProfilePage() {
         resizeMode="cover"
       >
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#8BC34A" />
+          <ActivityIndicator size="large" color={Colors.secondary.main} />
           <Text style={styles.loadingText}>Loading profile...</Text>
         </View>
       </ImageBackground>
@@ -212,7 +213,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    color: '#37474F',
+    color: Colors.text.primary,
   },
   profileCard: {
     margin: 16,
@@ -225,13 +226,13 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   avatar: {
-    backgroundColor: '#8BC34A',
+    backgroundColor: Colors.secondary.main,
     marginBottom: 16,
   },
   name: {
     fontWeight: 'bold',
     marginBottom: 16,
-    color: '#37474F',
+    color: Colors.text.primary,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -245,14 +246,14 @@ const styles = StyleSheet.create({
   },
   statDivider: {
     width: 1,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: Colors.border.main,
   },
   statNumber: {
     fontWeight: 'bold',
-    color: '#37474F',
+    color: Colors.text.primary,
   },
   statLabel: {
-    color: '#666',
+    color: Colors.text.secondary,
     marginTop: 4,
   },
   postsSection: {
@@ -261,10 +262,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontWeight: 'bold',
     marginBottom: 12,
-    color: '#37474F',
+    color: Colors.text.primary,
   },
   emptyText: {
-    color: '#999',
+    color: Colors.text.disabled,
     textAlign: 'center',
     paddingVertical: 20,
   },

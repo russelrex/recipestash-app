@@ -3,6 +3,7 @@ import { View, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { Text, Avatar, IconButton } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { authApi, type Comment } from '../services/api';
+import { Colors } from '../theme';
 
 interface CommentItemProps {
   comment: Comment;
@@ -98,13 +99,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   avatar: {
-    backgroundColor: '#d84315',
+    backgroundColor: Colors.primary.main,
   },
   content: {
     flex: 1,
   },
   commentBubble: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.border.light,
     borderRadius: 12,
     padding: 10,
   },
@@ -121,7 +122,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   timestamp: {
-    color: '#999',
+    color: Colors.text.disabled,
     marginTop: 4,
     marginLeft: 12,
   },

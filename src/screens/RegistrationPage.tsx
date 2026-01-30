@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Button, HelperText, Snackbar, Surface, Text, TextInput, useTheme } from 'react-native-paper';
 import { authApi } from '../services/api';
+import { Colors } from '../theme';
 
 const { height } = Dimensions.get('window');
 
@@ -205,7 +206,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   subtitle: {
-    color: '#37474F',
+    color: Colors.text.primary,
     textAlign: 'center',
   },
   cardTitle: {
@@ -216,7 +217,7 @@ const styles = StyleSheet.create({
   description: {
     textAlign: 'center',
     marginBottom: 25,
-    color: '#37474F',
+    color: Colors.text.primary,
     lineHeight: 22,
   },
   scrollContent: {
@@ -236,7 +237,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   infoText: {
-    color: '#37474F',
+    color: Colors.text.primary,
     textAlign: 'center',
   },
   benefitsContainer: {
@@ -249,7 +250,7 @@ const styles = StyleSheet.create({
   },
   benefitItem: {
     marginBottom: 10,
-    color: '#37474F',
+    color: Colors.text.primary,
     lineHeight: 24,
   },
   authCard: {
@@ -278,7 +279,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   loginText: {
-    color: '#37474F',
+    color: Colors.text.primary,
     marginRight: 4,
   },
 });

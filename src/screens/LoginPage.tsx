@@ -20,6 +20,7 @@ import {
   useTheme,
 } from 'react-native-paper';
 import { authApi } from '../services/api';
+import { Colors } from '../theme';
 
 const { height } = Dimensions.get('window');
 
@@ -233,7 +234,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   subtitle: {
-    color: '#37474F',
+    color: Colors.text.primary,
     textAlign: 'center',
   },
   card: {
@@ -248,7 +249,7 @@ const styles = StyleSheet.create({
   description: {
     textAlign: 'center',
     marginBottom: 25,
-    color: '#37474F',
+    color: Colors.text.primary,
     lineHeight: 22,
   },
   authCard: {
@@ -282,13 +283,13 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
   registerText: {
-    color: '#37474F',
+    color: Colors.text.primary,
   },
   infoCard: {
     marginTop: 24,
   },
   infoText: {
-    color: '#37474F',
+    color: Colors.text.primary,
     textAlign: 'center',
   },
 });

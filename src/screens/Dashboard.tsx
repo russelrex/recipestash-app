@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Dimensions, ImageBackground, RefreshControl, ScrollView, StyleSheet, View, TouchableOpacity } from 'react-native';
 import { ActivityIndicator, Avatar, Card, Chip, Snackbar, Text } from 'react-native-paper';
 import { authApi, recipesApi, type Recipe, type RecipeStats } from '../services/api';
+import { Colors } from '../theme';
 
 const { height } = Dimensions.get('window');
 
@@ -94,7 +95,7 @@ export default function Dashboard() {
         resizeMode="cover"
       >
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#8BC34A" />
+          <ActivityIndicator size="large" color={Colors.secondary.main} />
           <Text style={styles.loadingText}>Loading your dashboard...</Text>
         </View>
       </ImageBackground>
@@ -194,7 +195,7 @@ export default function Dashboard() {
                       </Text>
                     </View>
                     {recipe.isFavorite && (
-                      <Avatar.Icon icon="heart" size={24} color="#e91e63" />
+                      <Avatar.Icon icon="heart" size={24} color={Colors.interaction.like} />
                     )}
                   </View>
                 </TouchableOpacity>
@@ -252,7 +253,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    color: '#37474F',
+    color: Colors.text.primary,
   },
   content: {
     flex: 1,
@@ -261,10 +262,10 @@ const styles = StyleSheet.create({
   greeting: {
     fontWeight: 'bold',
     marginBottom: 5,
-    color: '#37474F',
+    color: Colors.text.primary,
   },
   subtitle: {
-    color: '#37474F',
+    color: Colors.text.primary,
     marginBottom: 20,
   },
   statsContainer: {
@@ -283,17 +284,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   statIcon: {
-    backgroundColor: '#8BC34A',
+    backgroundColor: Colors.secondary.main,
   },
   statIconFavorite: {
-    backgroundColor: '#FF9800',
+    backgroundColor: Colors.primary.light,
   },
   statNumber: {
     fontWeight: 'bold',
     marginTop: 10,
   },
   statLabel: {
-    color: '#37474F',
+    color: Colors.text.primary,
     marginTop: 5,
   },
   card: {
@@ -321,11 +322,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   recipeTime: {
-    color: '#37474F',
+    color: Colors.text.primary,
     marginTop: 2,
   },
   emptyText: {
-    color: '#37474F',
+    color: Colors.text.primary,
     fontStyle: 'italic',
     textAlign: 'center',
     paddingVertical: 20,

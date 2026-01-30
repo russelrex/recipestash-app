@@ -4,6 +4,7 @@ import { ActivityIndicator, Text, Snackbar } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import PostCard from '../components/PostCard';
 import { postsApi, type Post } from '../services/api';
+import { Colors } from '../theme';
 
 export default function NewsfeedPage() {
   const navigation = useNavigation();
@@ -168,17 +169,17 @@ export default function NewsfeedPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff8e1',
+    backgroundColor: Colors.background.default,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff8e1',
+    backgroundColor: Colors.background.default,
   },
   loadingText: {
     marginTop: 10,
-    color: '#666',
+    color: Colors.text.secondary,
   },
   listContent: {
     padding: 16,
@@ -197,7 +198,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptyText: {
-    color: '#999',
+    color: Colors.text.disabled,
     textAlign: 'center',
   },
   footer: {
