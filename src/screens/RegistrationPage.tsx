@@ -1,61 +1,114 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
-import {
-  Dimensions,
-  ImageBackground,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { Button, HelperText, Snackbar, Surface, Text, TextInput, useTheme } from 'react-native-paper';
+import { Dimensions, ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Button, HelperText, Snackbar, Surface, Text, TextInput } from 'react-native-paper';
 import { authApi } from '../services/api';
 import { Colors } from '../theme';
 
 const { height } = Dimensions.get('window');
 
 export default function RegistrationPage() {
+  const navigation = useNavigation();
   const [name, setName] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  const navigation = useNavigation();
-  const theme = useTheme();
+
+  const [nameError, setNameError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateName = (name: string): boolean => {
+    setNameError('');
+    if (!name.trim()) {
+      setNameError('Name is required');
+      return false;
+    }
+    if (name.trim().length < 2) {
+      setNameError('Name must be at least 2 characters');
+      return false;
+    }
+    if (name.trim().length > 50) {
+      setNameError('Name must not exceed 50 characters');
+      return false;
+    }
+    return true;
+  };
+
+  const validateEmailField = (email: string): boolean => {
+    setEmailError('');
+    if (!email.trim()) {
+      setEmailError('Email is required');
+      return false;
+    }
+    if (!validateEmail(email)) {
+      setEmailError('Please enter a valid email address');
+      return false;
+    }
+    return true;
+  };
+
+  const validatePasswordField = (password: string): boolean => {
+    setPasswordError('');
+    if (!password) {
+      setPasswordError('Password is required');
+      return false;
+    }
+    if (password.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      return false;
+    }
+    if (password.length > 100) {
+      setPasswordError('Password must not exceed 100 characters');
+      return false;
+    }
+    return true;
+  };
 
   const handleRegister = async () => {
-    if (!name.trim()) {
-      setError('Please enter your name');
-      return;
-    }
+    // Clear all errors
+    setNameError('');
+    setEmailError('');
+    setPasswordError('');
 
-    if (name.trim().length < 2) {
-      setError('Name must be at least 2 characters');
+    // Validate all fields
+    const isNameValid = validateName(name);
+    const isEmailValid = validateEmailField(email);
+    const isPasswordValid = validatePasswordField(password);
+
+    if (!isNameValid || !isEmailValid || !isPasswordValid) {
       return;
     }
 
     setLoading(true);
-    setError('');
 
     try {
-      const response = await authApi.register(name.trim());
+      await authApi.register({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-      if (response.success) {
-        setSnackbarMessage('Welcome to RecipeStash! 🎉');
-        setSnackbarVisible(true);
+      setSnackbarMessage('Account created successfully! 🎉');
+      setSnackbarVisible(true);
 
-        setTimeout(() => {
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'MainTabs' as never }],
-          });
-        }, 1000);
-      }
+      setTimeout(() => {
+        (navigation as any).reset({
+          index: 0,
+          routes: [{ name: 'MainTabs' }],
+        });
+      }, 500);
     } catch (error: any) {
       console.error('Registration error:', error);
-      setError(error.message || 'Registration failed. Please try again.');
-      setSnackbarMessage('Registration failed. Please try again.');
+      setSnackbarMessage(error.message || 'Registration failed. Please try again.');
       setSnackbarVisible(true);
     } finally {
       setLoading(false);
@@ -77,90 +130,129 @@ export default function RegistrationPage() {
             <Surface style={styles.authCard} elevation={3}>
               <ScrollView
                 contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
               >
-                <View style={styles.header}>
-                  <Text
-                    variant="displaySmall"
-                    style={[styles.title, { color: theme.colors.primary }]}
-                  >
-                    🍳 Welcome!
-                  </Text>
-                  <Text variant="titleMedium" style={styles.subtitle}>
-                    Let's get you started with RecipeStash
-                  </Text>
-                </View>
-
-                <Text variant="titleLarge" style={styles.cardTitle}>
-                  Create Your Account
+                <Text variant="headlineSmall" style={styles.welcomeText}>
+                  Create Account
+                </Text>
+                <Text variant="bodyMedium" style={styles.subText}>
+                  Join RecipeStash today
                 </Text>
 
-                <Text variant="bodyMedium" style={styles.description}>
-                  Just one quick step! Tell us your name and start organizing your favorite recipes.
-                </Text>
-
+                {/* Name Field */}
                 <TextInput
-                  label="Your Name"
+                  label="Name *"
                   value={name}
-                  onChangeText={text => {
+                  onChangeText={(text) => {
                     setName(text);
-                    setError('');
+                    if (nameError) validateName(text);
                   }}
+                  onBlur={() => validateName(name)}
                   mode="outlined"
                   style={styles.input}
-                  placeholder="e.g., John Doe"
-                  error={!!error}
-                  left={<TextInput.Icon icon="account" />}
                   autoCapitalize="words"
-                  autoCorrect={false}
-                  returnKeyType="done"
-                  onSubmitEditing={handleRegister}
+                  autoComplete="name"
+                  left={<TextInput.Icon icon="account-outline" />}
+                  outlineColor={nameError ? Colors.status.error : 'rgba(255, 255, 255, 0.8)'}
+                  activeOutlineColor={nameError ? Colors.status.error : Colors.primary.main}
+                  error={!!nameError}
                   disabled={loading}
+                  theme={{ colors: { onSurface: Colors.text.primary } }}
                 />
-
-                {error ? (
-                  <HelperText type="error" visible={!!error}>
-                    {error}
+                {nameError ? (
+                  <HelperText type="error" visible={!!nameError} style={styles.helperText}>
+                    {nameError}
                   </HelperText>
                 ) : null}
 
+                {/* Email Field */}
+                <TextInput
+                  label="Email Address *"
+                  value={email}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    if (emailError) validateEmailField(text);
+                  }}
+                  onBlur={() => validateEmailField(email)}
+                  mode="outlined"
+                  style={styles.input}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  left={<TextInput.Icon icon="email-outline" />}
+                  outlineColor={emailError ? Colors.status.error : 'rgba(255, 255, 255, 0.8)'}
+                  activeOutlineColor={emailError ? Colors.status.error : Colors.primary.main}
+                  error={!!emailError}
+                  disabled={loading}
+                  theme={{ colors: { onSurface: Colors.text.primary } }}
+                />
+                {emailError ? (
+                  <HelperText type="error" visible={!!emailError} style={styles.helperText}>
+                    {emailError}
+                  </HelperText>
+                ) : null}
+
+                {/* Password Field */}
+                <TextInput
+                  label="Password *"
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (passwordError) validatePasswordField(text);
+                  }}
+                  onBlur={() => validatePasswordField(password)}
+                  mode="outlined"
+                  style={styles.input}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoComplete="password-new"
+                  left={<TextInput.Icon icon="lock-outline" />}
+                  right={
+                    <TextInput.Icon
+                      icon={showPassword ? 'eye-off' : 'eye'}
+                      onPress={() => setShowPassword(!showPassword)}
+                    />
+                  }
+                  outlineColor={passwordError ? Colors.status.error : 'rgba(255, 255, 255, 0.8)'}
+                  activeOutlineColor={passwordError ? Colors.status.error : Colors.primary.main}
+                  error={!!passwordError}
+                  disabled={loading}
+                  theme={{ colors: { onSurface: Colors.text.primary } }}
+                />
+                {passwordError ? (
+                  <HelperText type="error" visible={!!passwordError} style={styles.helperText}>
+                    {passwordError}
+                  </HelperText>
+                ) : (
+                  <HelperText type="info" visible={!passwordError} style={styles.helperText}>
+                    Minimum 6 characters
+                  </HelperText>
+                )}
+
+                {/* Register Button */}
                 <Button
                   mode="contained"
                   onPress={handleRegister}
-                  style={styles.button}
+                  style={styles.primaryButton}
                   contentStyle={styles.buttonContent}
                   loading={loading}
                   disabled={loading}
+                  buttonColor={Colors.primary.main}
                 >
-                  {loading ? 'Setting Up...' : 'Start Cooking!'}
+                  {loading ? 'Creating Account...' : 'Create Account'}
                 </Button>
 
-                <View style={styles.loginBlock}>
-                  <View style={styles.loginRow}>
-                    <Text variant="bodyMedium" style={styles.loginText}>
-                      Already have an account?
-                    </Text>
-                    <Button
-                      mode="text"
-                      compact
-                      onPress={() => navigation.navigate('Login' as never)}
-                      disabled={loading}
-                      textColor={theme.colors.primary}
-                    >
-                      Sign In
-                    </Button>
-                  </View>
-
-                  <Button
-                    mode="text"
-                    compact
-                    onPress={() => navigation.navigate('Home' as never)}
-                    disabled={loading}
-                    textColor="#607D8B"
-                  >
-                    Back to Home
-                  </Button>
-                </View>
+                {/* Sign In Link */}
+                <Button
+                  mode="text"
+                  onPress={() => navigation.goBack()}
+                  style={styles.secondaryButton}
+                  textColor={Colors.primary.main}
+                  disabled={loading}
+                >
+                  Already have an account? Sign In
+                </Button>
               </ScrollView>
             </Surface>
           </View>
@@ -171,6 +263,10 @@ export default function RegistrationPage() {
         visible={snackbarVisible}
         onDismiss={() => setSnackbarVisible(false)}
         duration={3000}
+        action={{
+          label: 'Close',
+          onPress: () => setSnackbarVisible(false),
+        }}
       >
         {snackbarMessage}
       </Snackbar>
@@ -197,62 +293,6 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  title: {
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitle: {
-    color: Colors.text.primary,
-    textAlign: 'center',
-  },
-  cardTitle: {
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  description: {
-    textAlign: 'center',
-    marginBottom: 25,
-    color: Colors.text.primary,
-    lineHeight: 22,
-  },
-  scrollContent: {
-    padding: 24,
-  },
-  input: {
-    marginBottom: 10,
-  },
-  button: {
-    marginTop: 20,
-  },
-  buttonContent: {
-    paddingVertical: 8,
-  },
-  infoContainer: {
-    marginTop: 15,
-    alignItems: 'center',
-  },
-  infoText: {
-    color: Colors.text.primary,
-    textAlign: 'center',
-  },
-  benefitsContainer: {
-    marginTop: 24,
-  },
-  benefitsTitle: {
-    fontWeight: 'bold',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  benefitItem: {
-    marginBottom: 10,
-    color: Colors.text.primary,
-    lineHeight: 24,
-  },
   authCard: {
     width: '100%',
     maxWidth: 400,
@@ -260,6 +300,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.6)',
+    padding: 32,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
@@ -268,19 +309,39 @@ const styles = StyleSheet.create({
     elevation: 10,
     overflow: 'hidden',
   },
-  loginBlock: {
-    marginTop: 16,
-    alignItems: 'center',
-    gap: 4,
+  scrollContent: {
+    width: '100%',
   },
-  loginRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loginText: {
+  welcomeText: {
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
     color: Colors.text.primary,
-    marginRight: 4,
+  },
+  subText: {
+    color: Colors.text.primary,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  input: {
+    marginBottom: 4,
+    width: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  helperText: {
+    marginTop: 0,
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+  },
+  primaryButton: {
+    width: '100%',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  secondaryButton: {
+    width: '100%',
+  },
+  buttonContent: {
+    paddingVertical: 8,
   },
 });
-

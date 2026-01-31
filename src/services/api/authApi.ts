@@ -25,10 +25,12 @@ export interface UserProfile {
 }
 
 class AuthApi {
-  async register(name: string): Promise<AuthResponse> {
+  async register(data: { name: string; email: string; password: string }): Promise<AuthResponse> {
     try {
       const response = await apiClient.post<AuthResponse>('/auth/register', {
-        name,
+        name: data.name,
+        email: data.email,
+        password: data.password,
       });
 
       if (response.data.success) {
@@ -42,16 +44,17 @@ class AuthApi {
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 409) {
-        throw new Error('An account with this name already exists');
+        throw new Error('An account with this email already exists');
       }
       throw new Error(error.response?.data?.message || 'Registration failed');
     }
   }
 
-  async login(name: string): Promise<AuthResponse> {
+  async login(data: { email: string; password: string }): Promise<AuthResponse> {
     try {
       const response = await apiClient.post<AuthResponse>('/auth/login', {
-        name,
+        email: data.email,
+        password: data.password,
       });
       console.log('Login response:', response.data);
       if (response.data.success) {
@@ -65,7 +68,7 @@ class AuthApi {
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 401) {
-        throw new Error('Invalid credentials. Please check your name.');
+        throw new Error('Invalid email or password');
       }
       throw new Error(error.response?.data?.message || 'Login failed');
     }

@@ -1,13 +1,16 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Alert,
   Dimensions,
+  FlatList,
   Image,
+  Modal,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
+  Platform,
 } from 'react-native';
 import {
   ActivityIndicator,
@@ -20,8 +23,10 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { authApi, postsApi, recipesApi, type Post, type Recipe } from '../services/api';
 import { Colors } from '../theme';
 
-const { width } = Dimensions.get('window');
-const HEADER_HEIGHT = 400;
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const HEADER_HEIGHT = 380;
+const THUMB_SIZE = 68;
+const THUMB_GAP = 10;
 
 export default function RecipeDetailPage() {
   const route = useRoute();
@@ -36,6 +41,13 @@ export default function RecipeDetailPage() {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [activeTab, setActiveTab] = useState<'ingredients' | 'instructions'>('ingredients');
+
+  // Hero / thumbnail selection
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  // Gallery modal
+  const [galleryVisible, setGalleryVisible] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
 
   useEffect(() => {
     loadRecipeDetails();
@@ -68,7 +80,6 @@ export default function RecipeDetailPage() {
 
   const handleToggleFavorite = async () => {
     if (!recipe) return;
-
     try {
       const updatedRecipe = await recipesApi.toggleFavorite(recipe._id);
       setRecipe(updatedRecipe);
@@ -77,7 +88,6 @@ export default function RecipeDetailPage() {
       );
       setSnackbarVisible(true);
     } catch (error) {
-      console.error('Error toggling favorite:', error);
       setSnackbarMessage('Failed to update favorite');
       setSnackbarVisible(true);
     }
@@ -91,42 +101,68 @@ export default function RecipeDetailPage() {
 
   const handleDelete = () => {
     setMenuVisible(false);
-    Alert.alert(
-      'Delete Recipe',
-      'Are you sure you want to delete this recipe?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await recipesApi.deleteRecipe(recipe?._id || recipeId);
-              setSnackbarMessage('Recipe deleted successfully');
-              setSnackbarVisible(true);
-              setTimeout(() => {
-                navigation.goBack();
-              }, 1000);
-            } catch (error) {
-              console.error('Error deleting recipe:', error);
-              setSnackbarMessage('Failed to delete recipe');
-              setSnackbarVisible(true);
-            }
-          },
+    Alert.alert('Delete Recipe', 'Are you sure you want to delete this recipe?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await recipesApi.deleteRecipe(recipe?._id || recipeId);
+            setSnackbarMessage('Recipe deleted successfully');
+            setSnackbarVisible(true);
+            setTimeout(() => navigation.goBack(), 1000);
+          } catch {
+            setSnackbarMessage('Failed to delete recipe');
+            setSnackbarVisible(true);
+          }
         },
-      ],
-    );
+      },
+    ]);
   };
 
   const getDifficultyIcon = (difficulty: string) => {
-    const icons: Record<string, string> = {
+    const map: Record<string, string> = {
       easy: 'emoticon-happy',
       medium: 'emoticon-neutral',
       hard: 'fire',
     };
-    return icons[difficulty.toLowerCase()] || 'help';
+    return map[difficulty.toLowerCase()] || 'help';
   };
 
+  // ─── merged image list (featured first, no dupes) ───
+  const getAllImages = useCallback((): string[] => {
+    if (!recipe) return [];
+    const set = new Set<string>();
+    const result: string[] = [];
+    const add = (url: string | undefined) => {
+      if (url && !set.has(url)) {
+        set.add(url);
+        result.push(url);
+      }
+    };
+    add(recipe.featuredImage);
+    recipe.images?.forEach(add);
+    return result;
+  }, [recipe]);
+
+  // ─── open gallery starting at the tapped thumbnail ───
+  const openGallery = (index: number) => {
+    setGalleryIndex(index);
+    setGalleryVisible(true);
+  };
+
+  // ─── gallery swipe helpers ───
+  const galleryNext = () => {
+    const images = getAllImages();
+    setGalleryIndex(prev => (prev + 1) % images.length);
+  };
+  const galleryPrev = () => {
+    const images = getAllImages();
+    setGalleryIndex(prev => (prev - 1 + images.length) % images.length);
+  };
+
+  // ─── loading ─────────────────────────────────────
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -136,6 +172,7 @@ export default function RecipeDetailPage() {
     );
   }
 
+  // ─── empty ───────────────────────────────────────
   if (!recipe) {
     return (
       <View style={styles.errorContainer}>
@@ -150,34 +187,43 @@ export default function RecipeDetailPage() {
 
   const isOwnRecipe = currentUserId === recipe.userId;
   const totalTime = recipe.prepTime + recipe.cookTime;
+  const allImages = getAllImages();
+  const hasImages = allImages.length > 0;
+  const hasMultiple = allImages.length > 1;
 
+  // ═══════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header Image with Overlay */}
-        <View style={styles.headerContainer}>
-          {recipe.imageUrl ? (
-            <Image source={{ uri: recipe.imageUrl }} style={styles.headerImage} />
+
+        {/* ─── Hero ──────────────────────────────────── */}
+        <View style={styles.heroWrapper}>
+          {hasImages ? (
+            <Image source={{ uri: allImages[selectedImageIndex] }} style={styles.heroImage} />
           ) : (
-            <View style={[styles.headerImage, styles.placeholderContainer]}>
-              <Icon name="food" size={80} color={Colors.text.disabled} />
+            <View style={[styles.heroImage, styles.placeholderBox]}>
+              <Icon name="food" size={72} color={Colors.text.disabled} />
               <Text style={styles.placeholderText}>No Image</Text>
             </View>
           )}
-          <View style={styles.headerOverlay} />
 
-          {/* Back Button */}
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={24} color={Colors.text.inverse} />
+          {/* gradient overlay */}
+          <View style={styles.heroOverlay} />
+
+          {/* back */}
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-left" size={22} color="#fff" />
           </TouchableOpacity>
 
-          {/* Action Buttons */}
-          <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleToggleFavorite}>
+          {/* fav + menu */}
+          <View style={styles.heroActions}>
+            <TouchableOpacity style={styles.heroActionBtn} onPress={handleToggleFavorite}>
               <Icon
                 name={recipe.isFavorite ? 'heart' : 'heart-outline'}
-                size={24}
-                color={recipe.isFavorite ? Colors.interaction.like : Colors.text.inverse}
+                size={22}
+                color={recipe.isFavorite ? Colors.interaction.like : '#fff'}
               />
             </TouchableOpacity>
             {isOwnRecipe && (
@@ -185,8 +231,8 @@ export default function RecipeDetailPage() {
                 visible={menuVisible}
                 onDismiss={() => setMenuVisible(false)}
                 anchor={
-                  <TouchableOpacity style={styles.actionButton} onPress={() => setMenuVisible(true)}>
-                    <Icon name="dots-vertical" size={24} color={Colors.text.inverse} />
+                  <TouchableOpacity style={styles.heroActionBtn} onPress={() => setMenuVisible(true)}>
+                    <Icon name="dots-vertical" size={22} color="#fff" />
                   </TouchableOpacity>
                 }
               >
@@ -195,39 +241,72 @@ export default function RecipeDetailPage() {
               </Menu>
             )}
           </View>
+
+          {/* counter badge */}
+          {hasMultiple && (
+            <View style={styles.counterBadge}>
+              <Icon name="image" size={13} color="#fff" />
+              <Text style={styles.counterText}>
+                {selectedImageIndex + 1}/{allImages.length}
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* Profile Card Overlay */}
-        <View style={styles.profileCard}>
+        {/* ─── White card (thumbnails live INSIDE here) ── */}
+        <View style={styles.cardSheet}>
+
+          {/* thumbnail row – only when 2+ images */}
+          {hasMultiple && (
+            <View style={styles.thumbRow}>
+              <FlatList
+                data={allImages}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(_, i) => i.toString()}
+                ItemSeparatorComponent={() => <View style={{ width: THUMB_GAP }} />}
+                contentContainerStyle={styles.thumbList}
+                renderItem={({ item, index }) => {
+                  const active = index === selectedImageIndex;
+                  return (
+                    <TouchableOpacity
+                      activeOpacity={0.75}
+                      style={[styles.thumbOuter, active && styles.thumbOuterActive]}
+                      onPress={() => {
+                        setSelectedImageIndex(index);
+                        openGallery(index);
+                      }}
+                    >
+                      <Image source={{ uri: item }} style={styles.thumbImg} />
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            </View>
+          )}
+
+          {/* title + category */}
           <Text style={styles.recipeName}>{recipe.title}</Text>
           <Text style={styles.recipeCategory}>{recipe.category}</Text>
 
-          {/* Stats Row */}
+          {/* stats */}
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <View
-                style={[styles.statIconContainer, { backgroundColor: Colors.primary.light + '20' }]}
-              >
+              <View style={[styles.statIcon, { backgroundColor: Colors.primary.light + '1A' }]}>
                 <Icon name="clock-outline" size={20} color={Colors.primary.main} />
               </View>
               <Text style={styles.statValue}>{totalTime}</Text>
               <Text style={styles.statLabel}>Total time</Text>
             </View>
-
             <View style={styles.statItem}>
-              <View
-                style={[styles.statIconContainer, { backgroundColor: Colors.primary.main + '20' }]}
-              >
+              <View style={[styles.statIcon, { backgroundColor: Colors.primary.main + '1A' }]}>
                 <Icon name="food-fork-drink" size={20} color={Colors.primary.main} />
               </View>
               <Text style={styles.statValue}>{recipe.servings}</Text>
               <Text style={styles.statLabel}>Servings</Text>
             </View>
-
             <View style={styles.statItem}>
-              <View
-                style={[styles.statIconContainer, { backgroundColor: Colors.secondary.main + '20' }]}
-              >
+              <View style={[styles.statIcon, { backgroundColor: Colors.secondary.main + '1A' }]}>
                 <Icon name={getDifficultyIcon(recipe.difficulty)} size={20} color={Colors.secondary.main} />
               </View>
               <Text style={styles.statValue}>{recipe.difficulty}</Text>
@@ -235,89 +314,80 @@ export default function RecipeDetailPage() {
             </View>
           </View>
 
-          {/* Description */}
-          {recipe.description && <Text style={styles.description}>{recipe.description}</Text>}
+          {/* description */}
+          {recipe.description ? <Text style={styles.description}>{recipe.description}</Text> : null}
 
-          {/* Related Posts Carousel */}
+          {/* related posts */}
           {relatedPosts.length > 0 && (
             <View style={styles.postsSection}>
               <Text style={styles.postsSectionTitle}>Posted by</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.postsCarousel}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.postsScroll}>
                 {relatedPosts.map(post => (
                   <TouchableOpacity
                     key={post.id}
-                    style={styles.postThumbnail}
+                    style={styles.postThumb}
                     onPress={() => (navigation as any).navigate('PostDetail', { postId: post.id })}
                   >
                     {post.imageUrl ? (
-                      <Image source={{ uri: post.imageUrl }} style={styles.postThumbnailImage} />
+                      <Image source={{ uri: post.imageUrl }} style={styles.postThumbImg} />
                     ) : (
-                      <View style={styles.postThumbnailPlaceholder}>
-                        <Icon name="image-outline" size={24} color={Colors.text.disabled} />
+                      <View style={styles.postThumbPlaceholder}>
+                        <Icon name="image-outline" size={22} color={Colors.text.disabled} />
                       </View>
                     )}
-                    <View style={styles.postThumbnailOverlay}>
-                      <Icon name="account" size={16} color={Colors.text.inverse} />
+                    <View style={styles.postThumbUserBadge}>
+                      <Icon name="account" size={14} color="#fff" />
                     </View>
                   </TouchableOpacity>
                 ))}
-                <TouchableOpacity style={styles.postThumbnailMore}>
-                  <Icon name="chevron-right" size={24} color={Colors.text.secondary} />
-                </TouchableOpacity>
+                <View style={styles.postThumbMore}>
+                  <Icon name="chevron-right" size={22} color={Colors.text.secondary} />
+                </View>
               </ScrollView>
             </View>
           )}
         </View>
 
-        {/* Tabs */}
-        <View style={styles.tabsContainer}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'ingredients' && styles.tabActive]}
-            onPress={() => setActiveTab('ingredients')}
-          >
-            <Text style={[styles.tabText, activeTab === 'ingredients' && styles.tabTextActive]}>
-              Ingredients
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'instructions' && styles.tabActive]}
-            onPress={() => setActiveTab('instructions')}
-          >
-            <Text style={[styles.tabText, activeTab === 'instructions' && styles.tabTextActive]}>
-              Instructions
-            </Text>
-          </TouchableOpacity>
+        {/* ─── Tabs ──────────────────────────────────── */}
+        <View style={styles.tabBar}>
+          {(['ingredients', 'instructions'] as const).map(tab => {
+            const active = activeTab === tab;
+            const label = tab === 'ingredients' ? 'Ingredients' : 'Instructions';
+            return (
+              <TouchableOpacity
+                key={tab}
+                style={[styles.tab, active && styles.tabActive]}
+                onPress={() => setActiveTab(tab)}
+              >
+                <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
-        {/* Content */}
-        <View style={styles.contentContainer}>
-          {activeTab === 'ingredients' ? (
-            <View style={styles.ingredientsContainer}>
-              {recipe.ingredients.map((ingredient, index) => (
-                <View key={index} style={styles.ingredientItem}>
-                  <View style={styles.ingredientBullet} />
-                  <Text style={styles.ingredientText}>{ingredient}</Text>
+        {/* ─── Tab content ───────────────────────────── */}
+        <View style={styles.tabContent}>
+          {activeTab === 'ingredients'
+            ? recipe.ingredients.map((item, i) => (
+                <View key={i} style={styles.ingredientRow}>
+                  <View style={styles.ingredientDot} />
+                  <Text style={styles.ingredientText}>{item}</Text>
                 </View>
-              ))}
-            </View>
-          ) : (
-            <View style={styles.instructionsContainer}>
-              {recipe.instructions.map((instruction, index) => (
-                <View key={index} style={styles.instructionItem}>
-                  <View style={styles.instructionNumber}>
-                    <Text style={styles.instructionNumberText}>{index + 1}</Text>
+              ))
+            : recipe.instructions.map((item, i) => (
+                <View key={i} style={styles.instructionRow}>
+                  <View style={styles.stepBadge}>
+                    <Text style={styles.stepBadgeNum}>{i + 1}</Text>
                   </View>
-                  <Text style={styles.instructionText}>{instruction}</Text>
+                  <Text style={styles.instructionText}>{item}</Text>
                 </View>
               ))}
-            </View>
-          )}
         </View>
 
-        {/* Time Breakdown */}
-        <View style={styles.timeBreakdown}>
+        {/* ─── Time breakdown ────────────────────────── */}
+        <View style={styles.timeBar}>
           <View style={styles.timeItem}>
-            <Icon name="chef-hat" size={24} color={Colors.primary.main} />
+            <Icon name="chef-hat" size={22} color={Colors.primary.main} />
             <View style={styles.timeInfo}>
               <Text style={styles.timeValue}>{recipe.prepTime} min</Text>
               <Text style={styles.timeLabel}>Prep time</Text>
@@ -325,7 +395,7 @@ export default function RecipeDetailPage() {
           </View>
           <Divider style={styles.timeDivider} />
           <View style={styles.timeItem}>
-            <Icon name="pot-steam" size={24} color={Colors.primary.main} />
+            <Icon name="pot-steam" size={22} color={Colors.primary.main} />
             <View style={styles.timeInfo}>
               <Text style={styles.timeValue}>{recipe.cookTime} min</Text>
               <Text style={styles.timeLabel}>Cook time</Text>
@@ -334,6 +404,78 @@ export default function RecipeDetailPage() {
         </View>
       </ScrollView>
 
+      {/* ═══ FULL-SCREEN GALLERY MODAL ═══ */}
+      <Modal
+        visible={galleryVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setGalleryVisible(false)}
+        statusBarTranslucent
+      >
+        <View style={styles.galleryRoot}>
+          {/* background */}
+          <View style={styles.galleryBg} />
+
+          {/* main image */}
+          <View style={styles.galleryImageWrapper}>
+            <Image
+              source={{ uri: allImages[galleryIndex] }}
+              style={styles.galleryImage}
+              resizeMode="contain"
+            />
+          </View>
+
+          {/* top bar: close + counter */}
+          <View style={styles.galleryTopBar}>
+            <TouchableOpacity style={styles.galleryCloseBtn} onPress={() => setGalleryVisible(false)}>
+              <Icon name="close" size={26} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.galleryCounter}>
+              <Icon name="image" size={15} color="#fff" />
+              <Text style={styles.galleryCounterText}>
+                {galleryIndex + 1} / {allImages.length}
+              </Text>
+            </View>
+          </View>
+
+          {/* prev / next arrows */}
+          {allImages.length > 1 && (
+            <>
+              <TouchableOpacity style={[styles.galleryArrow, styles.galleryArrowLeft]} onPress={galleryPrev}>
+                <Icon name="chevron-left" size={32} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.galleryArrow, styles.galleryArrowRight]} onPress={galleryNext}>
+                <Icon name="chevron-right" size={32} color="#fff" />
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* bottom thumbnail strip */}
+          <View style={styles.galleryThumbStrip}>
+            <FlatList
+              data={allImages}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(_, i) => `g${i}`}
+              ItemSeparatorComponent={() => <View style={{ width: 8 }} />}
+              contentContainerStyle={styles.galleryThumbList}
+              renderItem={({ item, index }) => {
+                const active = index === galleryIndex;
+                return (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setGalleryIndex(index)}
+                    style={[styles.galleryThumb, active && styles.galleryThumbActive]}
+                  >
+                    <Image source={{ uri: item }} style={styles.galleryThumbImg} />
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
+
       <Snackbar visible={snackbarVisible} onDismiss={() => setSnackbarVisible(false)} duration={3000}>
         {snackbarMessage}
       </Snackbar>
@@ -341,309 +483,274 @@ export default function RecipeDetailPage() {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════
+// STYLES
+// ═══════════════════════════════════════════════════════════════
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background.default,
-  },
+  // ─── root ──────────────────────────────────────────────────
+  container: { flex: 1, backgroundColor: Colors.background.default },
+  scrollView: { flex: 1 },
+
+  // ─── loading / error ───────────────────────────────────────
   loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    flex: 1, justifyContent: 'center', alignItems: 'center',
     backgroundColor: Colors.background.default,
   },
-  loadingText: {
-    marginTop: 10,
-    color: Colors.text.secondary,
-  },
+  loadingText: { marginTop: 10, color: Colors.text.secondary },
   errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: Colors.background.default,
+    flex: 1, justifyContent: 'center', alignItems: 'center',
+    padding: 20, backgroundColor: Colors.background.default,
   },
-  errorText: {
-    fontSize: 18,
-    marginTop: 16,
-    marginBottom: 24,
-    color: Colors.text.secondary,
-  },
+  errorText: { fontSize: 18, marginTop: 16, marginBottom: 24, color: Colors.text.secondary },
   errorButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    backgroundColor: Colors.primary.main,
-    borderRadius: 8,
+    paddingHorizontal: 24, paddingVertical: 12,
+    backgroundColor: Colors.primary.main, borderRadius: 8,
   },
-  errorButtonText: {
-    color: Colors.text.inverse,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  headerContainer: {
-    height: HEADER_HEIGHT,
-    position: 'relative',
-  },
-  headerImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  placeholderContainer: {
+  errorButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+
+  // ─── hero ──────────────────────────────────────────────────
+  heroWrapper: { height: HEADER_HEIGHT, position: 'relative' },
+  heroImage: { width: '100%', height: '100%' },
+  placeholderBox: {
     backgroundColor: Colors.border.light,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center', alignItems: 'center',
   },
-  placeholderText: {
-    marginTop: 8,
-    fontSize: 14,
-    color: Colors.text.secondary,
+  placeholderText: { marginTop: 8, fontSize: 14, color: Colors.text.secondary },
+  heroOverlay: {
+    position: 'absolute', inset: 0,
+    backgroundColor: 'rgba(12,22,7,0.32)',
   },
-  headerOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: Colors.overlay,
+  backBtn: {
+    position: 'absolute', top: 50, left: 16,
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: 'rgba(0,0,0,0.38)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  heroActions: {
+    position: 'absolute', top: 50, right: 16,
+    flexDirection: 'row', gap: 10,
   },
-  headerActions: {
-    position: 'absolute',
-    top: 50,
-    right: 16,
-    flexDirection: 'row',
-    gap: 12,
+  heroActionBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: 'rgba(0,0,0,0.38)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  actionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  counterBadge: {
+    position: 'absolute', bottom: 14, right: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.52)',
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
   },
-  profileCard: {
+  counterText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+
+  // ─── white card sheet ──────────────────────────────────────
+  cardSheet: {
     backgroundColor: Colors.background.paper,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    marginTop: -30,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 16,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    marginTop: -26,
+    paddingBottom: 8,
   },
+
+  // ─── thumbnails (inside the card) ──────────────────────────
+  thumbRow: {
+    paddingTop: 18,
+    paddingBottom: 4,
+  },
+  thumbList: { paddingHorizontal: 20 },
+  thumbOuter: {
+    width: THUMB_SIZE, height: THUMB_SIZE,
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  thumbOuterActive: {
+    borderColor: Colors.primary.main,
+  },
+  thumbImg: { width: '100%', height: '100%' },
+
+  // ─── title / category ──────────────────────────────────────
   recipeName: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 26, fontWeight: 'bold',
     color: Colors.text.primary,
-    marginBottom: 4,
+    paddingHorizontal: 24, marginTop: 14, marginBottom: 4,
   },
   recipeCategory: {
-    fontSize: 16,
-    color: Colors.text.secondary,
-    marginBottom: 24,
+    fontSize: 15, color: Colors.text.secondary,
+    paddingHorizontal: 24, marginBottom: 22,
   },
+
+  // ─── stats ─────────────────────────────────────────────────
   statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
+    flexDirection: 'row', justifyContent: 'space-around',
+    paddingHorizontal: 24, marginBottom: 20,
   },
-  statItem: {
-    alignItems: 'center',
+  statItem: { alignItems: 'center' },
+  statIcon: {
+    width: 48, height: 48, borderRadius: 12,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 8,
   },
-  statIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.text.primary,
-    marginBottom: 2,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-  },
+  statValue: { fontSize: 17, fontWeight: 'bold', color: Colors.text.primary, marginBottom: 2 },
+  statLabel: { fontSize: 12, color: Colors.text.secondary },
+
+  // ─── description ───────────────────────────────────────────
   description: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: Colors.text.secondary,
-    marginBottom: 20,
+    fontSize: 15, lineHeight: 22, color: Colors.text.secondary,
+    paddingHorizontal: 24, marginBottom: 20,
   },
-  postsSection: {
-    marginBottom: 8,
+
+  // ─── related posts ─────────────────────────────────────────
+  postsSection: { paddingHorizontal: 24, marginBottom: 8 },
+  postsSectionTitle: { fontSize: 15, fontWeight: '600', color: Colors.text.primary, marginBottom: 10 },
+  postsScroll: { marginHorizontal: -24, paddingHorizontal: 24 },
+  postThumb: {
+    width: 76, height: 76, borderRadius: 14,
+    marginRight: 10, overflow: 'hidden', position: 'relative',
   },
-  postsSectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 12,
-  },
-  postsCarousel: {
-    marginHorizontal: -24,
-    paddingHorizontal: 24,
-  },
-  postThumbnail: {
-    width: 80,
-    height: 80,
-    borderRadius: 16,
-    marginRight: 12,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  postThumbnailImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  postThumbnailPlaceholder: {
-    width: '100%',
-    height: '100%',
+  postThumbImg: { width: '100%', height: '100%' },
+  postThumbPlaceholder: {
+    width: '100%', height: '100%',
     backgroundColor: Colors.border.light,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center', alignItems: 'center',
   },
-  postThumbnailOverlay: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  postThumbUserBadge: {
+    position: 'absolute', bottom: 4, right: 4,
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  postThumbnailMore: {
-    width: 80,
-    height: 80,
-    borderRadius: 16,
+  postThumbMore: {
+    width: 76, height: 76, borderRadius: 14,
     backgroundColor: Colors.border.light,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center', alignItems: 'center',
   },
-  tabsContainer: {
+
+  // ─── tabs ──────────────────────────────────────────────────
+  tabBar: {
     flexDirection: 'row',
     backgroundColor: Colors.background.paper,
-    paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingHorizontal: 24, paddingTop: 12,
   },
   tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    flex: 1, paddingVertical: 10, alignItems: 'center',
+    borderBottomWidth: 2, borderBottomColor: 'transparent',
   },
-  tabActive: {
-    borderBottomColor: Colors.primary.main,
-  },
-  tabText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: Colors.text.secondary,
-  },
-  tabTextActive: {
-    color: Colors.primary.main,
-    fontWeight: '600',
-  },
-  contentContainer: {
+  tabActive: { borderBottomColor: Colors.primary.main },
+  tabText: { fontSize: 16, fontWeight: '500', color: Colors.text.secondary },
+  tabTextActive: { color: Colors.primary.main, fontWeight: '600' },
+
+  // ─── tab content ───────────────────────────────────────────
+  tabContent: {
     backgroundColor: Colors.background.paper,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 16,
+    paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16,
   },
-  ingredientsContainer: {},
-  ingredientItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  ingredientBullet: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  ingredientRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 14 },
+  ingredientDot: {
+    width: 6, height: 6, borderRadius: 3,
     backgroundColor: Colors.primary.main,
-    marginTop: 8,
-    marginRight: 12,
+    marginTop: 9, marginRight: 12,
   },
-  ingredientText: {
+  ingredientText: { flex: 1, fontSize: 16, lineHeight: 24, color: Colors.text.primary },
+
+  instructionRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20 },
+  stepBadge: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: Colors.primary.main,
+    justifyContent: 'center', alignItems: 'center',
+    marginRight: 12, flexShrink: 0,
+  },
+  stepBadgeNum: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
+  instructionText: { flex: 1, fontSize: 16, lineHeight: 24, color: Colors.text.primary, paddingTop: 4 },
+
+  // ─── time bar ──────────────────────────────────────────────
+  timeBar: {
+    flexDirection: 'row', backgroundColor: Colors.background.paper,
+    padding: 24, marginTop: 8,
+  },
+  timeItem: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  timeInfo: { marginLeft: 12 },
+  timeValue: { fontSize: 16, fontWeight: 'bold', color: Colors.text.primary },
+  timeLabel: { fontSize: 12, color: Colors.text.secondary },
+  timeDivider: { width: 1, marginHorizontal: 16, backgroundColor: Colors.border.main },
+
+  // ═══ GALLERY MODAL ═════════════════════════════════════════
+  galleryRoot: {
     flex: 1,
-    fontSize: 16,
-    lineHeight: 24,
-    color: Colors.text.primary,
-  },
-  instructionsContainer: {},
-  instructionItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 20,
-  },
-  instructionNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    backgroundColor: 'transparent',
   },
-  instructionNumberText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.text.inverse,
+  galleryBg: {
+    position: 'absolute', inset: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.92)',
   },
-  instructionText: {
-    flex: 1,
-    fontSize: 16,
-    lineHeight: 24,
-    color: Colors.text.primary,
-    paddingTop: 4,
-  },
-  timeBreakdown: {
-    flexDirection: 'row',
-    backgroundColor: Colors.background.paper,
-    padding: 24,
-    marginTop: 8,
-  },
-  timeItem: {
-    flex: 1,
-    flexDirection: 'row',
+
+  // ─── main image ────────────────────────────────────────────
+  galleryImageWrapper: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT * 0.6,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  timeInfo: {
-    marginLeft: 12,
+  galleryImage: {
+    width: SCREEN_WIDTH - 40,
+    height: SCREEN_HEIGHT * 0.6,
   },
-  timeValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.text.primary,
+
+  // ─── top bar ───────────────────────────────────────────────
+  galleryTopBar: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 58 : 44,
+    left: 0, right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    zIndex: 2,
   },
-  timeLabel: {
-    fontSize: 12,
-    color: Colors.text.secondary,
+  galleryCloseBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  timeDivider: {
-    width: 1,
-    marginHorizontal: 16,
-    backgroundColor: Colors.border.main,
+  galleryCounter: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
   },
+  galleryCounterText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+
+  // ─── arrows ────────────────────────────────────────────────
+  galleryArrow: {
+    position: 'absolute',
+    top: '50%',
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.38)',
+    justifyContent: 'center', alignItems: 'center',
+    zIndex: 2,
+  },
+  galleryArrowLeft: { left: 8, transform: [{ translateY: -22 }] },
+  galleryArrowRight: { right: 8, transform: [{ translateY: -22 }] },
+
+  // ─── bottom thumbnail strip ────────────────────────────────
+  galleryThumbStrip: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 40 : 28,
+    left: 0, right: 0,
+    zIndex: 2,
+  },
+  galleryThumbList: {
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+  },
+  galleryThumb: {
+    width: 60, height: 60, borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)',
+  },
+  galleryThumbActive: {
+    borderColor: Colors.primary.main,
+  },
+  galleryThumbImg: { width: '100%', height: '100%' },
 });

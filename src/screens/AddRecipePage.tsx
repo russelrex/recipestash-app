@@ -15,7 +15,10 @@ import {
   TextInput,
   useTheme
 } from 'react-native-paper';
+import ImageUploadSection from '../components/ImageUploadSection';
+import { ImageUploadConfig } from '../config/imageUpload.config';
 import { authApi, CreateRecipeData, recipesApi } from '../services/api';
+import type { ImageData } from '../services/imagePicker';
 import { Colors } from '../theme';
 
 const { height } = Dimensions.get('window');
@@ -41,7 +44,10 @@ export default function AddRecipePage() {
   const [prepTime, setPrepTime] = useState('');
   const [cookTime, setCookTime] = useState('');
   const [servings, setServings] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+
+  // Image state
+  const [featuredImage, setFeaturedImage] = useState<ImageData | null>(null);
+  const [additionalImages, setAdditionalImages] = useState<ImageData[]>([]);
 
   // Ingredients state
   const [ingredients, setIngredients] = useState<string[]>(['']);
@@ -128,6 +134,14 @@ export default function AddRecipePage() {
       const validIngredients = ingredients.filter(i => i.trim());
       const validInstructions = instructions.filter(i => i.trim());
 
+      // Prepare featured image (base64 or undefined)
+      const featuredImageData = featuredImage ? featuredImage.base64 : undefined;
+
+      // Prepare additional images (base64 array)
+      const additionalImagesData = additionalImages
+        .slice(0, ImageUploadConfig.maxAdditionalImages)
+        .map(img => img.base64);
+
       const recipeData: CreateRecipeData = {
         userId,
         ownerId,
@@ -141,7 +155,8 @@ export default function AddRecipePage() {
         servings: parseInt(servings),
         ingredients: validIngredients,
         instructions: validInstructions,
-        imageUrl: imageUrl.trim() || undefined,
+        featuredImage: featuredImageData,
+        images: additionalImagesData,
         isFavorite: false,
       };
 
@@ -199,6 +214,14 @@ export default function AddRecipePage() {
             </Text>
           </View>
 
+          {/* Image Upload Section */}
+          <ImageUploadSection
+            featuredImage={featuredImage}
+            additionalImages={additionalImages}
+            onFeaturedImageChange={setFeaturedImage}
+            onAdditionalImagesChange={setAdditionalImages}
+          />
+
           {/* Title Section */}
           <Surface style={styles.surface} elevation={2}>
             <View style={styles.sectionHeader}>
@@ -244,17 +267,6 @@ export default function AddRecipePage() {
                 {errors.description}
               </HelperText>
             ) : null}
-
-            <TextInput
-              label="Image URL (Optional)"
-              value={imageUrl}
-              onChangeText={setImageUrl}
-              mode="outlined"
-              style={styles.input}
-              placeholder="https://example.com/image.jpg"
-              left={<TextInput.Icon icon="image" />}
-              contentStyle={styles.inputContent}
-            />
           </Surface>
 
           {/* Category Section */}

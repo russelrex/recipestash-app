@@ -13,6 +13,8 @@ export interface Recipe {
   servings: number;
   difficulty: 'easy' | 'medium' | 'hard';
   imageUrl?: string;
+  featuredImage?: string; // Base64 encoded or URL
+  images?: string[]; // Array of base64 encoded images or URLs
   isFavorite: boolean;
   rating?: number;
   createdAt: string;
@@ -33,6 +35,8 @@ export interface CreateRecipeData {
   servings: number;
   difficulty: 'easy' | 'medium' | 'hard';
   imageUrl?: string;
+  featuredImage?: string; // Base64 encoded image
+  images?: string[]; // Array of base64 encoded images
   isFavorite?: boolean;
   rating?: number;
 }
