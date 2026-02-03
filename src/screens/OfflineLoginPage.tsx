@@ -1,50 +1,36 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
-import { Dimensions, ImageBackground, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Dimensions, ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, HelperText, Snackbar, Surface, Text, TextInput } from 'react-native-paper';
-import { authApi } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import offlineAuth from '../services/cache/offlineAuth';
 import { Colors } from '../theme';
 
 const { height } = Dimensions.get('window');
 
-export default function RegistrationPage() {
+export default function OfflineLoginPage() {
   const navigation = useNavigation();
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-
-  const [nameError, setNameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
-  // ── ToS acceptance ──────────────────────────────────────────────────────
-  const [tosAccepted, setTosAccepted] = useState(false);
-  const [tosError, setTosError] = useState('');
+  useEffect(() => {
+    // Pre-fill email if available
+    offlineAuth.getStoredEmail().then(storedEmail => {
+      if (storedEmail) {
+        setEmail(storedEmail);
+      }
+    });
+  }, []);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
-  };
-
-  const validateName = (name: string): boolean => {
-    setNameError('');
-    if (!name.trim()) {
-      setNameError('Name is required');
-      return false;
-    }
-    if (name.trim().length < 2) {
-      setNameError('Name must be at least 2 characters');
-      return false;
-    }
-    if (name.trim().length > 50) {
-      setNameError('Name must not exceed 50 characters');
-      return false;
-    }
-    return true;
   };
 
   const validateEmailField = (email: string): boolean => {
@@ -66,58 +52,59 @@ export default function RegistrationPage() {
       setPasswordError('Password is required');
       return false;
     }
-    if (password.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
-      return false;
-    }
-    if (password.length > 100) {
-      setPasswordError('Password must not exceed 100 characters');
-      return false;
-    }
     return true;
   };
 
-  const handleRegister = async () => {
+  const handleOfflineLogin = async () => {
     // Clear all errors
-    setNameError('');
     setEmailError('');
     setPasswordError('');
-    setTosError('');
 
     // Validate all fields
-    const isNameValid = validateName(name);
     const isEmailValid = validateEmailField(email);
     const isPasswordValid = validatePasswordField(password);
 
-    if (!tosAccepted) {
-      setTosError('You must accept the Terms of Service and Privacy Policy');
-    }
-
-    if (!isNameValid || !isEmailValid || !isPasswordValid || !tosAccepted) {
+    if (!isEmailValid || !isPasswordValid) {
       return;
     }
 
     setLoading(true);
 
     try {
-      await authApi.register({
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        password,
-      });
+      const isValid = await offlineAuth.verifyOfflineLogin(email, password);
 
-      setSnackbarMessage('Account created successfully! 🎉');
+      if (!isValid) {
+        setSnackbarMessage('Invalid email or password');
         setSnackbarVisible(true);
+        return;
+      }
 
-        setTimeout(() => {
+      // Store offline token
+      await AsyncStorage.setItem('authToken', 'offline');
+      
+      // Get stored userId and userName if available
+      const userId = await AsyncStorage.getItem('userId');
+      const userName = await AsyncStorage.getItem('userName');
+
+      if (!userId || !userName) {
+        // If no user data, we can't proceed
+        setSnackbarMessage('User data not found. Please login online first.');
+        setSnackbarVisible(true);
+        return;
+      }
+
+      setSnackbarMessage('Offline login successful! 📱');
+      setSnackbarVisible(true);
+
+      setTimeout(() => {
         (navigation as any).reset({
-            index: 0,
+          index: 0,
           routes: [{ name: 'MainTabs' }],
-          });
+        });
       }, 500);
     } catch (error: any) {
-      console.error('Registration error:', error);
-      setSnackbarMessage(error.message || 'Registration failed. Please try again.');
+      console.error('Offline login error:', error);
+      setSnackbarMessage(error.message || 'Offline login failed');
       setSnackbarVisible(true);
     } finally {
       setLoading(false);
@@ -143,37 +130,14 @@ export default function RegistrationPage() {
                 showsVerticalScrollIndicator={false}
               >
                 <Text variant="headlineSmall" style={styles.welcomeText}>
-                  Create Account
+                  Offline Mode
                 </Text>
                 <Text variant="bodyMedium" style={styles.subText}>
-                  Join RecipeStash today
+                  Sign in to access cached recipes
                 </Text>
-
-                {/* Name Field */}
-                <TextInput
-                  label="Name *"
-                  value={name}
-                  onChangeText={(text) => {
-                    setName(text);
-                    if (nameError) validateName(text);
-                  }}
-                  onBlur={() => validateName(name)}
-                  mode="outlined"
-                  style={styles.input}
-                  autoCapitalize="words"
-                  autoComplete="name"
-                  left={<TextInput.Icon icon="account-outline" />}
-                  outlineColor={nameError ? Colors.status.error : 'rgba(255, 255, 255, 0.8)'}
-                  activeOutlineColor={nameError ? Colors.status.error : Colors.primary.main}
-                  error={!!nameError}
-                  disabled={loading}
-                  theme={{ colors: { onSurface: Colors.text.primary } }}
-                />
-                {nameError ? (
-                  <HelperText type="error" visible={!!nameError} style={styles.helperText}>
-                    {nameError}
-                  </HelperText>
-                ) : null}
+                <Text variant="bodySmall" style={styles.warningText}>
+                  ⚠️ You are currently offline. Only cached data is available.
+                </Text>
 
                 {/* Email Field */}
                 <TextInput
@@ -215,7 +179,7 @@ export default function RegistrationPage() {
                   style={styles.input}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
-                  autoComplete="password-new"
+                  autoComplete="password"
                   left={<TextInput.Icon icon="lock-outline" />}
                   right={
                     <TextInput.Icon
@@ -233,82 +197,20 @@ export default function RegistrationPage() {
                   <HelperText type="error" visible={!!passwordError} style={styles.helperText}>
                     {passwordError}
                   </HelperText>
-                ) : (
-                  <HelperText type="info" visible={!passwordError} style={styles.helperText}>
-                    Minimum 6 characters
-                  </HelperText>
-                )}
-
-                {/* ── Terms & Privacy checkbox ─────────────────────────── */}
-                <Pressable
-                  style={styles.checkboxRow}
-                  onPress={() => {
-                    setTosAccepted(prev => !prev);
-                    setTosError('');
-                  }}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: tosAccepted }}
-                  disabled={loading}
-                >
-                  {/* Checkbox box */}
-                  <View style={[styles.checkboxBox, tosAccepted && styles.checkboxBoxActive]}>
-                    {tosAccepted && <Text style={styles.checkmark}>✓</Text>}
-                  </View>
-
-                  {/* Label with tappable links */}
-                  <Text style={styles.checkboxLabel}>
-                    I agree to the{' '}
-                    <Text
-                      style={styles.link}
-                      onPress={(e) => {
-                        e.stopPropagation?.();
-                        (navigation as any).navigate('TermsOfService');
-                      }}
-                    >
-                      Terms of Service
-                    </Text>
-                    {' '}and{' '}
-                    <Text
-                      style={styles.link}
-                      onPress={(e) => {
-                        e.stopPropagation?.();
-                        (navigation as any).navigate('PrivacyPolicy');
-                      }}
-                    >
-                      Privacy Policy
-                    </Text>
-                  </Text>
-                </Pressable>
-
-                {tosError ? (
-                  <HelperText type="error" visible={!!tosError} style={styles.helperText}>
-                    {tosError}
-                  </HelperText>
                 ) : null}
 
-                {/* Register Button */}
+                {/* Login Button */}
                 <Button
                   mode="contained"
-                  onPress={handleRegister}
+                  onPress={handleOfflineLogin}
                   style={styles.primaryButton}
                   contentStyle={styles.buttonContent}
                   loading={loading}
-                  disabled={loading || !tosAccepted}
+                  disabled={loading}
                   buttonColor={Colors.primary.main}
                 >
-                  {loading ? 'Creating Account...' : 'Create Account'}
+                  {loading ? 'Signing In...' : 'Sign In Offline'}
                 </Button>
-
-                {/* Sign In Link */}
-                    <Button
-                      mode="text"
-                  onPress={() => navigation.goBack()}
-                  style={styles.secondaryButton}
-                  textColor={Colors.primary.main}
-                      disabled={loading}
-                >
-                  Already have an account? Sign In
-                  </Button>
               </ScrollView>
             </Surface>
           </View>
@@ -376,8 +278,14 @@ const styles = StyleSheet.create({
   },
   subText: {
     color: Colors.text.primary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  warningText: {
+    color: Colors.status.warning || '#FF9800',
     marginBottom: 24,
     textAlign: 'center',
+    fontStyle: 'italic',
   },
   input: {
     marginBottom: 4,
@@ -394,50 +302,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 12,
   },
-  secondaryButton: {
-    width: '100%',
-  },
   buttonContent: {
     paddingVertical: 8,
-  },
-  // ── checkbox ──────────────────────────────────────────────────────────────
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginTop: 12,
-    marginBottom: 4,
-    gap: 10,
-  },
-  checkboxBox: {
-    width: 22,
-    height: 22,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#aaa',
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexShrink: 0,
-    marginTop: 1, // optical vertical centre with first line of label
-  },
-  checkboxBoxActive: {
-    borderColor: '#B15912',
-    backgroundColor: '#B15912',
-  },
-  checkmark: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  checkboxLabel: {
-    flex: 1,
-    fontSize: 13,
-    color: '#555',
-    lineHeight: 20,
-  },
-  link: {
-    color: '#B15912',
-    fontWeight: '600',
-    textDecorationLine: 'underline',
   },
 });

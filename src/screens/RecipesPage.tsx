@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Dimensions, ImageBackground, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Avatar, Card, Chip, IconButton, Menu, Searchbar, Snackbar, Text } from 'react-native-paper';
 import { Recipe, recipesApi } from '../services/api';
+import { isOfflineMode } from '../services/cache/offlineUtils';
 import { Colors } from '../theme';
 
 const { height } = Dimensions.get('window');
@@ -20,12 +21,19 @@ export default function RecipesPage() {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [menuVisible, setMenuVisible] = useState<Record<string, boolean>>({});
+  const [offline, setOffline] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
+      checkOfflineMode();
       loadRecipes();
     }, [])
   );
+
+  const checkOfflineMode = async () => {
+    const offlineMode = await isOfflineMode();
+    setOffline(offlineMode);
+  };
 
   useEffect(() => {
     applyFilters();
@@ -112,10 +120,15 @@ export default function RecipesPage() {
   };
 
   const handleToggleFavorite = async (recipeId: string) => {
+    if (offline) {
+      setSnackbarMessage('This action is not available in offline mode');
+      setSnackbarVisible(true);
+      return;
+    }
     try {
       const updatedRecipe = await recipesApi.toggleFavorite(recipeId);
       setRecipes(prev =>
-        prev.map(r => (r.id === recipeId ? updatedRecipe : r))
+        prev.map(r => (r._id === recipeId ? updatedRecipe : r))
       );
     } catch (error: any) {
       console.error('Error toggling favorite:', error);
@@ -124,10 +137,44 @@ export default function RecipesPage() {
     }
   };
 
+  const handleToggleFeatured = async (recipeId: string) => {
+    if (offline) {
+      setSnackbarMessage('This action is not available in offline mode');
+      setSnackbarVisible(true);
+      return;
+    }
+    try {
+      const recipe = recipes.find(r => r._id === recipeId);
+      if (!recipe) return;
+
+      const updatedRecipe = await recipesApi.updateRecipe(recipeId, {
+        featured: !recipe.featured,
+      });
+      setRecipes(prev =>
+        prev.map(r => (r._id === recipeId ? updatedRecipe : r))
+      );
+      setSnackbarMessage(
+        updatedRecipe.featured 
+          ? 'Recipe set as featured ⭐' 
+          : 'Recipe removed from featured',
+      );
+      setSnackbarVisible(true);
+    } catch (error: any) {
+      console.error('Error toggling featured status:', error);
+      setSnackbarMessage(error.message || 'Failed to update featured status');
+      setSnackbarVisible(true);
+    }
+  };
+
   const handleDelete = async (recipeId: string) => {
+    if (offline) {
+      setSnackbarMessage('This action is not available in offline mode');
+      setSnackbarVisible(true);
+      return;
+    }
     try {
       await recipesApi.deleteRecipe(recipeId);
-      setRecipes(prev => prev.filter(r => r.id !== recipeId));
+      setRecipes(prev => prev.filter(r => r._id !== recipeId));
       setSnackbarMessage('Recipe deleted successfully');
       setSnackbarVisible(true);
     } catch (error: any) {
@@ -228,9 +275,16 @@ export default function RecipesPage() {
             </Chip>
           </View>
 
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            {filter === 'favorites' ? 'Favorite Recipes' : 'All Recipes'} ({filteredRecipes.length})
-          </Text>
+          <View style={styles.titleContainer}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              {filter === 'favorites' ? 'Favorite Recipes' : 'All Recipes'} ({filteredRecipes.length})
+            </Text>
+            {offline && (
+              <Text variant="bodySmall" style={styles.offlineBadge}>
+                📱 Offline Mode
+              </Text>
+            )}
+          </View>
 
           {filteredRecipes.length === 0 ? (
             <View style={styles.emptyContainer}>
@@ -245,12 +299,12 @@ export default function RecipesPage() {
           ) : (
             filteredRecipes.map(recipe => (
               <Card
-                key={recipe.id}
+                key={recipe._id}
                 style={styles.recipeCard}
                 onPress={() =>
                   navigation.navigate(
                     'RecipeDetail' as never,
-                    { recipeId: recipe.id } as never,
+                    { recipeId: recipe._id } as never,
                   )
                 }
               >
@@ -275,34 +329,53 @@ export default function RecipesPage() {
                       />
                     </View>
                     <Menu
-                      visible={menuVisible[recipe.id] || false}
-                      onDismiss={() => setMenuVisible({ ...menuVisible, [recipe.id]: false })}
+                      visible={menuVisible[recipe._id] || false}
+                      onDismiss={() => setMenuVisible({ ...menuVisible, [recipe._id]: false })}
                       anchor={
                         <IconButton
                           icon="dots-vertical"
                           size={20}
                           onPress={() =>
-                            setMenuVisible({ ...menuVisible, [recipe.id]: true })
+                            setMenuVisible({ ...menuVisible, [recipe._id]: true })
                           }
                         />
                       }
                     >
-                      <Menu.Item
-                        onPress={() => {
-                          setMenuVisible({ ...menuVisible, [recipe.id]: false });
-                          handleToggleFavorite(recipe.id);
-                        }}
-                        title={recipe.isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
-                        leadingIcon={recipe.isFavorite ? 'star-off' : 'star'}
-                      />
-                      <Menu.Item
-                        onPress={() => {
-                          setMenuVisible({ ...menuVisible, [recipe.id]: false });
-                          handleDelete(recipe.id);
-                        }}
-                        title="Delete"
-                        leadingIcon="delete"
-                      />
+                      {!offline && (
+                        <>
+                          <Menu.Item
+                            onPress={() => {
+                              setMenuVisible({ ...menuVisible, [recipe._id]: false });
+                              handleToggleFavorite(recipe._id);
+                            }}
+                            title={recipe.isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+                            leadingIcon={recipe.isFavorite ? 'star-off' : 'star'}
+                          />
+                          <Menu.Item
+                            onPress={() => {
+                              setMenuVisible({ ...menuVisible, [recipe._id]: false });
+                              handleToggleFeatured(recipe._id);
+                            }}
+                            title={recipe.featured ? 'Remove from featured' : 'Set as featured'}
+                            leadingIcon={recipe.featured ? 'star-off' : 'star'}
+                          />
+                          <Menu.Item
+                            onPress={() => {
+                              setMenuVisible({ ...menuVisible, [recipe._id]: false });
+                              handleDelete(recipe._id);
+                            }}
+                            title="Delete"
+                            leadingIcon="delete"
+                          />
+                        </>
+                      )}
+                      {offline && (
+                        <Menu.Item
+                          title="Offline Mode - Actions Disabled"
+                          leadingIcon="wifi-off"
+                          disabled
+                        />
+                      )}
                     </Menu>
                   </View>
                   <Text variant="bodyMedium" style={styles.description} numberOfLines={2}>
@@ -384,10 +457,19 @@ const styles = StyleSheet.create({
   chip: {
     marginBottom: 8,
   },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
   sectionTitle: {
     fontWeight: 'bold',
-    marginBottom: 15,
     color: Colors.text.primary,
+  },
+  offlineBadge: {
+    color: Colors.status.warning || '#FF9800',
+    fontStyle: 'italic',
   },
   recipeCard: {
     marginBottom: 16,

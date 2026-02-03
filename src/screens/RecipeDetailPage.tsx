@@ -1,16 +1,16 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Dimensions,
   FlatList,
   Image,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
-  Platform,
 } from 'react-native';
 import {
   ActivityIndicator,
@@ -102,6 +102,28 @@ export default function RecipeDetailPage() {
       recipeId: recipe._id,
       mode: 'edit'
     });
+  };
+
+  const handleToggleFeatured = async () => {
+    if (!recipe) return;
+    setMenuVisible(false);
+    
+    try {
+      const updatedRecipe = await recipesApi.updateRecipe(recipe._id, {
+        featured: !recipe.featured,
+      });
+      setRecipe(updatedRecipe);
+      setSnackbarMessage(
+        updatedRecipe.featured 
+          ? 'Recipe set as featured ⭐' 
+          : 'Recipe removed from featured',
+      );
+      setSnackbarVisible(true);
+    } catch (error: any) {
+      console.error('Error toggling featured status:', error);
+      setSnackbarMessage(error.message || 'Failed to update featured status');
+      setSnackbarVisible(true);
+    }
   };
 
   const handleDelete = () => {
@@ -259,6 +281,11 @@ export default function RecipeDetailPage() {
                 }
               >
                 <Menu.Item onPress={handleEdit} title="Edit" leadingIcon="pencil" />
+                <Menu.Item 
+                  onPress={handleToggleFeatured} 
+                  title={recipe.featured ? "Remove from featured" : "Set as featured"} 
+                  leadingIcon={recipe.featured ? "star-off" : "star"} 
+                />
                 <Menu.Item onPress={handleDelete} title="Delete" leadingIcon="delete" />
               </Menu>
             )}

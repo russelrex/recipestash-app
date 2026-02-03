@@ -1,10 +1,11 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
-import { Alert, Dimensions, ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Dimensions, ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import {
   ActivityIndicator,
   Avatar,
   Button,
+  Checkbox,
   Chip,
   Divider,
   HelperText,
@@ -17,7 +18,7 @@ import {
   useTheme
 } from 'react-native-paper';
 import ImageUploadSection from '../components/ImageUploadSection';
-import { CreateRecipeData, UpdateRecipeData, recipesApi } from '../services/api';
+import { authApi, CreateRecipeData, recipesApi, UpdateRecipeData } from '../services/api';
 import type { ImageData } from '../services/imagePicker';
 import { Colors } from '../theme';
 
@@ -49,6 +50,7 @@ export default function AddRecipePage() {
   const [prepTime, setPrepTime] = useState('');
   const [cookTime, setCookTime] = useState('');
   const [servings, setServings] = useState('');
+  const [featured, setFeatured] = useState(false);
 
   // Image state
   const [featuredImage, setFeaturedImage] = useState<ImageData | null>(null);
@@ -90,6 +92,7 @@ export default function AddRecipePage() {
       setPrepTime(recipe.prepTime.toString());
       setCookTime(recipe.cookTime.toString());
       setServings(recipe.servings.toString());
+      setFeatured(recipe.featured || false);
       setIngredients(recipe.ingredients.length > 0 ? recipe.ingredients : ['']);
       setInstructions(recipe.instructions.length > 0 ? recipe.instructions : ['']);
 
@@ -234,6 +237,7 @@ export default function AddRecipePage() {
           cookTime: parseInt(cookTime),
           servings: parseInt(servings),
           difficulty: difficulty as 'easy' | 'medium' | 'hard',
+          featured,
         };
 
         // Only include image fields if they have values
@@ -256,6 +260,14 @@ export default function AddRecipePage() {
         await recipesApi.updateRecipe(recipeId!, recipeData);
         setSnackbarMessage('Recipe updated successfully! ✨');
       } else {
+        // Get current user info for ownerId and ownerName
+        const userId = await authApi.getCurrentUserId();
+        const userName = await authApi.getCurrentUserName();
+
+        if (!userId || !userName) {
+          throw new Error('User information not found. Please log in again.');
+        }
+
         const recipeData: CreateRecipeData = {
           title: title.trim(),
           description: description.trim(),
@@ -266,6 +278,9 @@ export default function AddRecipePage() {
           servings: parseInt(servings),
           ingredients: validIngredients,
           instructions: validInstructions,
+          ownerId: userId,
+          ownerName: userName,
+          featured,
         };
 
         // Only include image fields if they have values
@@ -537,6 +552,26 @@ export default function AddRecipePage() {
                 {errors.servings}
               </HelperText>
             ) : null}
+
+            <View style={styles.checkboxContainer}>
+              <Checkbox
+                status={featured ? 'checked' : 'unchecked'}
+                onPress={() => setFeatured(!featured)}
+                color={Colors.primary.main}
+              />
+              <TouchableOpacity
+                style={styles.checkboxLabel}
+                onPress={() => setFeatured(!featured)}
+                activeOpacity={0.7}
+              >
+                <Text variant="bodyLarge" style={styles.checkboxText}>
+                  Set as featured recipe
+                </Text>
+                <Text variant="bodySmall" style={styles.checkboxHint}>
+                  Featured recipes appear on your profile (max 3)
+                </Text>
+              </TouchableOpacity>
+            </View>
           </Surface>
 
           {/* Ingredients Section */}
@@ -918,5 +953,23 @@ const styles = StyleSheet.create({
   },
   cancelButtonContent: {
     paddingVertical: 6,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 16,
+    paddingVertical: 8,
+  },
+  checkboxLabel: {
+    flex: 1,
+    marginLeft: 8,
+  },
+  checkboxText: {
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  checkboxHint: {
+    color: Colors.text.secondary,
+    marginTop: 4,
   },
 });

@@ -9,7 +9,14 @@ import {
 import FollowButton from '../components/FollowButton';
 import PostCard from '../components/PostCard';
 import ProfileAvatar from '../components/ProfileAvatar';
-import { authApi, followsApi, FollowStats, Post, postsApi } from '../services/api';
+import {
+  authApi,
+  followsApi,
+  type FollowStats,
+  type Post,
+  postsApi,
+  type UserProfile,
+} from '../services/api';
 import { Colors } from '../theme';
 
 const { height } = Dimensions.get('window');
@@ -19,6 +26,7 @@ export default function UserProfilePage() {
   const navigation = useNavigation();
   const userId = (route.params as any)?.userId as string;
 
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [userName, setUserName] = useState('');
   const [stats, setStats] = useState<FollowStats | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -35,15 +43,18 @@ export default function UserProfilePage() {
       const currentId = await authApi.getCurrentUserId();
       setCurrentUserId(currentId);
 
-      const [statsData, userPosts] = await Promise.all([
+      const [profileData, statsData, userPosts] = await Promise.all([
+        authApi.getUserProfile(userId),
         followsApi.getStats(userId),
         postsApi.getUserPosts(userId),
       ]);
 
-      // Get user name from first post or stats
-      if (userPosts.length > 0) {
-        setUserName(userPosts[0].userName);
-      }
+      setProfile(profileData);
+
+      // Prefer profile name; fall back to first post's userName if needed
+      const derivedName =
+        profileData?.name || (userPosts.length > 0 ? userPosts[0].userName : '');
+      setUserName(derivedName);
 
       setStats(statsData);
       setPosts(userPosts);
@@ -103,6 +114,7 @@ export default function UserProfilePage() {
             <Card.Content style={styles.profileContent}>
               <ProfileAvatar
                 name={userName}
+                avatarUrl={profile?.avatarUrl}
                 size={80}
                 style={styles.avatar}
               />

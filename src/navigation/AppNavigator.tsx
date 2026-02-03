@@ -1,3 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -10,18 +12,20 @@ import { Colors } from '../theme';
 
 import AddRecipePage from '../screens/AddRecipePage';
 import CreatePostPage from '../screens/CreatePostPage';
-import Dashboard from '../screens/Dashboard';
 import FollowersPage from '../screens/FollowersPage';
 import FollowingPage from '../screens/FollowingPage';
 import HomePage from '../screens/HomePage';
 import LoginPage from '../screens/LoginPage';
 import NewsfeedPage from '../screens/NewsfeedPage';
+import OfflineLoginPage from '../screens/OfflineLoginPage';
 import PostDetailPage from '../screens/PostDetailPage';
+import PrivacyPolicyPage from '../screens/PrivacyPolicyPage';
 import ProfilePage from '../screens/ProfilePage';
 import RecipeDetailPage from '../screens/RecipeDetailPage';
 import RecipesPage from '../screens/RecipesPage';
 import RegistrationPage from '../screens/RegistrationPage';
 import SettingsPage from '../screens/SettingsPage';
+import TermsOfServicePage from '../screens/TermsOfServicePage';
 import UserProfilePage from '../screens/UserProfilePage';
 
 const Stack = createNativeStackNavigator();
@@ -57,15 +61,20 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             return <View key={route.key} style={styles.tabItem} />;
           }
 
+          // Temporarily hide Dashboard tab
+          if (route.name === 'Dashboard') {
+            return null;
+          }
+
           let iconName = 'home';
           if (route.name === 'Newsfeed') {
             iconName = isFocused ? 'newspaper-variant' : 'newspaper-variant-outline';
           } else if (route.name === 'Recipes') {
             iconName = isFocused ? 'book-open-page-variant' : 'book-open-page-variant-outline';
-          } else if (route.name === 'Dashboard') {
-            iconName = isFocused ? 'view-dashboard' : 'view-dashboard-outline';
           } else if (route.name === 'Profile') {
             iconName = isFocused ? 'account' : 'account-outline';
+          } else if (route.name === 'Settings') {
+            iconName = isFocused ? 'cog' : 'cog-outline';
           }
 
           const onPress = () => {
@@ -197,14 +206,14 @@ function TabNavigator() {
         options={{ tabBarButton: () => null }}
       />
       <Tab.Screen 
-        name="Dashboard" 
-        component={Dashboard}
-        options={{ title: 'Dashboard' }}
-      />
-      <Tab.Screen 
         name="Profile" 
         component={ProfilePage}
         options={{ title: 'Profile' }}
+      />
+      <Tab.Screen 
+        name="Settings" 
+        component={SettingsPage}
+        options={{ title: 'Settings' }}
       />
     </Tab.Navigator>
   );
@@ -214,20 +223,62 @@ function TabNavigator() {
 export default function AppNavigator() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
-    checkAuthentication();
+    checkConnectivityAndAuth();
+    
+    // Subscribe to network state changes
+    const unsubscribe = NetInfo.addEventListener(state => {
+      const offline = !state.isConnected;
+      setIsOffline(offline);
+      
+      // If we go offline and user is not authenticated, check for offline token
+      if (offline && !isAuthenticated) {
+        checkOfflineAuth();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
-  const checkAuthentication = async () => {
+  const checkConnectivityAndAuth = async () => {
     try {
-      const authenticated = await authApi.isAuthenticated();
-      setIsAuthenticated(authenticated);
+      const netInfo = await NetInfo.fetch();
+      const offline = !netInfo.isConnected;
+      setIsOffline(offline);
+
+      if (offline) {
+        // Check if user has offline token
+        const token = await AsyncStorage.getItem('authToken');
+        if (token === 'offline') {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } else {
+        // Online: use normal authentication check
+        const authenticated = await authApi.isAuthenticated();
+        setIsAuthenticated(authenticated);
+      }
     } catch (error) {
-      console.error('Error checking authentication:', error);
+      console.error('Error checking connectivity/auth:', error);
       setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const checkOfflineAuth = async () => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      if (token === 'offline') {
+        setIsAuthenticated(true);
+      }
+    } catch (error) {
+      console.error('Error checking offline auth:', error);
     }
   };
 
@@ -239,7 +290,13 @@ export default function AppNavigator() {
     );
   }
 
-  const initialRouteName = isAuthenticated ? 'MainTabs' : 'Home';
+  // Determine initial route
+  let initialRouteName = 'Home';
+  if (isAuthenticated) {
+    initialRouteName = 'MainTabs';
+  } else if (isOffline) {
+    initialRouteName = 'OfflineLogin';
+  }
 
   return (
     <NavigationContainer>
@@ -261,9 +318,25 @@ export default function AppNavigator() {
           options={{ headerShown: false }}
         />
         <Stack.Screen 
+          name="OfflineLogin" 
+          component={OfflineLoginPage}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
           name="Registration" 
           component={RegistrationPage}
           options={{ headerShown: false }}
+        />
+        {/* Legal screens — accessible from Registration before login */}
+        <Stack.Screen 
+          name="TermsOfService" 
+          component={TermsOfServicePage}
+          options={{ title: 'Terms of Service' }}
+        />
+        <Stack.Screen 
+          name="PrivacyPolicy" 
+          component={PrivacyPolicyPage}
+          options={{ title: 'Privacy Policy' }}
         />
         <Stack.Screen 
           name="MainTabs" 

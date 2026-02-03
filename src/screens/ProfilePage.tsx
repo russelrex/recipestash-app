@@ -11,8 +11,6 @@ import {
   ActivityIndicator,
   Button,
   Card,
-  Chip,
-  IconButton,
   Snackbar,
   Text
 } from 'react-native-paper';
@@ -27,6 +25,7 @@ import {
   type Recipe,
   type UserProfile,
 } from '../services/api';
+import { isOfflineMode } from '../services/cache/offlineUtils';
 import { Colors } from '../theme';
 import EditProfileModal from './EditProfileModal';
 
@@ -38,12 +37,12 @@ export default function ProfilePage() {
   const [followStats, setFollowStats] = useState<FollowStats | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [featuredRecipe, setFeaturedRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [offline, setOffline] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -51,11 +50,17 @@ export default function ProfilePage() {
 
   useFocusEffect(
     useCallback(() => {
+      checkOfflineMode();
       if (userId) {
         loadProfileData();
       }
     }, [userId]),
   );
+
+  const checkOfflineMode = async () => {
+    const offlineMode = await isOfflineMode();
+    setOffline(offlineMode);
+  };
 
   const loadUserData = async () => {
     try {
@@ -87,9 +92,6 @@ export default function ProfilePage() {
       setFollowStats(stats);
       setRecipes(userRecipes);
       setPosts(userPosts);
-
-      const withImg = userRecipes.find((r: Recipe) => r.featuredImage);
-      setFeaturedRecipe(withImg || userRecipes[0] || null);
     } catch (error: any) {
       console.error('Error loading profile data:', error);
       setSnackbarMessage('Failed to load profile data');
@@ -151,12 +153,12 @@ export default function ProfilePage() {
                 size={80}
                 style={styles.avatar}
               />
-              <IconButton
+              {/* <IconButton
                 icon="cog"
                 size={24}
                 onPress={() => navigation.navigate('Settings' as never)}
                 style={styles.settingsButton}
-              />
+              /> */}
             </View>
 
             <Text variant="headlineSmall" style={styles.name}>
@@ -168,15 +170,22 @@ export default function ProfilePage() {
               : <Text variant="bodyMedium" style={styles.bioPlaceholder}>No bio yet</Text>
             }
 
-            <Button
-              mode="outlined"
-              onPress={() => setEditModalVisible(true)}
-              style={styles.editButton}
-              icon="pencil"
-              textColor={Colors.primary.main}
-            >
-              Edit Profile
-            </Button>
+            {!offline && (
+              <Button
+                mode="outlined"
+                onPress={() => setEditModalVisible(true)}
+                style={styles.editButton}
+                icon="pencil"
+                textColor={Colors.primary.main}
+              >
+                Edit Profile
+              </Button>
+            )}
+            {offline && (
+              <Text variant="bodySmall" style={styles.offlineBadge}>
+                📱 Offline Mode - Profile editing disabled
+              </Text>
+            )}
 
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
@@ -234,60 +243,22 @@ export default function ProfilePage() {
           </Card.Content>
         </Card>
 
-        {featuredRecipe && (
-          <Card
-            style={styles.featuredCard}
-            onPress={() => navigation.navigate('RecipeDetail' as never,
-              { recipeId: featuredRecipe._id } as never)}
-          >
-            <Card.Content>
-              <Text variant="titleLarge" style={styles.sectionTitle}>Featured Recipe</Text>
-            </Card.Content>
-            {featuredRecipe.featuredImage && (
-              <Card.Cover
-                source={{ uri: featuredRecipe.featuredImage }}
-                style={styles.featuredImage}
-              />
-            )}
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.featuredTitle}>
-                {featuredRecipe.title}
-              </Text>
-              <Text variant="bodyMedium" style={styles.featuredDescription}>
-                {featuredRecipe.description}
-              </Text>
-              <View style={styles.featuredMeta}>
-                <Chip icon={getRecipeIcon(featuredRecipe.category)} style={styles.chip}>
-                  {featuredRecipe.category}
-                </Chip>
-                <Chip icon="clock-outline" style={styles.chip}>
-                  {(featuredRecipe.prepTime || 0) + (featuredRecipe.cookTime || 0)} min
-                </Chip>
-                <Chip icon="people" style={styles.chip}>
-                  {featuredRecipe.servings} servings
-                </Chip>
-              </View>
-            </Card.Content>
-          </Card>
-        )}
-
         <Card style={styles.recipesCard}>
           <Card.Content>
             <View style={styles.sectionHeader}>
               <Text variant="titleLarge" style={styles.sectionTitle}>
-                My Recipes
+                Featured Recipes
               </Text>
-              {recipes.length > 6 && (
-                <TouchableOpacity onPress={() => navigation.navigate('MyRecipes' as never)}>
-                  <Text style={styles.seeAll}>See all</Text>
-                </TouchableOpacity>
-              )}
             </View>
-            {recipes.length === 0
-              ? <Text variant="bodyMedium" style={styles.emptyText}>No recipes yet. Start cooking!</Text>
-              : (
-                <View style={styles.recipeGrid}>
-                  {recipes.slice(0, 6).map((recipe: Recipe) => (
+            {(() => {
+              const featuredRecipes = recipes.filter((r: Recipe) => r.featured === true).slice(0, 3);
+              return featuredRecipes.length === 0
+                ? <Text variant="bodyMedium" style={styles.emptyText}>
+                    No featured recipes yet. Set recipes as featured when creating or editing them.
+                  </Text>
+                : (
+                  <View style={styles.recipeGrid}>
+                    {featuredRecipes.map((recipe: Recipe) => (
                     <TouchableOpacity
                       key={recipe._id}
                       style={styles.recipeGridItem}
@@ -308,10 +279,10 @@ export default function ProfilePage() {
                         {recipe.title}
                       </Text>
                     </TouchableOpacity>
-                  ))}
-                </View>
-              )
-            }
+                    ))}
+                  </View>
+                );
+            })()}
           </Card.Content>
         </Card>
 
@@ -555,6 +526,12 @@ const styles = StyleSheet.create({
   },
   snackbar: {
     backgroundColor: Colors.primary.main,
+  },
+  offlineBadge: {
+    color: Colors.status.warning || '#FF9800',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginBottom: 12,
   },
 });
 

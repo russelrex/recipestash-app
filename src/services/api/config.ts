@@ -19,8 +19,9 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   async config => {
     const token = await AsyncStorage.getItem('authToken');
-    // Only add token if it exists and is not "null" string
-    if (token && token !== 'null' && token.trim() !== '') {
+    // Only add token if it exists, is not "null" string, and is not "offline"
+    // Skip Authorization header for offline mode to prevent credential leakage
+    if (token && token !== 'null' && token.trim() !== '' && token !== 'offline') {
       config.headers.Authorization = `Bearer ${token}`;
     }
     console.log('API Request:', config.method?.toUpperCase(), config.url);

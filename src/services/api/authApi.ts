@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiClient from './config';
+import cacheService from '../cache/cacheService';
+import offlineAuth from '../cache/offlineAuth';
 
 export interface AuthResponse {
   success: boolean;
@@ -71,6 +73,8 @@ class AuthApi {
           response.data.data.user._id,
           response.data.data.user.name,
         );
+        // Store password hash for offline login
+        await offlineAuth.storeOfflineCredentials(data.email, data.password);
       }
 
       return response.data;
@@ -126,6 +130,16 @@ class AuthApi {
     }
   }
 
+  async getUserProfile(userId: string): Promise<UserProfile> {
+    try {
+      const response = await apiClient.get(`/users/${userId}`);
+      if (response.data.success) return response.data.data;
+      throw new Error(response.data.message || 'Failed to fetch user profile');
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to fetch user profile');
+    }
+  }
+
   async updateProfile(data: UpdateProfileData): Promise<UserProfile> {
     try {
       const response = await apiClient.put('/users/profile', data);
@@ -142,6 +156,9 @@ class AuthApi {
 
   async logout(): Promise<void> {
     await AsyncStorage.multiRemove(['authToken', 'userId', 'userName']);
+    // Clear cache and offline credentials on logout
+    await cacheService.clearCache();
+    await offlineAuth.clearOfflineCredentials();
   }
 
   async isAuthenticated(): Promise<boolean> {
@@ -150,6 +167,11 @@ class AuthApi {
       // Validate token exists and is not "null" string
       if (!token || token === 'null' || token.trim() === '') {
         return false;
+      }
+
+      // Offline token is considered authenticated (read-only mode)
+      if (token === 'offline') {
+        return true;
       }
       
       // Try to validate the token
@@ -161,7 +183,7 @@ class AuthApi {
       
       // Validation returned false - check if token was cleared (401) or still exists (network error)
       const tokenStillExists = await AsyncStorage.getItem('authToken');
-      if (tokenStillExists && tokenStillExists !== 'null' && tokenStillExists.trim() !== '') {
+      if (tokenStillExists && tokenStillExists !== 'null' && tokenStillExists.trim() !== '' && tokenStillExists !== 'offline') {
         // Token still exists, validation might have failed due to network error
         // Assume authenticated - API calls will handle actual auth failures
         console.warn('Token validation failed but token exists, assuming authenticated (likely network error)');
@@ -174,7 +196,7 @@ class AuthApi {
       console.error('Error in isAuthenticated:', error);
       // On unexpected error, check if we have a token - if yes, assume authenticated
       const token = await AsyncStorage.getItem('authToken');
-      return !!(token && token !== 'null' && token.trim() !== '');
+      return !!(token && token !== 'null' && token.trim() !== '' && token !== 'offline');
     }
   }
 
@@ -208,6 +230,28 @@ class AuthApi {
       console.error('Token storage verification failed');
       throw new Error('Failed to store authentication token');
     }
+  }
+
+  async getPreferences(): Promise<{
+    notificationsEnabled: boolean;
+    dietaryRestrictions: string[];
+    measurementUnit: 'metric' | 'imperial';
+    privacyProfilePublic: boolean;
+  }> {
+    const response = await apiClient.get('/users/preferences');
+    if (response.data.success) return response.data.data;
+    throw new Error(response.data.message || 'Failed to fetch preferences');
+  }
+
+  async updatePreferences(prefs: {
+    notificationsEnabled?: boolean;
+    dietaryRestrictions?: string[];
+    measurementUnit?: 'metric' | 'imperial';
+    privacyProfilePublic?: boolean;
+  }): Promise<any> {
+    const response = await apiClient.put('/users/preferences', prefs);
+    if (response.data.success) return response.data.data;
+    throw new Error(response.data.message || 'Failed to update preferences');
   }
 }
 

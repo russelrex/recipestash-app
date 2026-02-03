@@ -1,3 +1,4 @@
+import cacheService from '../cache/cacheService';
 import apiClient from './config';
 
 export interface Recipe {
@@ -16,6 +17,7 @@ export interface Recipe {
   featuredImage?: string; // Base64 encoded or URL
   images?: string[]; // Array of base64 encoded images or URLs
   isFavorite: boolean;
+  featured?: boolean; // Whether this recipe is featured on profile
   rating?: number;
   createdAt: string;
   updatedAt: string;
@@ -31,8 +33,11 @@ export interface CreateRecipeData {
   cookTime: number;
   servings: number;
   difficulty: 'easy' | 'medium' | 'hard';
+  ownerId: string; // User ID of the recipe owner
+  ownerName: string; // Name of the recipe owner
   featuredImage?: string; // Base64 encoded or URL
   images?: string[]; // Array of base64 encoded images or URLs
+  featured?: boolean; // Whether this recipe should be featured on profile
 }
 
 export interface UpdateRecipeData {
@@ -47,6 +52,7 @@ export interface UpdateRecipeData {
   difficulty?: 'easy' | 'medium' | 'hard';
   featuredImage?: string; // Base64 encoded or URL
   images?: string[]; // Array of base64 encoded images or URLs
+  featured?: boolean; // Whether this recipe should be featured on profile
 }
 
 export interface RecipeStats {
@@ -73,11 +79,23 @@ class RecipesApi {
     try {
       const response = await apiClient.get('/recipes');
       if (response.data.success) {
-        return response.data.data;
+        const recipes = response.data.data;
+        // Cache recipes after successful fetch
+        await cacheService.cacheRecipes(recipes);
+        return recipes;
       } else {
         throw new Error(response.data.message || 'Failed to fetch recipes');
       }
     } catch (error: any) {
+      // If network error, try to serve from cache
+      if (!error.response && error.request) {
+        console.warn('Network error, attempting to load from cache...');
+        const cached = await cacheService.getCachedRecipes();
+        if (cached) {
+          console.log('Serving recipes from cache');
+          return cached;
+        }
+      }
       throw new Error(error.response?.data?.message || 'Failed to fetch recipes');
     }
   }
@@ -189,6 +207,22 @@ class RecipesApi {
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to delete recipe');
     }
+  }
+
+  async importRecipes(recipes: Array<{
+    title: string;
+    description: string;
+    ingredients: string[];
+    instructions: string[];
+    category: string;
+    prepTime: number;
+    cookTime: number;
+    servings: number;
+    difficulty: 'easy' | 'medium' | 'hard';
+  }>): Promise<any[]> {
+    const response = await apiClient.post('/recipes/import', { recipes });
+    if (response.data.success) return response.data.data;
+    throw new Error(response.data.message || 'Import failed');
   }
 }
 

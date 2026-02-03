@@ -115,6 +115,23 @@ class FollowsApi {
       throw new Error(error.response?.data?.message || 'Failed to fetch your following');
     }
   }
+
+  async blockUser(userId: string): Promise<any> {
+    const response = await apiClient.post(`/follows/block/${userId}`);
+    if (response.data.success) return response.data.data;
+    throw new Error(response.data.message || 'Failed to block user');
+  }
+
+  async unblockUser(userId: string): Promise<void> {
+    const response = await apiClient.delete(`/follows/block/${userId}`);
+    if (!response.data.success) throw new Error(response.data.message || 'Failed to unblock user');
+  }
+
+  async getBlockedUsers(): Promise<{ id: string; name: string; blockedAt: string }[]> {
+    const response = await apiClient.get('/follows/blocked');
+    if (response.data.success) return response.data.data;
+    throw new Error(response.data.message || 'Failed to fetch blocked users');
+  }
 }
 
 export default new FollowsApi();

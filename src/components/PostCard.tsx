@@ -1,19 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
-import {
-  Card,
-  Text,
-  Avatar,
-  IconButton,
-  Chip,
-  Menu,
-  TextInput,
-  Button,
-  Divider,
-} from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+  Avatar,
+  Card,
+  Divider,
+  IconButton,
+  Menu,
+  Text,
+  TextInput
+} from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { authApi, postsApi, recipesApi, type Post, type Comment } from '../services/api';
+import { authApi, postsApi, recipesApi, type Comment, type Post } from '../services/api';
 import { Colors } from '../theme';
 import CommentItem from './CommentItem';
 import ProfileAvatar from './ProfileAvatar';
@@ -45,6 +43,7 @@ export default function PostCard({
   const [loadingComments, setLoadingComments] = useState(false);
   const [commentsLoaded, setCommentsLoaded] = useState(false);
   const [localPost, setLocalPost] = useState(post);
+  const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     loadCurrentUserId();
@@ -52,7 +51,34 @@ export default function PostCard({
 
   useEffect(() => {
     setLocalPost(post);
+    setUserAvatarUrl(null); // Reset avatar when post changes
   }, [post]);
+
+  // Fetch user avatar for post author
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadUserAvatar = async () => {
+      if (!localPost.userId) return;
+      if (userAvatarUrl) return; // Already loaded
+
+      try {
+        const userProfile = await authApi.getUserProfile(localPost.userId);
+        if (!cancelled && userProfile.avatarUrl) {
+          setUserAvatarUrl(userProfile.avatarUrl);
+        }
+      } catch (error) {
+        // silent: avatar is optional, fallback to initials
+        console.warn('Failed to load user avatar:', error);
+      }
+    };
+
+    loadUserAvatar();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localPost.userId]);
 
   // If backend doesn't provide recipeImages yet, fetch recipe and derive up to 3 images.
   useEffect(() => {
@@ -221,6 +247,7 @@ export default function PostCard({
           >
             <ProfileAvatar
               name={localPost.userName}
+              avatarUrl={userAvatarUrl || undefined}
               size={40}
               style={styles.avatar}
             />
