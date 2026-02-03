@@ -96,29 +96,51 @@ export default function RecipeDetailPage() {
   const handleEdit = () => {
     if (!recipe) return;
     setMenuVisible(false);
-    (navigation as any).navigate('AddRecipe', { recipeId: recipe._id });
+    
+    // Navigate to AddRecipe page in edit mode with recipe data
+    (navigation as any).navigate('AddRecipe', { 
+      recipeId: recipe._id,
+      mode: 'edit'
+    });
   };
 
   const handleDelete = () => {
     setMenuVisible(false);
-    Alert.alert('Delete Recipe', 'Are you sure you want to delete this recipe?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await recipesApi.deleteRecipe(recipe?._id || recipeId);
-            setSnackbarMessage('Recipe deleted successfully');
-            setSnackbarVisible(true);
-            setTimeout(() => navigation.goBack(), 1000);
-          } catch {
-            setSnackbarMessage('Failed to delete recipe');
-            setSnackbarVisible(true);
-          }
+    
+    Alert.alert(
+      'Delete Recipe',
+      'Are you sure you want to delete this recipe? This action cannot be undone and will also remove all associated posts.',
+      [
+        { 
+          text: 'Cancel', 
+          style: 'cancel' 
         },
-      },
-    ]);
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              
+              await recipesApi.deleteRecipe(recipe!._id);
+              
+              setSnackbarMessage('Recipe deleted successfully ✓');
+              setSnackbarVisible(true);
+              
+              // Navigate back after short delay
+              setTimeout(() => {
+                navigation.goBack();
+              }, 1500);
+            } catch (error: any) {
+              console.error('Error deleting recipe:', error);
+              setSnackbarMessage(error.message || 'Failed to delete recipe');
+              setSnackbarVisible(true);
+              setLoading(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const getDifficultyIcon = (difficulty: string) => {

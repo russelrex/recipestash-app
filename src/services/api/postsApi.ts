@@ -7,6 +7,7 @@ export interface Post {
   content: string;
   recipeId?: string;
   recipeTitle?: string;
+  recipeImages?: string[]; // Add this - will store up to 3 images from recipe
   imageUrl?: string;
   likes: string[];
   likesCount: number;

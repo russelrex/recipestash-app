@@ -9,14 +9,14 @@ import {
 } from 'react-native';
 import {
   ActivityIndicator,
-  Avatar,
+  Button,
   Card,
   Chip,
-  Divider,
   IconButton,
   Snackbar,
-  Text,
+  Text
 } from 'react-native-paper';
+import ProfileAvatar from '../components/ProfileAvatar';
 import {
   authApi,
   followsApi,
@@ -25,19 +25,23 @@ import {
   type FollowStats,
   type Post,
   type Recipe,
+  type UserProfile,
 } from '../services/api';
 import { Colors } from '../theme';
+import EditProfileModal from './EditProfileModal';
 
 export default function ProfilePage() {
   const navigation = useNavigation();
   const [userName, setUserName] = useState('');
   const [userId, setUserId] = useState('');
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [followStats, setFollowStats] = useState<FollowStats | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [featuredRecipe, setFeaturedRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
@@ -71,18 +75,21 @@ export default function ProfilePage() {
     try {
       setLoading(true);
 
-      const [stats, userRecipes, userPosts] = await Promise.all([
+      const [profileData, stats, userRecipes, userPosts] = await Promise.all([
+        authApi.getProfile(),
         followsApi.getStats(userId),
         recipesApi.getAllRecipes(),
         postsApi.getUserPosts(userId),
       ]);
 
+      setProfile(profileData);
+      setUserName(profileData.name);
       setFollowStats(stats);
       setRecipes(userRecipes);
       setPosts(userPosts);
 
-      const recipeWithImage = userRecipes.find(r => r.imageUrl);
-      setFeaturedRecipe(recipeWithImage || userRecipes[0] || null);
+      const withImg = userRecipes.find((r: Recipe) => r.featuredImage);
+      setFeaturedRecipe(withImg || userRecipes[0] || null);
     } catch (error: any) {
       console.error('Error loading profile data:', error);
       setSnackbarMessage('Failed to load profile data');
@@ -96,6 +103,13 @@ export default function ProfilePage() {
   const onRefresh = () => {
     setRefreshing(true);
     loadProfileData();
+  };
+
+  const handleProfileSaved = (updated: UserProfile) => {
+    setProfile(updated);
+    setUserName(updated.name);
+    setSnackbarMessage('Profile updated successfully');
+    setSnackbarVisible(true);
   };
 
   const getRecipeIcon = (category: string) => {
@@ -131,9 +145,10 @@ export default function ProfilePage() {
         <Card style={styles.headerCard}>
           <Card.Content style={styles.headerContent}>
             <View style={styles.headerTop}>
-              <Avatar.Text
+              <ProfileAvatar
+                name={profile?.name || userName}
+                avatarUrl={profile?.avatarUrl}
                 size={80}
-                label={userName.substring(0, 2).toUpperCase()}
                 style={styles.avatar}
               />
               <IconButton
@@ -147,9 +162,21 @@ export default function ProfilePage() {
             <Text variant="headlineSmall" style={styles.name}>
               {userName}
             </Text>
-            <Text variant="bodyMedium" style={styles.bio}>
-              Recipe Enthusiast 👨‍🍳
-            </Text>
+
+            {profile?.bio
+              ? <Text variant="bodyMedium" style={styles.bio}>{profile.bio}</Text>
+              : <Text variant="bodyMedium" style={styles.bioPlaceholder}>No bio yet</Text>
+            }
+
+            <Button
+              mode="outlined"
+              onPress={() => setEditModalVisible(true)}
+              style={styles.editButton}
+              icon="pencil"
+              textColor={Colors.primary.main}
+            >
+              Edit Profile
+            </Button>
 
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
@@ -208,17 +235,17 @@ export default function ProfilePage() {
         </Card>
 
         {featuredRecipe && (
-          <Card style={styles.featuredCard}>
+          <Card
+            style={styles.featuredCard}
+            onPress={() => navigation.navigate('RecipeDetail' as never,
+              { recipeId: featuredRecipe._id } as never)}
+          >
             <Card.Content>
-              <View style={styles.sectionHeader}>
-                <Text variant="titleLarge" style={styles.sectionTitle}>
-                  ⭐ Featured Recipe
-                </Text>
-              </View>
+              <Text variant="titleLarge" style={styles.sectionTitle}>Featured Recipe</Text>
             </Card.Content>
-            {featuredRecipe.imageUrl && (
+            {featuredRecipe.featuredImage && (
               <Card.Cover
-                source={{ uri: featuredRecipe.imageUrl }}
+                source={{ uri: featuredRecipe.featuredImage }}
                 style={styles.featuredImage}
               />
             )}
@@ -230,17 +257,14 @@ export default function ProfilePage() {
                 {featuredRecipe.description}
               </Text>
               <View style={styles.featuredMeta}>
-                <Chip
-                  icon={getRecipeIcon(featuredRecipe.category)}
-                  style={styles.chip}
-                >
+                <Chip icon={getRecipeIcon(featuredRecipe.category)} style={styles.chip}>
                   {featuredRecipe.category}
                 </Chip>
                 <Chip icon="clock-outline" style={styles.chip}>
-                  {featuredRecipe.prepTime + featuredRecipe.cookTime} mins
+                  {(featuredRecipe.prepTime || 0) + (featuredRecipe.cookTime || 0)} min
                 </Chip>
-                <Chip icon="fire" style={styles.chip}>
-                  {featuredRecipe.difficulty}
+                <Chip icon="people" style={styles.chip}>
+                  {featuredRecipe.servings} servings
                 </Chip>
               </View>
             </Card.Content>
@@ -251,157 +275,78 @@ export default function ProfilePage() {
           <Card.Content>
             <View style={styles.sectionHeader}>
               <Text variant="titleLarge" style={styles.sectionTitle}>
-                My Recipes ({recipes.length})
+                My Recipes
               </Text>
-              <IconButton
-                icon="plus-circle"
-                size={28}
-                onPress={() => navigation.navigate('AddRecipe' as never)}
-              />
+              {recipes.length > 6 && (
+                <TouchableOpacity onPress={() => navigation.navigate('MyRecipes' as never)}>
+                  <Text style={styles.seeAll}>See all</Text>
+                </TouchableOpacity>
+              )}
             </View>
-
-            {recipes.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Text variant="bodyLarge" style={styles.emptyText}>
-                  No recipes yet
-                </Text>
-                <Text variant="bodyMedium" style={styles.emptySubtext}>
-                  Start building your recipe collection!
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.recipeGrid}>
-                {recipes.slice(0, 6).map(recipe => (
-                  <TouchableOpacity
-                    key={recipe._id}
-                    style={styles.recipeGridItem}
-                    onPress={() =>
-                      navigation.navigate(
-                        'RecipeDetail' as never,
-                        { recipeId: recipe._id } as never,
-                      )
-                    }
-                  >
-                    {recipe.imageUrl ? (
-                      <Card.Cover
-                        source={{ uri: recipe.imageUrl }}
-                        style={styles.recipeGridImage}
-                      />
-                    ) : (
-                      <View style={styles.recipeGridPlaceholder}>
-                        <Avatar.Icon
-                          icon={getRecipeIcon(recipe.category)}
-                          size={40}
-                          style={styles.recipePlaceholderIcon}
-                        />
-                      </View>
-                    )}
-                    <View style={styles.recipeGridOverlay}>
-                      <Text
-                        variant="bodySmall"
-                        style={styles.recipeGridTitle}
-                        numberOfLines={2}
-                      >
+            {recipes.length === 0
+              ? <Text variant="bodyMedium" style={styles.emptyText}>No recipes yet. Start cooking!</Text>
+              : (
+                <View style={styles.recipeGrid}>
+                  {recipes.slice(0, 6).map((recipe: Recipe) => (
+                    <TouchableOpacity
+                      key={recipe._id}
+                      style={styles.recipeGridItem}
+                      onPress={() => navigation.navigate('RecipeDetail' as never,
+                        { recipeId: recipe._id } as never)}
+                    >
+                      {recipe.featuredImage
+                        ? <View style={styles.recipeThumbWrapper}>
+                            <Card.Cover source={{ uri: recipe.featuredImage }} style={styles.recipeThumb} />
+                          </View>
+                        : <View style={[styles.recipeThumbWrapper, styles.recipeThumbPlaceholder]}>
+                            <Text style={styles.recipeThumbIcon}>
+                              {getRecipeIcon(recipe.category) === 'coffee' ? '☕' : '🍽'}
+                            </Text>
+                          </View>
+                      }
+                      <Text variant="bodySmall" style={styles.recipeGridTitle} numberOfLines={1}>
                         {recipe.title}
                       </Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            {recipes.length > 6 && (
-              <TouchableOpacity
-                style={styles.viewAllButton}
-                onPress={() => navigation.navigate('Recipes' as never)}
-              >
-                <Text variant="titleMedium" style={styles.viewAllText}>
-                  View All Recipes →
-                </Text>
-              </TouchableOpacity>
-            )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )
+            }
           </Card.Content>
         </Card>
 
         <Card style={styles.postsCard}>
           <Card.Content>
-            <View style={styles.sectionHeader}>
-              <Text variant="titleLarge" style={styles.sectionTitle}>
-                Recent Posts ({posts.length})
-              </Text>
-            </View>
-
-            {posts.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Text variant="bodyLarge" style={styles.emptyText}>
-                  No posts yet
-                </Text>
-                <Text variant="bodyMedium" style={styles.emptySubtext}>
-                  Share your cooking journey!
-                </Text>
-              </View>
-            ) : (
-              <View>
-                {posts.slice(0, 3).map(post => (
-                  <TouchableOpacity
-                    key={post.id}
-                    style={styles.postItem}
-                    onPress={() =>
-                      navigation.navigate(
-                        'PostDetail' as never,
-                        { postId: post.id } as never,
-                      )
-                    }
-                  >
-                    <Text
-                      variant="bodyMedium"
-                      numberOfLines={2}
-                      style={styles.postContent}
-                    >
+            <Text variant="titleLarge" style={styles.sectionTitle}>Recent Posts</Text>
+            {posts.length === 0
+              ? <Text variant="bodyMedium" style={styles.emptyText}>No posts yet</Text>
+              : posts.slice(0, 3).map((post: Post) => (
+                  <View key={post.id} style={styles.postPreview}>
+                    <Text variant="bodyMedium" style={styles.postContent} numberOfLines={2}>
                       {post.content}
                     </Text>
-                    <View style={styles.postMeta}>
-                      <View style={styles.postStats}>
-                        <Text variant="bodySmall" style={styles.postStat}>
-                          ❤️ {post.likesCount}
-                        </Text>
-                        <Text variant="bodySmall" style={styles.postStat}>
-                          💬 {post.commentsCount}
-                        </Text>
-                      </View>
-                      {post.recipeTitle && (
-                        <Chip
-                          icon="book-open-page-variant"
-                          style={styles.postRecipeChip}
-                        >
-                          {post.recipeTitle}
-                        </Chip>
-                      )}
-                    </View>
-                    <Divider style={styles.postDivider} />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            {posts.length > 3 && (
-              <TouchableOpacity
-                style={styles.viewAllButton}
-                onPress={() => navigation.navigate('Newsfeed' as never)}
-              >
-                <Text variant="titleMedium" style={styles.viewAllText}>
-                  View All Posts →
-                </Text>
-              </TouchableOpacity>
-            )}
+                    <Text variant="bodySmall" style={styles.postMeta}>
+                      {post.likesCount || 0} likes · {post.commentsCount || 0} comments
+                    </Text>
+                  </View>
+                ))
+            }
           </Card.Content>
         </Card>
       </ScrollView>
 
+      <EditProfileModal
+        visible={editModalVisible}
+        onClose={() => setEditModalVisible(false)}
+        onSave={handleProfileSaved}
+        currentProfile={profile}
+      />
+
       <Snackbar
         visible={snackbarVisible}
         onDismiss={() => setSnackbarVisible(false)}
-        duration={3000}
+        duration={2500}
+        style={styles.snackbar}
       >
         {snackbarMessage}
       </Snackbar>
@@ -443,7 +388,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   avatar: {
-    backgroundColor: Colors.primary.main,
+    borderWidth: 2,
+    borderColor: Colors.border.light,
   },
   settingsButton: {
     margin: 0,
@@ -453,9 +399,21 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   bio: {
+    textAlign: 'center',
     color: Colors.text.secondary,
-    marginTop: 4,
+    marginBottom: 12,
+    paddingHorizontal: 16,
+  },
+  bioPlaceholder: {
+    textAlign: 'center',
+    color: Colors.text.secondary,
+    fontStyle: 'italic',
+    marginBottom: 12,
+  },
+  editButton: {
     marginBottom: 16,
+    borderColor: Colors.primary.main,
+    borderRadius: 20,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -471,7 +429,7 @@ const styles = StyleSheet.create({
   },
   statDivider: {
     width: 1,
-    backgroundColor: Colors.border.main,
+    backgroundColor: '#e0e0e0',
   },
   statNumber: {
     fontWeight: 'bold',
@@ -485,25 +443,25 @@ const styles = StyleSheet.create({
   featuredCard: {
     marginHorizontal: 16,
     marginBottom: 16,
-    elevation: 4,
+    elevation: 3,
+    borderRadius: 16,
   },
   featuredImage: {
-    height: 200,
+    height: 180,
   },
   featuredTitle: {
     fontWeight: 'bold',
-    marginTop: 12,
-    marginBottom: 8,
+    marginTop: 8,
   },
   featuredDescription: {
     color: Colors.text.secondary,
-    marginBottom: 12,
-    lineHeight: 20,
+    marginTop: 4,
+    marginBottom: 8,
   },
   featuredMeta: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
+    flexWrap: 'wrap',
   },
   recipesCard: {
     marginHorizontal: 16,
@@ -512,8 +470,21 @@ const styles = StyleSheet.create({
   },
   postsCard: {
     marginHorizontal: 16,
-    marginBottom: 16,
-    elevation: 4,
+    marginBottom: 24,
+    elevation: 3,
+    borderRadius: 16,
+  },
+  postPreview: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.light,
+    paddingVertical: 10,
+  },
+  postContent: {
+    color: '#333',
+  },
+  postMeta: {
+    color: Colors.text.secondary,
+    marginTop: 4,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -529,51 +500,47 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
   },
   emptyText: {
-    color: Colors.text.disabled,
-    marginBottom: 8,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    paddingVertical: 12,
   },
-  emptySubtext: {
-    color: '#bbb',
+  seeAll: {
+    color: Colors.primary.main,
+    fontWeight: '600',
+    fontSize: 14,
   },
   recipeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
+    gap: 10,
   },
   recipeGridItem: {
-    width: '31%',
+    width: '30%',
+    alignItems: 'center',
+  },
+  recipeThumbWrapper: {
+    width: '100%',
     aspectRatio: 1,
-    borderRadius: 8,
+    borderRadius: 10,
     overflow: 'hidden',
-    backgroundColor: Colors.border.light,
+    backgroundColor: '#eee',
   },
-  recipeGridImage: {
+  recipeThumb: {
     width: '100%',
     height: '100%',
   },
-  recipeGridPlaceholder: {
-    width: '100%',
-    height: '100%',
+  recipeThumbPlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.border.main,
+    backgroundColor: Colors.background.default,
   },
-  recipePlaceholderIcon: {
-    backgroundColor: Colors.primary.main,
-  },
-  recipeGridOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    padding: 8,
+  recipeThumbIcon: {
+    fontSize: 28,
   },
   recipeGridTitle: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 11,
+    marginTop: 6,
+    textAlign: 'center',
+    color: '#333',
   },
   viewAllButton: {
     paddingVertical: 12,
@@ -583,34 +550,11 @@ const styles = StyleSheet.create({
     color: Colors.primary.main,
     fontWeight: 'bold',
   },
-  postItem: {
-    marginBottom: 4,
-  },
-  postContent: {
-    marginBottom: 8,
-    lineHeight: 20,
-  },
-  postMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  postStats: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  postStat: {
-    color: Colors.text.secondary,
-  },
-  postRecipeChip: {
-    height: 28,
-  },
-  postDivider: {
-    marginTop: 8,
-  },
   chip: {
-    height: 32,
+    backgroundColor: Colors.background.default,
+  },
+  snackbar: {
+    backgroundColor: Colors.primary.main,
   },
 });
 

@@ -1,7 +1,8 @@
-import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
-import { Dimensions, ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Dimensions, ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import {
+  ActivityIndicator,
   Avatar,
   Button,
   Chip,
@@ -16,8 +17,7 @@ import {
   useTheme
 } from 'react-native-paper';
 import ImageUploadSection from '../components/ImageUploadSection';
-import { ImageUploadConfig } from '../config/imageUpload.config';
-import { authApi, CreateRecipeData, recipesApi } from '../services/api';
+import { CreateRecipeData, UpdateRecipeData, recipesApi } from '../services/api';
 import type { ImageData } from '../services/imagePicker';
 import { Colors } from '../theme';
 
@@ -34,7 +34,12 @@ const CATEGORIES = [
 
 export default function AddRecipePage() {
   const navigation = useNavigation();
+  const route = useRoute();
   const theme = useTheme();
+  const params = route.params as any;
+  
+  const recipeId = params?.recipeId;
+  const isEditMode = !!recipeId;
 
   // Form state
   const [title, setTitle] = useState('');
@@ -48,6 +53,8 @@ export default function AddRecipePage() {
   // Image state
   const [featuredImage, setFeaturedImage] = useState<ImageData | null>(null);
   const [additionalImages, setAdditionalImages] = useState<ImageData[]>([]);
+  const [existingFeaturedUrl, setExistingFeaturedUrl] = useState<string>('');
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
 
   // Ingredients state
   const [ingredients, setIngredients] = useState<string[]>(['']);
@@ -59,43 +66,104 @@ export default function AddRecipePage() {
 
   // UI state
   const [loading, setLoading] = useState(false);
+  const [loadingRecipe, setLoadingRecipe] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const buildOwnerInfo = async () => {
-    const storedUserId = await authApi.getCurrentUserId();
-    const storedId = await authApi.getCurrentUserId();
-    const storedName = await authApi.getCurrentUserName();
-
-    if (!storedId || !storedUserId) {
-      throw new Error('Missing owner id. Please log in again.');
+  useEffect(() => {
+    if (isEditMode) {
+      loadRecipe();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recipeId]);
 
-    return {
-      userId: storedUserId,
-      ownerId: storedId,
-      ownerName: storedName || 'You',
-    };
+  const loadRecipe = async () => {
+    try {
+      setLoadingRecipe(true);
+      const recipe = await recipesApi.getRecipe(recipeId!);
+
+      setTitle(recipe.title);
+      setDescription(recipe.description);
+      setCategory(recipe.category);
+      setDifficulty(recipe.difficulty);
+      setPrepTime(recipe.prepTime.toString());
+      setCookTime(recipe.cookTime.toString());
+      setServings(recipe.servings.toString());
+      setIngredients(recipe.ingredients.length > 0 ? recipe.ingredients : ['']);
+      setInstructions(recipe.instructions.length > 0 ? recipe.instructions : ['']);
+
+      if (recipe.featuredImage) {
+        setExistingFeaturedUrl(recipe.featuredImage);
+      }
+      if (recipe.images && recipe.images.length > 0) {
+        setExistingImageUrls(recipe.images);
+      }
+    } catch (error: any) {
+      console.error('Error loading recipe:', error);
+      setSnackbarMessage(error.message || 'Failed to load recipe');
+      setSnackbarVisible(true);
+      setTimeout(() => navigation.goBack(), 2000);
+    } finally {
+      setLoadingRecipe(false);
+    }
   };
+
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!title.trim()) newErrors.title = 'Title is required';
-    if (!description.trim()) newErrors.description = 'Description is required';
-    if (!prepTime || parseInt(prepTime) <= 0) newErrors.prepTime = 'Valid prep time required';
-    if (!cookTime || parseInt(cookTime) <= 0) newErrors.cookTime = 'Valid cook time required';
-    if (!servings || parseInt(servings) <= 0) newErrors.servings = 'Valid servings required';
+    if (!title.trim()) {
+      newErrors.title = 'Title is required';
+    } else if (title.trim().length < 2) {
+      newErrors.title = 'Title must be at least 2 characters';
+    }
+
+    if (!description.trim()) {
+      newErrors.description = 'Description is required';
+    } else if (description.trim().length < 10) {
+      newErrors.description = 'Description must be at least 10 characters';
+    }
+
+    if (!prepTime || parseInt(prepTime) <= 0) {
+      newErrors.prepTime = 'Valid prep time required';
+    }
+
+    if (!cookTime || parseInt(cookTime) <= 0) {
+      newErrors.cookTime = 'Valid cook time required';
+    }
+
+    if (!servings || parseInt(servings) <= 0) {
+      newErrors.servings = 'Valid servings required';
+    }
     
     const validIngredients = ingredients.filter(i => i.trim());
-    if (validIngredients.length === 0) newErrors.ingredients = 'At least one ingredient required';
+    if (validIngredients.length === 0) {
+      newErrors.ingredients = 'At least one ingredient required';
+    }
     
     const validInstructions = instructions.filter(i => i.trim());
-    if (validInstructions.length === 0) newErrors.instructions = 'At least one instruction required';
+    if (validInstructions.length === 0) {
+      newErrors.instructions = 'At least one instruction required';
+    }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+
+    const errorKeys = Object.keys(newErrors);
+    if (errorKeys.length > 0) {
+      // Log which fields failed for easier debugging
+      console.log('Validation errors:', newErrors);
+
+      // Surface the first error in the snackbar so it's obvious what to fix
+      const firstErrorKey = errorKeys[0];
+      const firstErrorMessage = newErrors[firstErrorKey];
+      setSnackbarMessage(firstErrorMessage);
+      setSnackbarVisible(true);
+
+      return false;
+    }
+
+    return true;
   };
 
   const handleAddIngredient = () => {
@@ -121,65 +189,145 @@ export default function AddRecipePage() {
   };
 
   const handleSubmit = async () => {
+    console.log('handleSubmit pressed, isEditMode:', isEditMode);
+
     if (!validateForm()) {
-      setSnackbarMessage('Please fill in all required fields');
-      setSnackbarVisible(true);
+      console.log('Validation failed, not submitting');
       return;
     }
 
+    // Call submit directly for both create and update to avoid any Alert callback issues
+    await performSubmit();
+  };
+
+  const performSubmit = async () => {
+    console.log('Performing submit');
     setLoading(true);
 
     try {
-      const { userId, ownerId, ownerName } = await buildOwnerInfo();
       const validIngredients = ingredients.filter(i => i.trim());
       const validInstructions = instructions.filter(i => i.trim());
 
-      // Prepare featured image (base64 or undefined)
-      const featuredImageData = featuredImage ? featuredImage.base64 : undefined;
+      // Prepare featured image (base64 or existing URL)
+      // Only include if it has a value (not empty string)
+      let featuredImageData: string | undefined = undefined;
+      if (featuredImage) {
+        featuredImageData = featuredImage.base64;
+      } else if (existingFeaturedUrl && existingFeaturedUrl.trim()) {
+        featuredImageData = existingFeaturedUrl;
+      }
 
-      // Prepare additional images (base64 array)
-      const additionalImagesData = additionalImages
-        .slice(0, ImageUploadConfig.maxAdditionalImages)
-        .map(img => img.base64);
+      // Prepare additional images (base64 or existing URLs)
+      const additionalImagesData = [
+        ...existingImageUrls.filter(url => url && url.trim()),
+        ...additionalImages.map(img => img.base64),
+      ].slice(0, 5); // Max 5 images
 
-      const recipeData: CreateRecipeData = {
-        userId,
-        ownerId,
-        ownerName,
-        title: title.trim(),
-        description: description.trim(),
-        category,
-        difficulty: difficulty as 'easy' | 'medium' | 'hard',
-        prepTime: parseInt(prepTime),
-        cookTime: parseInt(cookTime),
-        servings: parseInt(servings),
-        ingredients: validIngredients,
-        instructions: validInstructions,
-        featuredImage: featuredImageData,
-        images: additionalImagesData,
-        isFavorite: false,
-      };
+      if (isEditMode) {
+        const recipeData: UpdateRecipeData = {
+          title: title.trim(),
+          description: description.trim(),
+          ingredients: validIngredients,
+          instructions: validInstructions,
+          category,
+          prepTime: parseInt(prepTime),
+          cookTime: parseInt(cookTime),
+          servings: parseInt(servings),
+          difficulty: difficulty as 'easy' | 'medium' | 'hard',
+        };
 
-      await recipesApi.createRecipe(recipeData);
+        // Only include image fields if they have values
+        if (featuredImageData) {
+          recipeData.featuredImage = featuredImageData;
+        }
+        if (additionalImagesData.length > 0) {
+          recipeData.images = additionalImagesData;
+        }
 
-      setSnackbarMessage('Recipe created successfully! 🎉');
+        console.log('Updating recipe with data:', {
+          recipeId,
+          recipeData: {
+            ...recipeData,
+            featuredImage: featuredImageData ? `${featuredImageData.substring(0, 50)}...` : undefined,
+            images: additionalImagesData.length,
+          },
+        });
+
+        await recipesApi.updateRecipe(recipeId!, recipeData);
+        setSnackbarMessage('Recipe updated successfully! ✨');
+      } else {
+        const recipeData: CreateRecipeData = {
+          title: title.trim(),
+          description: description.trim(),
+          category,
+          difficulty: difficulty as 'easy' | 'medium' | 'hard',
+          prepTime: parseInt(prepTime),
+          cookTime: parseInt(cookTime),
+          servings: parseInt(servings),
+          ingredients: validIngredients,
+          instructions: validInstructions,
+        };
+
+        // Only include image fields if they have values
+        if (featuredImageData) {
+          recipeData.featuredImage = featuredImageData;
+        }
+        if (additionalImagesData.length > 0) {
+          recipeData.images = additionalImagesData;
+        }
+
+        await recipesApi.createRecipe(recipeData);
+        setSnackbarMessage('Recipe created successfully! 🎉');
+      }
+
       setSnackbarVisible(true);
 
       setTimeout(() => {
         navigation.goBack();
-      }, 1500);
+      }, 1000);
     } catch (error: any) {
-      console.error('Error creating recipe:', error);
-      setSnackbarMessage(
-        error.message === 'Missing owner id. Please log in again.'
-          ? 'Your session seems to have expired. Please log in again before creating a recipe.'
-          : error.message || 'Failed to create recipe',
-      );
+      console.error('Error saving recipe:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      setSnackbarMessage(error.message || 'Failed to save recipe');
       setSnackbarVisible(true);
     } finally {
       setLoading(false);
     }
   };
+
+  const handleCancel = () => {
+    if (isEditMode) {
+      Alert.alert(
+        'Discard Changes',
+        'Are you sure you want to discard your changes?',
+        [
+          { text: 'Keep Editing', style: 'cancel' },
+          {
+            text: 'Discard',
+            style: 'destructive',
+            onPress: () => navigation.goBack(),
+          },
+        ],
+      );
+    } else {
+      navigation.goBack();
+    }
+  };
+
+  if (loadingRecipe) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+        <Text style={styles.loadingText}>
+          {isEditMode ? 'Loading recipe...' : 'Please wait...'}
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -207,10 +355,10 @@ export default function AddRecipePage() {
               style={[styles.headerIcon, { backgroundColor: theme.colors.primary }]} 
             />
             <Text variant="headlineSmall" style={styles.headerTitle}>
-              Create New Recipe
+              {isEditMode ? 'Edit Recipe' : 'Create New Recipe'}
             </Text>
             <Text variant="bodyMedium" style={styles.headerSubtitle}>
-              Fill in the details to add your favorite recipe
+              {isEditMode ? 'Update your recipe details' : 'Fill in the details to add your favorite recipe'}
             </Text>
           </View>
 
@@ -220,6 +368,10 @@ export default function AddRecipePage() {
             additionalImages={additionalImages}
             onFeaturedImageChange={setFeaturedImage}
             onAdditionalImagesChange={setAdditionalImages}
+            existingFeaturedUrl={existingFeaturedUrl}
+            existingImageUrls={existingImageUrls}
+            onExistingFeaturedUrlChange={setExistingFeaturedUrl}
+            onExistingImageUrlsChange={setExistingImageUrls}
           />
 
           {/* Title Section */}
@@ -530,12 +682,18 @@ export default function AddRecipePage() {
               loading={loading}
               disabled={loading}
             >
-              {loading ? 'Creating Recipe...' : 'Create Recipe'}
+              {loading
+                ? isEditMode
+                  ? 'Updating...'
+                  : 'Creating...'
+                : isEditMode
+                ? 'Update Recipe'
+                : 'Create Recipe'}
             </Button>
 
             <Button
               mode="outlined"
-              onPress={() => navigation.goBack()}
+              onPress={handleCancel}
               style={styles.cancelButton}
               contentStyle={styles.cancelButtonContent}
               icon="close-circle"
@@ -563,6 +721,16 @@ export default function AddRecipePage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background.default,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: Colors.text.secondary,
   },
   background: {
     width: '100%',

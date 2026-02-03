@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity, ImageBackground, Dimensions } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import { Dimensions, ImageBackground, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import {
-  Text,
-  Card,
-  Avatar,
   ActivityIndicator,
-  Divider,
+  Card,
+  Text
 } from 'react-native-paper';
-import { useRoute, useNavigation } from '@react-navigation/native';
-import { authApi, followsApi, postsApi, Post, FollowStats } from '../services/api';
-import { Colors } from '../theme';
-import PostCard from '../components/PostCard';
 import FollowButton from '../components/FollowButton';
+import PostCard from '../components/PostCard';
+import ProfileAvatar from '../components/ProfileAvatar';
+import { authApi, followsApi, FollowStats, Post, postsApi } from '../services/api';
+import { Colors } from '../theme';
 
 const { height } = Dimensions.get('window');
 
@@ -102,8 +101,8 @@ export default function UserProfilePage() {
         <ScrollView style={styles.container}>
           <Card style={styles.profileCard} elevation={4}>
             <Card.Content style={styles.profileContent}>
-              <Avatar.Text
-                label={userName.charAt(0).toUpperCase()}
+              <ProfileAvatar
+                name={userName}
                 size={80}
                 style={styles.avatar}
               />

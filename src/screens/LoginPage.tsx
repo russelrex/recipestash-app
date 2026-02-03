@@ -66,10 +66,15 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await authApi.login({
+      const response = await authApi.login({
         email: email.trim().toLowerCase(),
         password,
       });
+
+      // Only navigate if the backend explicitly reports success
+      if (!response.success) {
+        throw new Error(response.message || 'Invalid email or password');
+      }
 
       setSnackbarMessage('Login successful! 🎉');
       setSnackbarVisible(true);

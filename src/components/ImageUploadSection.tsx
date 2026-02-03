@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Card, IconButton, Menu, Text } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { ImageUploadConfig, formatFileSize } from '../config/imageUpload.config';
@@ -11,6 +11,10 @@ interface ImageUploadSectionProps {
   additionalImages: ImageData[];
   onFeaturedImageChange: (image: ImageData | null) => void;
   onAdditionalImagesChange: (images: ImageData[]) => void;
+  existingFeaturedUrl?: string;
+  existingImageUrls?: string[];
+  onExistingFeaturedUrlChange?: (url: string) => void;
+  onExistingImageUrlsChange?: (urls: string[]) => void;
 }
 
 export default function ImageUploadSection({
@@ -18,6 +22,10 @@ export default function ImageUploadSection({
   additionalImages,
   onFeaturedImageChange,
   onAdditionalImagesChange,
+  existingFeaturedUrl = '',
+  existingImageUrls = [],
+  onExistingFeaturedUrlChange,
+  onExistingImageUrlsChange,
 }: ImageUploadSectionProps) {
   const [featuredMenuVisible, setFeaturedMenuVisible] = React.useState(false);
   const [additionalMenuVisible, setAdditionalMenuVisible] = React.useState(false);
@@ -57,36 +65,59 @@ export default function ImageUploadSection({
   };
 
   const handleRemoveFeaturedImage = () => {
-    Alert.alert(
-      'Remove Image',
-      'Are you sure you want to remove the featured image?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => onFeaturedImageChange(null),
-        },
-      ]
-    );
+    const remove = () => {
+      onFeaturedImageChange(null);
+      if (onExistingFeaturedUrlChange) {
+        onExistingFeaturedUrlChange('');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      // Alert is not well-supported on web – remove directly
+      remove();
+      return;
+    }
+
+    Alert.alert('Remove Image', 'Are you sure you want to remove the featured image?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: remove },
+    ]);
+  };
+
+  const handleRemoveExistingAdditionalImage = (index: number) => {
+    const remove = () => {
+      if (onExistingImageUrlsChange) {
+        const newUrls = existingImageUrls.filter((_, i) => i !== index);
+        onExistingImageUrlsChange(newUrls);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      remove();
+      return;
+    }
+
+    Alert.alert('Remove Image', 'Are you sure you want to remove this image?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: remove },
+    ]);
   };
 
   const handleRemoveAdditionalImage = (index: number) => {
-    Alert.alert(
-      'Remove Image',
-      'Are you sure you want to remove this image?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => {
-            const newImages = additionalImages.filter((_, i) => i !== index);
-            onAdditionalImagesChange(newImages);
-          },
-        },
-      ]
-    );
+    const remove = () => {
+      const newImages = additionalImages.filter((_, i) => i !== index);
+      onAdditionalImagesChange(newImages);
+    };
+
+    if (Platform.OS === 'web') {
+      remove();
+      return;
+    }
+
+    Alert.alert('Remove Image', 'Are you sure you want to remove this image?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: remove },
+    ]);
   };
 
   const getTotalSize = () => {
@@ -95,6 +126,9 @@ export default function ImageUploadSection({
     additionalImages.forEach(img => (total += img.size));
     return total;
   };
+
+  const hasFeaturedImage = featuredImage || existingFeaturedUrl;
+  const totalAdditionalCount = additionalImages.length + existingImageUrls.length;
 
   return (
     <Card style={styles.card}>
@@ -116,14 +150,19 @@ export default function ImageUploadSection({
             </Text>
           </View>
 
-          {featuredImage ? (
+          {hasFeaturedImage ? (
             <View style={styles.featuredImageContainer}>
-              <Image source={{ uri: featuredImage.uri }} style={styles.featuredImage} />
-              <View style={styles.imageInfo}>
-                <Text variant="bodySmall" style={styles.imageSizeText}>
-                  {formatFileSize(featuredImage.size)}
-                </Text>
-              </View>
+              <Image 
+                source={{ uri: featuredImage ? featuredImage.uri : existingFeaturedUrl }} 
+                style={styles.featuredImage} 
+              />
+              {featuredImage && (
+                <View style={styles.imageInfo}>
+                  <Text variant="bodySmall" style={styles.imageSizeText}>
+                    {formatFileSize(featuredImage.size)}
+                  </Text>
+                </View>
+              )}
               <View style={styles.featuredImageOverlay}>
                 <IconButton
                   icon="pencil"
@@ -195,7 +234,7 @@ export default function ImageUploadSection({
         <View style={styles.subsection}>
           <View style={styles.subsectionHeader}>
             <Text variant="titleMedium" style={styles.subsectionTitle}>
-              Additional Images ({additionalImages.length}/{ImageUploadConfig.maxAdditionalImages})
+              Additional Images ({totalAdditionalCount}/{ImageUploadConfig.maxAdditionalImages})
             </Text>
             <Text variant="bodySmall" style={styles.subsectionSubtitle}>
               Add up to {ImageUploadConfig.maxAdditionalImages} more images
@@ -203,8 +242,22 @@ export default function ImageUploadSection({
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.additionalImagesScroll}>
+            {/* Existing images */}
+            {existingImageUrls.map((imageUrl, index) => (
+              <View key={`existing-${index}`} style={styles.additionalImageContainer}>
+                <Image source={{ uri: imageUrl }} style={styles.additionalImage} />
+                <TouchableOpacity
+                  style={styles.removeImageButton}
+                  onPress={() => handleRemoveExistingAdditionalImage(index)}
+                >
+                  <Icon name="close-circle" size={24} color={Colors.secondary.red} />
+                </TouchableOpacity>
+              </View>
+            ))}
+            
+            {/* New images */}
             {additionalImages.map((image, index) => (
-              <View key={index} style={styles.additionalImageContainer}>
+              <View key={`new-${index}`} style={styles.additionalImageContainer}>
                 <Image source={{ uri: image.uri }} style={styles.additionalImage} />
                 <View style={styles.additionalImageInfo}>
                   <Text variant="bodySmall" style={styles.additionalImageSizeText}>
@@ -220,7 +273,7 @@ export default function ImageUploadSection({
               </View>
             ))}
 
-            {additionalImages.length < ImageUploadConfig.maxAdditionalImages && (
+            {totalAdditionalCount < ImageUploadConfig.maxAdditionalImages && (
               <Menu
                 visible={additionalMenuVisible}
                 onDismiss={() => setAdditionalMenuVisible(false)}

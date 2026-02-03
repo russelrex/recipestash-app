@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
 import {
   Card,
   Text,
@@ -12,9 +12,11 @@ import {
   Divider,
 } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
-import { authApi, postsApi, type Post, type Comment } from '../services/api';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { authApi, postsApi, recipesApi, type Post, type Comment } from '../services/api';
 import { Colors } from '../theme';
 import CommentItem from './CommentItem';
+import ProfileAvatar from './ProfileAvatar';
 
 interface PostCardProps {
   post: Post;
@@ -51,6 +53,39 @@ export default function PostCard({
   useEffect(() => {
     setLocalPost(post);
   }, [post]);
+
+  // If backend doesn't provide recipeImages yet, fetch recipe and derive up to 3 images.
+  useEffect(() => {
+    let cancelled = false;
+
+    const hydrateRecipeImages = async () => {
+      if (!localPost.recipeId) return;
+      if (localPost.recipeImages && localPost.recipeImages.length > 0) return;
+
+      try {
+        const recipe = await recipesApi.getRecipe(localPost.recipeId);
+        const images: string[] = [];
+        if (recipe?.featuredImage) images.push(recipe.featuredImage);
+        if (Array.isArray(recipe?.images) && recipe.images.length > 0) {
+          const remaining = 3 - images.length;
+          if (remaining > 0) images.push(...recipe.images.slice(0, remaining));
+        }
+
+        if (cancelled) return;
+        if (images.length > 0) {
+          setLocalPost(prev => ({ ...prev, recipeImages: images }));
+        }
+      } catch {
+        // silent: recipe images are an enhancement, not required for the post card
+      }
+    };
+
+    hydrateRecipeImages();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localPost.recipeId]);
 
   const loadCurrentUserId = async () => {
     const userId = await authApi.getCurrentUserId();
@@ -184,9 +219,9 @@ export default function PostCard({
             }
             style={styles.userInfo}
           >
-            <Avatar.Text
+            <ProfileAvatar
+              name={localPost.userName}
               size={40}
-              label={localPost.userName.substring(0, 2).toUpperCase()}
               style={styles.avatar}
             />
             <View style={styles.userDetails}>
@@ -232,8 +267,16 @@ export default function PostCard({
           {localPost.content}
         </Text>
 
+        {/* Post Image */}
+        {localPost.imageUrl && (
+          <Card.Cover source={{ uri: localPost.imageUrl }} style={styles.image} />
+        )}
+
+        {/* Linked Recipe with Images */}
         {localPost.recipeId && localPost.recipeTitle && (
+          <View style={styles.recipeSection}>
           <TouchableOpacity
+              style={styles.recipeHeader}
             onPress={() =>
               navigation.navigate(
                 'RecipeDetail' as never,
@@ -241,18 +284,42 @@ export default function PostCard({
               )
             }
           >
-            <Chip
-              icon="book-open-page-variant"
-              style={styles.recipeChip}
-              mode="outlined"
-            >
-              {localPost.recipeTitle}
-            </Chip>
-          </TouchableOpacity>
-        )}
+              <Icon name="book-open-page-variant" size={18} color={Colors.primary.main} />
+              <Text variant="titleSmall" style={styles.recipeTitle}>
+                {localPost.recipeTitle}
+              </Text>
+              <Icon name="chevron-right" size={18} color={Colors.text.secondary} />
+            </TouchableOpacity>
 
-        {localPost.imageUrl && (
-          <Card.Cover source={{ uri: localPost.imageUrl }} style={styles.image} />
+            {/* Recipe Images Grid - 3 Column Layout */}
+            {localPost.recipeImages && localPost.recipeImages.length > 0 && (
+              <View style={styles.recipeImagesGrid}>
+                {localPost.recipeImages.slice(0, 3).map((imageUrl, index) => {
+                  const imageCount = localPost.recipeImages?.length || 0;
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.recipeImageWrapper}
+                      onPress={() =>
+                        navigation.navigate(
+                          'RecipeDetail' as never,
+                          { recipeId: localPost.recipeId } as never,
+                        )
+                      }
+                    >
+                      <Image source={{ uri: imageUrl }} style={styles.recipeGridImage} />
+                      {/* Show count badge on last image if there are more */}
+                      {index === 2 && imageCount > 3 && (
+                        <View style={styles.moreImagesBadge}>
+                          <Text style={styles.moreImagesText}>+{imageCount - 3}</Text>
+                        </View>
+                      )}
+          </TouchableOpacity>
+                  );
+                })}
+              </View>
+        )}
+          </View>
         )}
 
         {(localPost.likesCount > 0 || localPost.commentsCount > 0) && (
@@ -436,13 +503,57 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     lineHeight: 22,
   },
-  recipeChip: {
-    alignSelf: 'flex-start',
-    marginBottom: 12,
-  },
   image: {
     marginBottom: 12,
     borderRadius: 8,
+  },
+  recipeSection: {
+    marginTop: 8,
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: Colors.background.default,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  recipeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  recipeTitle: {
+    flex: 1,
+    marginLeft: 8,
+    fontWeight: '600',
+    color: Colors.primary.main,
+  },
+  recipeImagesGrid: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  recipeImageWrapper: {
+    flex: 1,
+    aspectRatio: 1,
+    position: 'relative',
+  },
+  recipeGridImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+    backgroundColor: Colors.border.light,
+  },
+  moreImagesBadge: {
+    position: 'absolute',
+    inset: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  moreImagesText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   countsContainer: {
     flexDirection: 'row',

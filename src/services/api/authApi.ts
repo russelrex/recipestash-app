@@ -17,11 +17,19 @@ export interface AuthResponse {
 }
 
 export interface UserProfile {
-  _id: string;
+  id: string;
   name: string;
+  email: string;
+  bio?: string;
+  avatarUrl?: string;
   createdAt: string;
   updatedAt: string;
-  lastLoginAt?: string;
+}
+
+export interface UpdateProfileData {
+  name?: string;
+  bio?: string;
+  avatarUrl?: string; // base64 data URI | existing URL | '' to clear
 }
 
 class AuthApi {
@@ -82,27 +90,53 @@ class AuthApi {
         return false;
       }
 
-      const response = await apiClient.post('/auth/validate', {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // Let the apiClient interceptor handle the Authorization header automatically
+      const response = await apiClient.post('/auth/validate', {});
 
       return response.data.success === true;
     } catch (error: any) {
       console.error('Token validation error:', error);
-      // If validation fails, clear potentially corrupted token
-      if (error.response?.status === 400 || error.response?.status === 401) {
+      
+      // Only clear token on actual authentication failure (401 Unauthorized)
+      // Don't clear on network errors, timeouts, or other issues
+      if (error.response?.status === 401) {
+        console.warn('Token is invalid or expired, clearing auth data');
         await this.logout();
+      } else if (error.response?.status === 400) {
+        // 400 might be a bad request format, not necessarily invalid token
+        // Log but don't clear token - let the user try again
+        console.warn('Token validation request failed with 400, but keeping token');
+      } else {
+        // Network error, timeout, or other non-auth errors
+        // Don't clear token - might be temporary issue
+        console.warn('Token validation failed due to network/other error, keeping token');
       }
+      
       return false;
     }
   }
 
   async getProfile(): Promise<UserProfile> {
     try {
-      const response = await apiClient.get('/auth/profile');
-      return response.data.data;
+      const response = await apiClient.get('/users/profile');
+      if (response.data.success) return response.data.data;
+      throw new Error(response.data.message || 'Failed to fetch profile');
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch profile');
+    }
+  }
+
+  async updateProfile(data: UpdateProfileData): Promise<UserProfile> {
+    try {
+      const response = await apiClient.put('/users/profile', data);
+      if (response.data.success) {
+        const updated: UserProfile = response.data.data;
+        if (updated.name) await AsyncStorage.setItem('userName', updated.name);
+        return updated;
+      }
+      throw new Error(response.data.message || 'Failed to update profile');
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to update profile');
     }
   }
 
@@ -111,12 +145,37 @@ class AuthApi {
   }
 
   async isAuthenticated(): Promise<boolean> {
-    const token = await AsyncStorage.getItem('authToken');
-    // Validate token exists and is not "null" string
-    if (!token || token === 'null' || token.trim() === '') {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      // Validate token exists and is not "null" string
+      if (!token || token === 'null' || token.trim() === '') {
+        return false;
+      }
+      
+      // Try to validate the token
+      const isValid = await this.validateToken();
+      
+      if (isValid) {
+        return true;
+      }
+      
+      // Validation returned false - check if token was cleared (401) or still exists (network error)
+      const tokenStillExists = await AsyncStorage.getItem('authToken');
+      if (tokenStillExists && tokenStillExists !== 'null' && tokenStillExists.trim() !== '') {
+        // Token still exists, validation might have failed due to network error
+        // Assume authenticated - API calls will handle actual auth failures
+        console.warn('Token validation failed but token exists, assuming authenticated (likely network error)');
+        return true;
+      }
+      
+      // Token was cleared (401 error), user is not authenticated
       return false;
+    } catch (error) {
+      console.error('Error in isAuthenticated:', error);
+      // On unexpected error, check if we have a token - if yes, assume authenticated
+      const token = await AsyncStorage.getItem('authToken');
+      return !!(token && token !== 'null' && token.trim() !== '');
     }
-    return this.validateToken();
   }
 
   async getCurrentUserId(): Promise<string | null> {

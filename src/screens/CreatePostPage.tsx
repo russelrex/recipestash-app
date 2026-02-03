@@ -197,18 +197,7 @@ export default function CreatePostPage() {
                 outlineColor={Colors.border.main}
                 activeOutlineColor={Colors.primary.main}
               />
-
-              <TextInput
-                label="Image URL (Optional)"
-                value={imageUrl}
-                onChangeText={setImageUrl}
-                mode="outlined"
-                style={styles.input}
-                placeholder="https://example.com/image.jpg"
-                outlineColor={Colors.border.main}
-                activeOutlineColor={Colors.primary.main}
-              />
-
+              
               <Text variant="titleMedium" style={styles.label}>
                 Link a Recipe (Optional)
               </Text>

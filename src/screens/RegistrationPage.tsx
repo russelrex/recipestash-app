@@ -98,13 +98,13 @@ export default function RegistrationPage() {
       });
 
       setSnackbarMessage('Account created successfully! 🎉');
-      setSnackbarVisible(true);
+        setSnackbarVisible(true);
 
-      setTimeout(() => {
+        setTimeout(() => {
         (navigation as any).reset({
-          index: 0,
+            index: 0,
           routes: [{ name: 'MainTabs' }],
-        });
+          });
       }, 500);
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -244,15 +244,15 @@ export default function RegistrationPage() {
                 </Button>
 
                 {/* Sign In Link */}
-                <Button
-                  mode="text"
+                    <Button
+                      mode="text"
                   onPress={() => navigation.goBack()}
                   style={styles.secondaryButton}
                   textColor={Colors.primary.main}
-                  disabled={loading}
+                      disabled={loading}
                 >
                   Already have an account? Sign In
-                </Button>
+                  </Button>
               </ScrollView>
             </Surface>
           </View>

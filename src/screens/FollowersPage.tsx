@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet, ImageBackground, Dimensions } from 'react-native';
-import { Text, ActivityIndicator, Snackbar } from 'react-native-paper';
 import { useRoute } from '@react-navigation/native';
-import { followsApi, Follow } from '../services/api';
-import { Colors } from '../theme';
+import React, { useEffect, useState } from 'react';
+import { Dimensions, FlatList, ImageBackground, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Snackbar, Text } from 'react-native-paper';
 import UserCard from '../components/UserCard';
+import { Follow, followsApi } from '../services/api';
+import { Colors } from '../theme';
 
 const { height } = Dimensions.get('window');
 

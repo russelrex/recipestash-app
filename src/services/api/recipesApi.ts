@@ -22,9 +22,6 @@ export interface Recipe {
 }
 
 export interface CreateRecipeData {
-  userId: string;
-  ownerId: string;
-  ownerName: string;
   title: string;
   description: string;
   ingredients: string[];
@@ -34,11 +31,22 @@ export interface CreateRecipeData {
   cookTime: number;
   servings: number;
   difficulty: 'easy' | 'medium' | 'hard';
-  imageUrl?: string;
-  featuredImage?: string; // Base64 encoded image
-  images?: string[]; // Array of base64 encoded images
-  isFavorite?: boolean;
-  rating?: number;
+  featuredImage?: string; // Base64 encoded or URL
+  images?: string[]; // Array of base64 encoded images or URLs
+}
+
+export interface UpdateRecipeData {
+  title?: string;
+  description?: string;
+  ingredients?: string[];
+  instructions?: string[];
+  category?: string;
+  prepTime?: number;
+  cookTime?: number;
+  servings?: number;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  featuredImage?: string; // Base64 encoded or URL
+  images?: string[]; // Array of base64 encoded images or URLs
 }
 
 export interface RecipeStats {
@@ -51,7 +59,11 @@ class RecipesApi {
   async createRecipe(data: CreateRecipeData): Promise<Recipe> {
     try {
       const response = await apiClient.post('/recipes', data);
-      return response.data.data;
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.message || 'Failed to create recipe');
+      }
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to create recipe');
     }
@@ -60,7 +72,11 @@ class RecipesApi {
   async getAllRecipes(): Promise<Recipe[]> {
     try {
       const response = await apiClient.get('/recipes');
-      return response.data.data;
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch recipes');
+      }
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch recipes');
     }
@@ -69,7 +85,11 @@ class RecipesApi {
   async getRecipe(id: string): Promise<Recipe> {
     try {
       const response = await apiClient.get(`/recipes/${id}`);
-      return response.data.data;
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch recipe');
+      }
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch recipe');
     }
@@ -113,19 +133,48 @@ class RecipesApi {
     }
   }
 
-  async updateRecipe(id: string, data: Partial<CreateRecipeData>): Promise<Recipe> {
+  async updateRecipe(id: string, data: UpdateRecipeData): Promise<Recipe> {
     try {
+      console.log(`Updating recipe ${id} with data:`, {
+        ...data,
+        featuredImage: data.featuredImage ? `${data.featuredImage.substring(0, 50)}...` : undefined,
+        images: data.images?.length || 0,
+      });
+      
       const response = await apiClient.patch(`/recipes/${id}`, data);
-      return response.data.data;
+      
+      console.log('Update response:', {
+        success: response.data.success,
+        hasData: !!response.data.data,
+        message: response.data.message,
+      });
+      
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        const errorMsg = response.data.message || 'Failed to update recipe';
+        console.error('Update failed:', errorMsg);
+        throw new Error(errorMsg);
+      }
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Failed to update recipe');
+      console.error('Update recipe error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+      });
+      throw new Error(error.response?.data?.message || error.message || 'Failed to update recipe');
     }
   }
 
   async toggleFavorite(id: string): Promise<Recipe> {
     try {
       const response = await apiClient.patch(`/recipes/${id}/favorite`);
-      return response.data.data;
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.message || 'Failed to toggle favorite');
+      }
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to toggle favorite');
     }
@@ -133,7 +182,10 @@ class RecipesApi {
 
   async deleteRecipe(id: string): Promise<void> {
     try {
-      await apiClient.delete(`/recipes/${id}`);
+      const response = await apiClient.delete(`/recipes/${id}`);
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to delete recipe');
+      }
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to delete recipe');
     }
