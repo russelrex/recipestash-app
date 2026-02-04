@@ -100,7 +100,7 @@ export default function LoginPage() {
       style={styles.container}
     >
       <ImageBackground
-        source={require('../../assets/images/homepage_bg02.jpg')}
+        source={require('../../assets/images/placeholder_bg.jpg')}
         style={styles.background}
         resizeMode="cover"
       >
@@ -233,7 +233,6 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(250, 250, 248, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
@@ -245,17 +244,17 @@ const styles = StyleSheet.create({
   authCard: {
     width: '100%',
     maxWidth: 400,
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
-    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     padding: 32,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
     overflow: 'hidden',
   },
   scrollContent: {

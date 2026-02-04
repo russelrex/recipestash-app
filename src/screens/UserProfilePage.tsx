@@ -12,9 +12,11 @@ import ProfileAvatar from '../components/ProfileAvatar';
 import {
   authApi,
   followsApi,
+  postsApi,
+  recipesApi,
   type FollowStats,
   type Post,
-  postsApi,
+  type Recipe,
   type UserProfile,
 } from '../services/api';
 import { Colors } from '../theme';
@@ -30,6 +32,7 @@ export default function UserProfilePage() {
   const [userName, setUserName] = useState('');
   const [stats, setStats] = useState<FollowStats | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
@@ -43,11 +46,17 @@ export default function UserProfilePage() {
       const currentId = await authApi.getCurrentUserId();
       setCurrentUserId(currentId);
 
-      const [profileData, statsData, userPosts] = await Promise.all([
+      const [profileData, statsData, userPosts, allRecipes] = await Promise.all([
         authApi.getUserProfile(userId),
         followsApi.getStats(userId),
         postsApi.getUserPosts(userId),
+        recipesApi.getAllRecipes(),
       ]);
+
+      // Filter recipes by userId (ownerId might also be used)
+      const userRecipes = allRecipes.filter(
+        (recipe: Recipe) => recipe.userId === userId || (recipe as any).ownerId === userId
+      );
 
       setProfile(profileData);
 
@@ -58,6 +67,7 @@ export default function UserProfilePage() {
 
       setStats(statsData);
       setPosts(userPosts);
+      setRecipes(userRecipes);
     } catch (error) {
       console.error('Error loading user profile:', error);
     } finally {
@@ -87,10 +97,23 @@ export default function UserProfilePage() {
 
   const isOwnProfile = currentUserId === userId;
 
+  const getRecipeIcon = (category: string) => {
+    const icons: Record<string, string> = {
+      breakfast: 'coffee',
+      lunch: 'bowl-mix',
+      dinner: 'food-drumstick',
+      dessert: 'cake',
+      drinks: 'bottle-soda',
+      vegetarian: 'leaf',
+      snacks: 'food-apple',
+    };
+    return icons[category.toLowerCase()] || 'food';
+  };
+
   if (loading) {
     return (
       <ImageBackground
-        source={require('../../assets/images/dashboard_bg.jpg')}
+        source={require('../../assets/images/placeholder_bg.jpg')}
         style={styles.background}
         resizeMode="cover"
       >
@@ -104,7 +127,7 @@ export default function UserProfilePage() {
 
   return (
     <ImageBackground
-      source={require('../../assets/images/dashboard_bg.jpg')}
+      source={require('../../assets/images/placeholder_bg.jpg')}
       style={styles.background}
       resizeMode="cover"
     >
@@ -179,6 +202,50 @@ export default function UserProfilePage() {
             </Card.Content>
           </Card>
 
+          {/* Featured Recipes Section */}
+          <Card style={styles.glassCard}>
+            <Card.Content>
+              <View style={styles.sectionHeader}>
+                <Text variant="titleLarge" style={styles.sectionTitle}>
+                  Featured Recipes
+                </Text>
+              </View>
+              {(() => {
+                const featuredRecipes = recipes.filter((r: Recipe) => r.featured === true).slice(0, 3);
+                return featuredRecipes.length === 0
+                  ? <Text variant="bodyMedium" style={styles.emptyText}>
+                      No featured recipes yet
+                    </Text>
+                  : (
+                    <View style={styles.recipeGrid}>
+                      {featuredRecipes.map((recipe: Recipe) => (
+                        <TouchableOpacity
+                          key={recipe._id}
+                          style={styles.recipeGridItem}
+                          onPress={() => navigation.navigate('RecipeDetail' as never,
+                            { recipeId: recipe._id } as never)}
+                        >
+                          {recipe.featuredImage
+                            ? <View style={styles.recipeThumbWrapper}>
+                                <Card.Cover source={{ uri: recipe.featuredImage }} style={styles.recipeThumb} />
+                              </View>
+                            : <View style={[styles.recipeThumbWrapper, styles.recipeThumbPlaceholder]}>
+                                <Text style={styles.recipeThumbIcon}>
+                                  {getRecipeIcon(recipe.category) === 'coffee' ? '☕' : '🍽'}
+                                </Text>
+                              </View>
+                          }
+                          <Text variant="bodySmall" style={styles.recipeGridTitle} numberOfLines={1}>
+                            {recipe.title}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  );
+              })()}
+            </Card.Content>
+          </Card>
+
           <View style={styles.postsSection}>
             <Text variant="titleLarge" style={styles.sectionTitle}>
               Posts
@@ -211,7 +278,6 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(250, 250, 248, 0.3)',
   },
   container: {
     flex: 1,
@@ -226,11 +292,31 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: Colors.text.primary,
   },
+  glassCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+    overflow: 'hidden',
+  },
   profileCard: {
     margin: 16,
-    elevation: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
   },
   profileContent: {
     alignItems: 'center',
@@ -270,14 +356,53 @@ const styles = StyleSheet.create({
   postsSection: {
     padding: 16,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontWeight: 'bold',
     marginBottom: 12,
     color: Colors.text.primary,
   },
   emptyText: {
-    color: Colors.text.disabled,
+    color: Colors.text.secondary,
     textAlign: 'center',
-    paddingVertical: 20,
+    paddingVertical: 12,
+  },
+  recipeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  recipeGridItem: {
+    width: '30%',
+    alignItems: 'center',
+  },
+  recipeThumbWrapper: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#eee',
+  },
+  recipeThumb: {
+    width: '100%',
+    height: '100%',
+  },
+  recipeThumbPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background.default,
+  },
+  recipeThumbIcon: {
+    fontSize: 28,
+  },
+  recipeGridTitle: {
+    marginTop: 6,
+    textAlign: 'center',
+    color: '#333',
   },
 });

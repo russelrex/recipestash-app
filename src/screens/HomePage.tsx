@@ -15,7 +15,7 @@ export default function HomePage() {
   useEffect(() => {
     let isMounted = true;
 
-    Asset.fromModule(require('../../assets/images/homepage_bg02.jpg'))
+    Asset.fromModule(require('../../assets/images/placeholder_bg.jpg'))
       .downloadAsync()
       .finally(() => {
         if (isMounted) {
@@ -79,7 +79,7 @@ export default function HomePage() {
 
   return (
     <ImageBackground
-      source={require('../../assets/images/homepage_bg02.jpg')}
+      source={require('../../assets/images/placeholder_bg.jpg')}
       style={styles.background}
       resizeMode="cover"
     >
@@ -95,8 +95,6 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    // Light tint so content is readable but the background image is still very visible
-    backgroundColor: 'rgba(250, 250, 248, 0.3)',
     justifyContent: 'space-between',
   },
   topSection: {
@@ -121,19 +119,17 @@ const styles = StyleSheet.create({
   authCard: {
     width: '100%',
     maxWidth: 400,
-    // Glassmorphism-style card
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
-    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     padding: 32,
     alignItems: 'center',
-    // subtle shadow for depth
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
     overflow: 'hidden',
   },
   welcomeText: {

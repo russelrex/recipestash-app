@@ -500,8 +500,18 @@ export default function PostCard({
 
 const styles = StyleSheet.create({
   card: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     marginBottom: 12,
-    elevation: 2,
+    marginHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',

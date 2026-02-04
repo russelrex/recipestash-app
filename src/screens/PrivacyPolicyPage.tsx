@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { ImageBackground, View, ScrollView, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
 
 // ─── Policy sections ─────────────────────────────────────────────────────────
@@ -116,22 +116,28 @@ support@recipestash.com`,
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function PrivacyPolicyPage() {
+  const bgImage = require('../../assets/images/placeholder_bg.jpg');
+
   return (
     <View style={styles.root}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.effectiveDate}>Effective Date: February 1, 2025</Text>
+      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          <View style={styles.glassContainer}>
+            <Text style={styles.effectiveDate}>Effective Date: February 1, 2025</Text>
 
-        {SECTIONS.map((section, idx) => (
-          <View key={idx} style={styles.section}>
-            <Text style={styles.heading}>{section.heading}</Text>
-            {section.body.split('\n\n').map((paragraph, pIdx) => (
-              <Text key={pIdx} style={styles.body}>{paragraph}</Text>
+            {SECTIONS.map((section, idx) => (
+              <View key={idx} style={styles.section}>
+                <Text style={styles.heading}>{section.heading}</Text>
+                {section.body.split('\n\n').map((paragraph, pIdx) => (
+                  <Text key={pIdx} style={styles.body}>{paragraph}</Text>
+                ))}
+              </View>
             ))}
-          </View>
-        ))}
 
-        <View style={styles.footer} />
-      </ScrollView>
+            <View style={styles.footer} />
+          </View>
+        </ScrollView>
+      </ImageBackground>
     </View>
   );
 }
@@ -141,7 +147,11 @@ export default function PrivacyPolicyPage() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#FFF8E1',
+  },
+  background: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
   },
   scroll: {
     flex: 1,
@@ -149,10 +159,23 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 16,
+    paddingBottom: 32,
+  },
+  glassContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
   },
   effectiveDate: {
     fontSize: 12,
-    color: '#888',
+    color: '#555',
     fontStyle: 'italic',
     marginBottom: 20,
     textAlign: 'center',

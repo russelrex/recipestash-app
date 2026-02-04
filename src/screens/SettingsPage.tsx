@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
-import { Alert, Linking, Platform, Modal as RNModal, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, ImageBackground, Linking, Platform, Modal as RNModal, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Button, Divider, List, Snackbar, Switch, Text } from 'react-native-paper';
 import { authApi, followsApi, recipesApi } from '../services/api';
 import cacheService from '../services/cache/cacheService';
@@ -556,18 +556,22 @@ export default function SettingsPage() {
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        {offline && (
-          <View style={styles.offlineBanner}>
-            <Text variant="bodySmall" style={styles.offlineText}>
-              📱 You are in offline mode. Some features may be limited.
-            </Text>
-          </View>
-        )}
+  const bgImage = require('../../assets/images/placeholder_bg.jpg');
 
-        <List.Section>
+  return (
+    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+      <View style={styles.container}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+          <View style={styles.glassContainer}>
+            {offline && (
+              <View style={styles.offlineBanner}>
+                <Text variant="bodySmall" style={styles.offlineText}>
+                  📱 You are in offline mode. Some features may be limited.
+                </Text>
+              </View>
+            )}
+
+            <List.Section>
           <List.Subheader>Preferences</List.Subheader>
           <List.Item
             title="Notifications"
@@ -709,12 +713,14 @@ export default function SettingsPage() {
           Logout
         </Button>
 
-        <View style={styles.footer}>
-          <Text variant="bodySmall" style={styles.footerText}>
-            Made with ❤️ for food lovers
-          </Text>
-        </View>
-      </ScrollView>
+            <View style={styles.footer}>
+              <Text variant="bodySmall" style={styles.footerText}>
+                Made with ❤️ for food lovers
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
 
       {/* Modal */}
       <RNModal
@@ -746,7 +752,7 @@ export default function SettingsPage() {
         onRequestClose={() => setLogoutDialogVisible(false)}
       >
         <TouchableOpacity
-          style={styles.modalOverlay}
+          style={styles.dialogOverlay}
           activeOpacity={1}
           onPress={() => setLogoutDialogVisible(false)}
         >
@@ -789,17 +795,37 @@ export default function SettingsPage() {
       >
         {snackbarMessage}
       </Snackbar>
-    </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
-    backgroundColor: Colors.background.default,
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  glassContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
   },
   offlineBanner: {
     backgroundColor: Colors.status.warning || '#FFF3CD',
@@ -1016,11 +1042,24 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   // Dialog styles
+  dialogOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
   dialogContainer: {
-    backgroundColor: Colors.background.paper,
+    backgroundColor: '#FFFFFF',
     margin: 20,
     borderRadius: 16,
     padding: 20,
+    width: '90%',
+    maxWidth: 500,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
   },
   dialogTitle: {
     fontWeight: 'bold',

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Dimensions,
   Image,
+  ImageBackground,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -172,14 +173,17 @@ export default function CreatePostPage() {
     return icons[category.toLowerCase()] || 'food';
   };
 
+  const bgImage = require('../../assets/images/placeholder_bg.jpg');
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.content}>
-          <Card style={styles.card}>
+    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.content}>
+            <Card style={styles.glassCard}>
             <Card.Content>
               <Text variant="titleLarge" style={styles.sectionTitle}>
                 {isEditMode ? 'Edit Post' : 'Create Post'}
@@ -203,7 +207,7 @@ export default function CreatePostPage() {
               </Text>
 
               {selectedRecipe ? (
-                <Card style={styles.selectedRecipeCard}>
+                <Card style={styles.glassCard}>
                   <Card.Content style={styles.selectedRecipeContent}>
                     {selectedRecipe.imageUrl ? (
                       <Image
@@ -262,16 +266,19 @@ export default function CreatePostPage() {
           loading={loading}
           disabled={loading}
           buttonColor={Colors.primary.main}
+          icon="check"
         >
           {loading ? (isEditMode ? 'Updating...' : 'Posting...') : isEditMode ? 'Update Post' : 'Post'}
         </Button>
 
         <Button
-          mode="text"
+          mode="outlined"
           onPress={() => navigation.goBack()}
           style={styles.cancelButton}
+          contentStyle={styles.cancelButtonContent}
           disabled={loading}
-          textColor={Colors.text.secondary}
+          textColor={Colors.text.primary}
+          icon="close"
         >
           Cancel
         </Button>
@@ -399,14 +406,19 @@ export default function CreatePostPage() {
       <Snackbar visible={snackbarVisible} onDismiss={() => setSnackbarVisible(false)} duration={3000}>
         {snackbarMessage}
       </Snackbar>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
-    backgroundColor: Colors.background.default,
   },
   scrollView: {
     flex: 1,
@@ -414,6 +426,19 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     paddingBottom: 100, // Add padding so content doesn't get hidden behind buttons
+  },
+  glassCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+    overflow: 'hidden',
   },
   card: {
     marginBottom: 16,
@@ -436,7 +461,7 @@ const styles = StyleSheet.create({
   selectedRecipeCard: {
     marginBottom: 16,
     elevation: 1,
-    backgroundColor: Colors.background.default,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
   },
   selectedRecipeContent: {
     flexDirection: 'row',
@@ -478,26 +503,50 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.background.paper,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 16,
     paddingBottom: Platform.OS === 'ios' ? 20 : 16,
     borderTopWidth: 1,
-    borderTopColor: Colors.border.light,
+    borderTopColor: 'rgba(255, 255, 255, 0.3)',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderLeftColor: 'rgba(255, 255, 255, 0.3)',
+    borderRightColor: 'rgba(255, 255, 255, 0.3)',
     elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
   },
   submitButton: {
-    marginBottom: 8,
+    marginBottom: 12,
+    borderRadius: 12,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   submitButtonContent: {
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
   cancelButton: {
     marginBottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.text.primary,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  cancelButtonContent: {
+    paddingVertical: 10,
   },
   // Drawer Styles
   drawerOverlay: {
@@ -514,10 +563,15 @@ const styles = StyleSheet.create({
   },
   drawerContainer: {
     height: SCREEN_HEIGHT * 0.75,
-    backgroundColor: Colors.background.paper,
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: Platform.OS === 'ios' ? 20 : 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
   },
   drawerHandle: {
     width: 40,
@@ -580,7 +634,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   recipeCard: {
-    elevation: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
   },
   recipeCardContent: {
     flexDirection: 'row',

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
+import { ImageBackground, View, FlatList, StyleSheet, RefreshControl } from 'react-native';
 import { ActivityIndicator, Text, Snackbar } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import PostCard from '../components/PostCard';
@@ -121,18 +121,23 @@ export default function NewsfeedPage() {
     );
   };
 
+  const bgImage = require('../../assets/images/placeholder_bg.jpg');
+
   if (loading && !refreshing) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading newsfeed...</Text>
-      </View>
+      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" />
+          <Text style={styles.loadingText}>Loading newsfeed...</Text>
+        </View>
+      </ImageBackground>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <FlatList
+    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+      <View style={styles.container}>
+        <FlatList
         data={posts}
         renderItem={({ item }) => (
           <PostCard
@@ -162,27 +167,31 @@ export default function NewsfeedPage() {
       >
         {snackbarMessage}
       </Snackbar>
-    </View>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
-    backgroundColor: Colors.background.default,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background.default,
   },
   loadingText: {
     marginTop: 10,
     color: Colors.text.secondary,
   },
   listContent: {
-    padding: 16,
+    paddingVertical: 16,
   },
   emptyContainer: {
     padding: 40,

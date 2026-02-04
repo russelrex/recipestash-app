@@ -203,7 +203,7 @@ export default function RecipesPage() {
   if (loading && !refreshing) {
     return (
       <ImageBackground
-        source={require('../../assets/images/dashboard_bg.jpg')}
+        source={require('../../assets/images/placeholder_bg.jpg')}
         style={styles.background}
         resizeMode="cover"
       >
@@ -217,7 +217,7 @@ export default function RecipesPage() {
 
   return (
     <ImageBackground
-      source={require('../../assets/images/dashboard_bg.jpg')}
+      source={require('../../assets/images/placeholder_bg.jpg')}
       style={styles.background}
       resizeMode="cover"
     >
@@ -300,7 +300,7 @@ export default function RecipesPage() {
             filteredRecipes.map(recipe => (
               <Card
                 key={recipe._id}
-                style={styles.recipeCard}
+                style={styles.glassCard}
                 onPress={() =>
                   navigation.navigate(
                     'RecipeDetail' as never,
@@ -425,13 +425,11 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(250, 250, 248, 0.3)',
   },
   loadingOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(250, 250, 248, 0.3)',
   },
   loadingText: {
     marginTop: 10,
@@ -439,8 +437,10 @@ const styles = StyleSheet.create({
   },
   searchbar: {
     margin: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     elevation: 2,
   },
   content: {
@@ -470,6 +470,19 @@ const styles = StyleSheet.create({
   offlineBadge: {
     color: Colors.status.warning || '#FF9800',
     fontStyle: 'italic',
+  },
+  glassCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+    overflow: 'hidden',
   },
   recipeCard: {
     marginBottom: 16,

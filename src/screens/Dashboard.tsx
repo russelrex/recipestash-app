@@ -90,7 +90,7 @@ export default function Dashboard() {
   if (loading && !refreshing) {
     return (
       <ImageBackground
-        source={require('../../assets/images/dashboard_bg.jpg')}
+        source={require('../../assets/images/placeholder_bg.jpg')}
         style={styles.background}
         resizeMode="cover"
       >
@@ -124,7 +124,7 @@ export default function Dashboard() {
         </Text>
 
         <View style={styles.statsContainer}>
-          <Card style={styles.statCard}>
+          <Card style={styles.glassCard}>
             <Card.Content style={styles.statContent}>
               <Avatar.Icon icon="book-open-variant" size={40} style={styles.statIcon} />
               <Text variant="headlineMedium" style={styles.statNumber}>
@@ -136,7 +136,7 @@ export default function Dashboard() {
             </Card.Content>
           </Card>
 
-          <Card style={styles.statCard}>
+          <Card style={styles.glassCard}>
             <Card.Content style={styles.statContent}>
               <Avatar.Icon icon="heart" size={40} style={styles.statIconFavorite} />
               <Text variant="headlineMedium" style={styles.statNumber}>
@@ -149,7 +149,7 @@ export default function Dashboard() {
           </Card>
         </View>
 
-        <Card style={styles.card}>
+        <Card style={styles.glassCard}>
           <Card.Title title="Quick Categories" titleVariant="titleLarge" />
           <Card.Content>
             <View style={styles.chipContainer}>
@@ -172,7 +172,7 @@ export default function Dashboard() {
           </Card.Content>
         </Card>
 
-        <Card style={styles.card}>
+        <Card style={styles.glassCard}>
           <Card.Title title="Recent Recipes" titleVariant="titleLarge" />
           <Card.Content>
             {recentRecipes.length > 0 ? (
@@ -208,7 +208,7 @@ export default function Dashboard() {
           </Card.Content>
         </Card>
 
-        <Card style={styles.card}>
+        <Card style={styles.glassCard}>
           <Card.Cover
             source={{
               uri: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800',
@@ -243,13 +243,11 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(250, 250, 248, 0.3)',
   },
   loadingOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(250, 250, 248, 0.3)',
   },
   loadingText: {
     marginTop: 10,
@@ -272,6 +270,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 20,
     gap: 16,
+  },
+  glassCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+    overflow: 'hidden',
+    marginBottom: 16,
   },
   statCard: {
     flex: 1,
@@ -296,12 +307,6 @@ const styles = StyleSheet.create({
   statLabel: {
     color: Colors.text.primary,
     marginTop: 5,
-  },
-  card: {
-    marginBottom: 16,
-    elevation: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    borderRadius: 12,
   },
   chipContainer: {
     flexDirection: 'row',

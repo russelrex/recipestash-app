@@ -1,6 +1,7 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  ImageBackground,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -127,24 +128,31 @@ export default function ProfilePage() {
     return icons[category.toLowerCase()] || 'food';
   };
 
+  const bgImage = require('../../assets/images/placeholder_bg.jpg');
+
   if (loading && !refreshing) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading profile...</Text>
-      </View>
+      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" />
+          <Text style={styles.loadingText}>Loading profile...</Text>
+        </View>
+      </ImageBackground>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <Card style={styles.headerCard}>
+    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+      <View style={styles.container}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          <View style={styles.glassContainer}>
+            <Card style={styles.glassCard}>
           <Card.Content style={styles.headerContent}>
             <View style={styles.headerTop}>
               <ProfileAvatar
@@ -243,13 +251,13 @@ export default function ProfilePage() {
           </Card.Content>
         </Card>
 
-        <Card style={styles.recipesCard}>
-          <Card.Content>
-            <View style={styles.sectionHeader}>
-              <Text variant="titleLarge" style={styles.sectionTitle}>
-                Featured Recipes
-              </Text>
-            </View>
+            <Card style={styles.glassCard}>
+              <Card.Content>
+                <View style={styles.sectionHeader}>
+                  <Text variant="titleLarge" style={styles.sectionTitle}>
+                    Featured Recipes
+                  </Text>
+                </View>
             {(() => {
               const featuredRecipes = recipes.filter((r: Recipe) => r.featured === true).slice(0, 3);
               return featuredRecipes.length === 0
@@ -286,9 +294,9 @@ export default function ProfilePage() {
           </Card.Content>
         </Card>
 
-        <Card style={styles.postsCard}>
-          <Card.Content>
-            <Text variant="titleLarge" style={styles.sectionTitle}>Recent Posts</Text>
+            <Card style={styles.glassCard}>
+              <Card.Content>
+                <Text variant="titleLarge" style={styles.sectionTitle}>Recent Posts</Text>
             {posts.length === 0
               ? <Text variant="bodyMedium" style={styles.emptyText}>No posts yet</Text>
               : posts.slice(0, 3).map((post: Post) => (
@@ -302,9 +310,10 @@ export default function ProfilePage() {
                   </View>
                 ))
             }
-          </Card.Content>
-        </Card>
-      </ScrollView>
+              </Card.Content>
+            </Card>
+          </View>
+        </ScrollView>
 
       <EditProfileModal
         visible={editModalVisible}
@@ -321,20 +330,24 @@ export default function ProfilePage() {
       >
         {snackbarMessage}
       </Snackbar>
-    </View>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
-    backgroundColor: Colors.background.default,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background.default,
   },
   loadingText: {
     marginTop: 10,
@@ -342,6 +355,35 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  glassContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  glassCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+    overflow: 'hidden',
   },
   headerCard: {
     margin: 16,

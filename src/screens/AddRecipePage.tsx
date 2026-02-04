@@ -350,7 +350,7 @@ export default function AddRecipePage() {
       style={styles.container}
     >
       <ImageBackground
-        source={require('../../assets/images/addrecipe_bg.jpg')}
+        source={require('../../assets/images/placeholder_bg.jpg')}
         style={styles.background}
         resizeMode="cover"
       >
@@ -500,7 +500,11 @@ export default function AddRecipePage() {
                 <TextInput
                   label="Prep Time (min) *"
                   value={prepTime}
-                  onChangeText={setPrepTime}
+                  onChangeText={(text) => {
+                    // Only allow numeric input
+                    const numericValue = text.replace(/[^0-9]/g, '');
+                    setPrepTime(numericValue);
+                  }}
                   mode="outlined"
                   keyboardType="numeric"
                   placeholder="15"
@@ -519,7 +523,11 @@ export default function AddRecipePage() {
                 <TextInput
                   label="Cook Time (min) *"
                   value={cookTime}
-                  onChangeText={setCookTime}
+                  onChangeText={(text) => {
+                    // Only allow numeric input
+                    const numericValue = text.replace(/[^0-9]/g, '');
+                    setCookTime(numericValue);
+                  }}
                   mode="outlined"
                   keyboardType="numeric"
                   placeholder="30"
@@ -538,7 +546,11 @@ export default function AddRecipePage() {
             <TextInput
               label="Servings *"
               value={servings}
-              onChangeText={setServings}
+              onChangeText={(text) => {
+                // Only allow numeric input
+                const numericValue = text.replace(/[^0-9]/g, '');
+                setServings(numericValue);
+              }}
               mode="outlined"
               style={styles.input}
               keyboardType="numeric"

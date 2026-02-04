@@ -346,7 +346,9 @@ export default function AppNavigator() {
         <Stack.Screen 
           name="AddRecipe" 
           component={AddRecipePage}
-          options={{ title: 'Add Recipe' }}
+          options={({ route }) => ({
+            title: (route.params as any)?.recipeId ? 'Edit Recipe' : 'Add Recipe',
+          })}
         />
         <Stack.Screen 
           name="CreatePost" 
