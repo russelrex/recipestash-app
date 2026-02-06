@@ -2,6 +2,8 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Dimensions, ImageBackground, RefreshControl, ScrollView, StyleSheet, View, TouchableOpacity } from 'react-native';
 import { ActivityIndicator, Avatar, Card, Chip, Snackbar, Text } from 'react-native-paper';
+import ShimmerLoader from '../components/ShimmerLoader';
+import SkeletonList from '../components/SkeletonList';
 import { authApi, recipesApi, type Recipe, type RecipeStats } from '../services/api';
 import { Colors } from '../theme';
 
@@ -88,16 +90,42 @@ export default function Dashboard() {
   };
 
   if (loading && !refreshing) {
+    const bgImage = require('../../assets/images/dashboard_bg.jpg');
     return (
       <ImageBackground
-        source={require('../../assets/images/placeholder_bg.jpg')}
+        source={bgImage}
         style={styles.background}
         resizeMode="cover"
       >
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={Colors.secondary.main} />
-          <Text style={styles.loadingText}>Loading your dashboard...</Text>
-        </View>
+        <ScrollView style={styles.content} contentContainerStyle={styles.loadingScrollContent}>
+          {/* Welcome card skeleton */}
+          <View style={styles.welcomeCardSkeleton}>
+            <ShimmerLoader width="60%" height={28} borderRadius={8} />
+            <ShimmerLoader width="80%" height={18} borderRadius={6} style={{ marginTop: 8 }} />
+          </View>
+
+          {/* Stats row skeleton */}
+          <View style={styles.statsRowSkeleton}>
+            <View style={styles.statCardSkeleton}>
+              <ShimmerLoader width={60} height={36} borderRadius={8} />
+              <ShimmerLoader width={80} height={16} borderRadius={4} style={{ marginTop: 8 }} />
+            </View>
+            <View style={styles.statCardSkeleton}>
+              <ShimmerLoader width={60} height={36} borderRadius={8} />
+              <ShimmerLoader width={80} height={16} borderRadius={4} style={{ marginTop: 8 }} />
+            </View>
+            <View style={styles.statCardSkeleton}>
+              <ShimmerLoader width={60} height={36} borderRadius={8} />
+              <ShimmerLoader width={80} height={16} borderRadius={4} style={{ marginTop: 8 }} />
+            </View>
+          </View>
+
+          {/* Recent recipes skeleton */}
+          <View style={styles.sectionSkeleton}>
+            <ShimmerLoader width={150} height={24} borderRadius={6} style={{ marginBottom: 12 }} />
+            <SkeletonList count={3} hasImage horizontal />
+          </View>
+        </ScrollView>
       </ImageBackground>
     );
   }
@@ -244,18 +272,12 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
   },
-  loadingOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    color: Colors.text.primary,
-  },
   content: {
     flex: 1,
     padding: 16,
+  },
+  loadingScrollContent: {
+    paddingBottom: 32,
   },
   greeting: {
     fontWeight: 'bold',
@@ -270,6 +292,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 20,
     gap: 16,
+  },
+  statsRowSkeleton: {
+    flexDirection: 'row',
+    paddingHorizontal: 4,
+    marginBottom: 20,
   },
   glassCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.25)',

@@ -57,6 +57,7 @@ export default function SettingsPage() {
   const loadPreferences = async () => {
     try {
       const prefs = await authApi.getPreferences();
+      console.log('prefs', prefs);
       setPreferences(prefs);
     } catch (error: any) {
       console.error('Error loading preferences:', error);

@@ -8,6 +8,12 @@ export const ImageUploadConfig = {
   featuredImageMaxSize: 5 * 1024 * 1024, // 5MB
   additionalImageMaxSize: 3 * 1024 * 1024, // 3MB
 
+  // Pre-compression validation limits (original file size)
+  // Images larger than this will be rejected before any processing
+  maxUncompressedSize: 20 * 1024 * 1024, // 20MB
+  // Above this size we show a warning but still allow compression
+  warningSizeThreshold: 10 * 1024 * 1024, // 10MB
+
   // Recommended sizes for display
   recommendedFeaturedSize: '2MB - 5MB',
   recommendedAdditionalSize: '1MB - 3MB',
@@ -46,6 +52,13 @@ export const ImageUploadMessages = {
   tooManyImages: `You can only upload up to ${ImageUploadConfig.maxAdditionalImages} additional images`,
   uploadFailed: 'Failed to upload image. Please try again.',
   processingError: 'Error processing image. Please try a different image.',
+  // Pre-compression validation messages
+  preUploadFileTooLargeTitle: 'Image file is too large',
+  preUploadFileTooLargeDescription: (currentSize: string, maxSize: string) =>
+    `The selected image (${currentSize}) exceeds the maximum file size of ${maxSize}. Please choose a smaller image before uploading.`,
+  preUploadFileVeryLargeTitle: 'Large image detected',
+  preUploadFileVeryLargeDescription: (currentSize: string) =>
+    `The selected image (${currentSize}) is quite large and may take longer to upload. We recommend choosing a smaller image for better performance.`,
 };
 
 export const formatFileSize = (bytes: number): string => {

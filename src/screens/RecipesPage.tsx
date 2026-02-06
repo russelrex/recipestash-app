@@ -2,6 +2,8 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Dimensions, ImageBackground, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Avatar, Card, Chip, IconButton, Menu, Searchbar, Snackbar, Text } from 'react-native-paper';
+import ShimmerLoader from '../components/ShimmerLoader';
+import SkeletonList from '../components/SkeletonList';
 import { Recipe, recipesApi } from '../services/api';
 import { isOfflineMode } from '../services/cache/offlineUtils';
 import { Colors } from '../theme';
@@ -207,9 +209,29 @@ export default function RecipesPage() {
         style={styles.background}
         resizeMode="cover"
       >
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={Colors.secondary.main} />
-          <Text style={styles.loadingText}>Loading recipes...</Text>
+        <View style={styles.overlay}>
+          {/* Search bar skeleton */}
+          <View style={styles.searchbarSkeletonContainer}>
+            <ShimmerLoader width="100%" height={40} borderRadius={12} />
+          </View>
+
+          <ScrollView contentContainerStyle={styles.loadingScrollContent}>
+            {/* Filter chips skeleton */}
+            <View style={styles.filterSkeletonRow}>
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <ShimmerLoader
+                  key={idx}
+                  width={80 + idx * 10}
+                  height={32}
+                  borderRadius={16}
+                  style={{ marginRight: 8 }}
+                />
+              ))}
+            </View>
+
+            {/* List skeleton */}
+            <SkeletonList count={8} hasImage />
+          </ScrollView>
         </View>
       </ImageBackground>
     );
@@ -426,15 +448,6 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
   },
-  loadingOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    color: Colors.text.primary,
-  },
   searchbar: {
     margin: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
@@ -447,6 +460,17 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     paddingBottom: 100,
+  },
+  searchbarSkeletonContainer: {
+    margin: 16,
+  },
+  loadingScrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+  },
+  filterSkeletonRow: {
+    flexDirection: 'row',
+    marginBottom: 16,
   },
   filterContainer: {
     flexDirection: 'row',

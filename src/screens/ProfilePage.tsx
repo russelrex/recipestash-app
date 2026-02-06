@@ -13,7 +13,7 @@ import {
   Button,
   Card,
   Snackbar,
-  Text
+  Text,
 } from 'react-native-paper';
 import ProfileAvatar from '../components/ProfileAvatar';
 import {
@@ -29,6 +29,9 @@ import {
 import { isOfflineMode } from '../services/cache/offlineUtils';
 import { Colors } from '../theme';
 import EditProfileModal from './EditProfileModal';
+import SkeletonProfileHeader from '../components/SkeletonProfileHeader';
+import SkeletonList from '../components/SkeletonList';
+import ShimmerLoader from '../components/ShimmerLoader';
 
 export default function ProfilePage() {
   const navigation = useNavigation();
@@ -133,10 +136,34 @@ export default function ProfilePage() {
   if (loading && !refreshing) {
     return (
       <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" />
-          <Text style={styles.loadingText}>Loading profile...</Text>
-        </View>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.loadingScrollContent}
+        >
+          <View style={styles.glassContainer}>
+            <SkeletonProfileHeader />
+
+            <View style={styles.sectionSkeleton}>
+              <ShimmerLoader
+                width={180}
+                height={24}
+                borderRadius={8}
+                style={{ marginBottom: 12 }}
+              />
+              <SkeletonList count={3} hasImage />
+            </View>
+
+            <View style={styles.sectionSkeleton}>
+              <ShimmerLoader
+                width={160}
+                height={24}
+                borderRadius={8}
+                style={{ marginBottom: 12 }}
+              />
+              <SkeletonList count={3} hasImage={false} />
+            </View>
+          </View>
+        </ScrollView>
       </ImageBackground>
     );
   }
@@ -344,21 +371,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    color: Colors.text.secondary,
-  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: 16,
     paddingVertical: 16,
+  },
+  loadingScrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingBottom: 32,
   },
   glassContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.25)',

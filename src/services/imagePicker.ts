@@ -83,20 +83,33 @@ class ImagePickerService {
       return null;
     }
 
-    // Validate file size before processing
-    const maxSize =
-      imageType === 'featured'
-        ? ImageUploadConfig.featuredImageMaxSize
-        : ImageUploadConfig.additionalImageMaxSize;
+    // Pre-compression validation: check original file size before any processing.
+    // This protects against extremely large images that could cause long processing
+    // times or memory issues on older devices.
+    if (asset.fileSize) {
+      const originalSize = asset.fileSize;
+      const maxUncompressed = ImageUploadConfig.maxUncompressedSize;
+      const warningThreshold = ImageUploadConfig.warningSizeThreshold;
 
-    if (asset.fileSize && asset.fileSize > maxSize) {
-      Alert.alert(
-        'File Too Large',
-        imageType === 'featured'
-          ? ImageUploadMessages.featuredImageTooLarge
-          : ImageUploadMessages.additionalImageTooLarge
-      );
-      return null;
+      if (originalSize > maxUncompressed) {
+        Alert.alert(
+          ImageUploadMessages.preUploadFileTooLargeTitle,
+          ImageUploadMessages.preUploadFileTooLargeDescription(
+            formatFileSize(originalSize),
+            formatFileSize(maxUncompressed),
+          ),
+        );
+        return null;
+      }
+
+      if (originalSize > warningThreshold) {
+        Alert.alert(
+          ImageUploadMessages.preUploadFileVeryLargeTitle,
+          ImageUploadMessages.preUploadFileVeryLargeDescription(
+            formatFileSize(originalSize),
+          ),
+        );
+      }
     }
 
     try {
@@ -144,7 +157,12 @@ class ImagePickerService {
       // Calculate final size
       const finalSize = this.getBase64Size(processedBase64);
 
-      // Validate final size
+      // Validate final (compressed) size against per-type limits
+      const maxSize =
+        imageType === 'featured'
+          ? ImageUploadConfig.featuredImageMaxSize
+          : ImageUploadConfig.additionalImageMaxSize;
+
       if (finalSize > maxSize) {
         Alert.alert(
           'File Too Large',

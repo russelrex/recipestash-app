@@ -5,6 +5,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import PostCard from '../components/PostCard';
 import { postsApi, type Post } from '../services/api';
 import { Colors } from '../theme';
+import SkeletonList from '../components/SkeletonList';
 
 export default function NewsfeedPage() {
   const navigation = useNavigation();
@@ -126,9 +127,8 @@ export default function NewsfeedPage() {
   if (loading && !refreshing) {
     return (
       <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" />
-          <Text style={styles.loadingText}>Loading newsfeed...</Text>
+        <View style={styles.container}>
+          <SkeletonList count={6} hasImage />
         </View>
       </ImageBackground>
     );
