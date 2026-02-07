@@ -420,6 +420,8 @@ const styles = StyleSheet.create({
   additionalImageContainer: {
     position: 'relative',
     marginRight: 12,
+    width: 100,
+    height: 100,
   },
   additionalImage: {
     width: 100,
@@ -443,11 +445,19 @@ const styles = StyleSheet.create({
   },
   removeImageButton: {
     position: 'absolute',
-    top: -8,
-    right: -8,
+    top: 4,
+    right: 4,
     backgroundColor: Colors.background.paper,
     borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
     elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   addImageButton: {
     width: 100,

@@ -1,5 +1,5 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   Image,
@@ -29,6 +29,7 @@ import { Post, postsApi, Recipe, recipesApi } from '../services/api';
 import { Colors } from '../theme';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const MAX_POST_LENGTH = 500;
 
 export default function CreatePostPage() {
   const navigation = useNavigation();
@@ -45,6 +46,11 @@ export default function CreatePostPage() {
   const [loading, setLoading] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
+  
+  // Refs for cursor position tracking
+  const textInputRef = useRef<any>(null);
+  const cursorPosition = useRef(0);
 
   // Recipe selection
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -122,9 +128,45 @@ export default function CreatePostPage() {
     setSelectedRecipe(null);
   };
 
+  // Handle emoji selection
+  const handleEmojiSelect = (emoji: string) => {
+    // Insert emoji at cursor position
+    const before = content.substring(0, cursorPosition.current);
+    const after = content.substring(cursorPosition.current);
+    const newContent = before + emoji + after;
+    
+    // Check if adding emoji would exceed max length
+    if (newContent.length > MAX_POST_LENGTH) {
+      setSnackbarMessage(`Post must be ${MAX_POST_LENGTH} characters or less`);
+      setSnackbarVisible(true);
+      return;
+    }
+    
+    setContent(newContent);
+    
+    // Update cursor position (after inserted emoji)
+    cursorPosition.current = before.length + emoji.length;
+    
+    // Focus back on TextInput
+    setTimeout(() => {
+      textInputRef.current?.focus();
+    }, 100);
+  };
+
+  // Track cursor position when selection changes
+  const handleSelectionChange = (event: any) => {
+    cursorPosition.current = event.nativeEvent.selection?.start || content.length;
+  };
+
   const handleSubmit = async () => {
     if (!content.trim()) {
       setSnackbarMessage('Please write something to post');
+      setSnackbarVisible(true);
+      return;
+    }
+
+    if (content.length > MAX_POST_LENGTH) {
+      setSnackbarMessage(`Post must be ${MAX_POST_LENGTH} characters or less`);
       setSnackbarVisible(true);
       return;
     }
@@ -189,18 +231,43 @@ export default function CreatePostPage() {
                 {isEditMode ? 'Edit Post' : 'Create Post'}
               </Text>
 
-              <TextInput
-                label="What's on your mind?"
-                value={content}
-                onChangeText={setContent}
-                mode="outlined"
-                style={styles.input}
-                placeholder="Share your cooking journey..."
-                multiline
-                numberOfLines={6}
-                outlineColor={Colors.border.main}
-                activeOutlineColor={Colors.primary.main}
-              />
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    ref={textInputRef}
+                    label="What's on your mind?"
+                    value={content}
+                    onChangeText={setContent}
+                    onSelectionChange={handleSelectionChange}
+                    mode="outlined"
+                    style={styles.input}
+                    placeholder="Share your cooking journey..."
+                    multiline
+                    numberOfLines={6}
+                    maxLength={MAX_POST_LENGTH}
+                    outlineColor={Colors.border.main}
+                    activeOutlineColor={Colors.primary.main}
+                  />
+                  <TouchableOpacity
+                    style={styles.emojiButton}
+                    onPress={() => setEmojiPickerVisible(true)}
+                    activeOpacity={0.7}
+                  >
+                    <Icon name="emoticon-happy-outline" size={28} color={Colors.primary.main} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View style={styles.characterCounter}>
+                <Text 
+                  variant="bodySmall" 
+                  style={[
+                    styles.characterCounterText,
+                    content.length > MAX_POST_LENGTH * 0.9 && styles.characterCounterWarning
+                  ]}
+                >
+                  {content.length} / {MAX_POST_LENGTH} characters
+                </Text>
+              </View>
               
               <Text variant="titleMedium" style={styles.label}>
                 Link a Recipe (Optional)
@@ -209,9 +276,9 @@ export default function CreatePostPage() {
               {selectedRecipe ? (
                 <Card style={styles.glassCard}>
                   <Card.Content style={styles.selectedRecipeContent}>
-                    {selectedRecipe.imageUrl ? (
+                    {selectedRecipe.featuredImage || selectedRecipe.imageUrl ? (
                       <Image
-                        source={{ uri: selectedRecipe.imageUrl }}
+                        source={{ uri: selectedRecipe.featuredImage || selectedRecipe.imageUrl }}
                         style={styles.selectedRecipeImage}
                       />
                     ) : (
@@ -356,8 +423,11 @@ export default function CreatePostPage() {
                     >
                       <Card style={styles.recipeCard}>
                         <Card.Content style={styles.recipeCardContent}>
-                          {recipe.imageUrl ? (
-                            <Image source={{ uri: recipe.imageUrl }} style={styles.recipeImage} />
+                          {recipe.featuredImage || recipe.imageUrl ? (
+                            <Image 
+                              source={{ uri: recipe.featuredImage || recipe.imageUrl }} 
+                              style={styles.recipeImage} 
+                            />
                           ) : (
                             <View style={styles.recipePlaceholder}>
                               <Icon
@@ -449,9 +519,36 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: Colors.text.primary,
   },
+  inputContainer: {
+    marginBottom: 4,
+  },
+  inputWrapper: {
+    position: 'relative',
+  },
   input: {
-    marginBottom: 16,
     backgroundColor: Colors.background.paper,
+    paddingRight: 50, // Make room for emoji button
+  },
+  emojiButton: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
+    zIndex: 1,
+    padding: 4,
+  },
+  characterCounter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  characterCounterText: {
+    color: Colors.text.secondary,
+    fontSize: 12,
+  },
+  characterCounterWarning: {
+    color: Colors.status.error,
+    fontWeight: '600',
   },
   label: {
     marginBottom: 12,

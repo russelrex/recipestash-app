@@ -1,7 +1,7 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Dimensions, ImageBackground, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Avatar, Card, Chip, IconButton, Menu, Searchbar, Snackbar, Text } from 'react-native-paper';
+import { Avatar, Card, Chip, IconButton, Menu, Searchbar, Snackbar, Text } from 'react-native-paper';
 import ShimmerLoader from '../components/ShimmerLoader';
 import SkeletonList from '../components/SkeletonList';
 import { Recipe, recipesApi } from '../services/api';
@@ -330,8 +330,8 @@ export default function RecipesPage() {
                   )
                 }
               >
-                {recipe.imageUrl ? (
-                  <Card.Cover source={{ uri: recipe.imageUrl }} />
+                {recipe.featuredImage || recipe.imageUrl ? (
+                  <Card.Cover source={{ uri: recipe.featuredImage || recipe.imageUrl }} />
                 ) : (
                   <View style={styles.imagePlaceholder}>
                     <Avatar.Icon
