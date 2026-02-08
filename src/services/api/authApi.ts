@@ -238,9 +238,8 @@ class AuthApi {
     measurementUnit: 'metric' | 'imperial';
     privacyProfilePublic: boolean;
   }> {
-    console.log('getPreferences');
-    const response = await apiClient.get('/users/preferences');
-    console.log('getPreferences response', response.data);
+    const userId = await this.getCurrentUserId();
+    const response = await apiClient.get(`/users/preferences/${userId}`);
     if (response.data.success) return response.data.data;
     throw new Error(response.data.message || 'Failed to fetch preferences');
   }

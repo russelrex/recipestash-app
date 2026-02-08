@@ -500,10 +500,10 @@ export default function PostCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.9)',
     marginBottom: 12,
     marginHorizontal: 16,
     shadowColor: '#000',
@@ -532,13 +532,17 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontWeight: 'bold',
+    color: Colors.text.primary,
   },
   timestamp: {
     color: Colors.text.secondary,
+    fontSize: 12,
   },
   content: {
     marginBottom: 12,
     lineHeight: 22,
+    color: Colors.text.primary,
+    fontSize: 15,
   },
   image: {
     marginBottom: 12,
@@ -548,7 +552,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 12,
     padding: 12,
-    backgroundColor: Colors.background.default,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.border.light,
@@ -598,7 +602,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   countText: {
-    color: Colors.text.secondary,
+    color: Colors.text.primary,
+    fontSize: 13,
   },
   divider: {
     marginVertical: 8,
@@ -618,7 +623,7 @@ const styles = StyleSheet.create({
     margin: 0,
   },
   actionText: {
-    color: Colors.text.secondary,
+    color: Colors.text.primary,
     fontWeight: '600',
     marginLeft: -8,
   },

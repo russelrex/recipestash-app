@@ -28,7 +28,7 @@ export const Colors = {
   },
 
   text: {
-    primary: '#0C1607',   // Very dark - primary text
+    primary: '#262A2B',   // Dark gray - primary text
     secondary: '#666666', // Gray - secondary text
     disabled: '#999999',  // Light gray - disabled text
     inverse: '#ffffff',   // White - text on dark backgrounds
