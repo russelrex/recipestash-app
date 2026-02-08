@@ -178,13 +178,18 @@ export default function SettingsPage() {
 
     setLoadingState('import', true);
     try {
-      // Dynamic import to avoid bundling issues
-      const DocumentPicker = await import('react-native-document-picker');
-      const result = await DocumentPicker.default.pick({
-        type: [DocumentPicker.default.types.json],
+      // Use expo-document-picker
+      const DocumentPicker = await import('expo-document-picker');
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/json',
+        copyToCacheDirectory: true,
       });
 
-      const fileUri = result[0].uri;
+      if (result.type !== 'success') {
+        throw new Error('File selection cancelled');
+      }
+
+      const fileUri = result.uri;
       const response = await fetch(fileUri);
       const text = await response.text();
       const data = JSON.parse(text);

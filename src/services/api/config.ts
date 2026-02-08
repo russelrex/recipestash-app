@@ -1,10 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-// Expo only exposes env vars that start with EXPO_PUBLIC_
-// Ensure your .env/.env.local contains: EXPO_PUBLIC_BACKEND_URL=http://localhost:3000
 const BACKEND_URL =
-  process.env.EXPO_PUBLIC_BACKEND_URL ?? 'http://localhost:3000';
+  process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 export const API_BASE_URL = `${BACKEND_URL}/api`;
 
 const apiClient = axios.create({

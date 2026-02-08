@@ -24,6 +24,7 @@ expo-env.d.ts
 .env.test.local
 .env.production.local
 .env.local
+.env.production
 
 # Metro
 .metro-health-check*
