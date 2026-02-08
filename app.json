@@ -24,6 +24,13 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
+    "build": {
+      "preview": {
+        "android": {
+          "buildType": "apk"
+        }
+      }
+    },
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png"
