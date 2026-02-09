@@ -27,11 +27,14 @@ export function DebugPanel() {
     setLoading(true);
     
     try {
-      // Try health endpoint first
-      let healthUrl = `${url}/health`;
-      if (url.includes('/api')) {
-        // If URL already has /api, use it directly
-        healthUrl = `${url.replace('/api', '')}/health`;
+      // Health endpoint is exposed at /api/health
+      // If EXPO_PUBLIC_API_URL already contains /api, just append /health,
+      // otherwise hit /api/health from the base URL.
+      let healthUrl = '';
+      if (url.endsWith('/api') || url.includes('/api/')) {
+        healthUrl = `${url}/health`;
+      } else {
+        healthUrl = `${url}/api/health`;
       }
       
       const response = await fetch(healthUrl, {
