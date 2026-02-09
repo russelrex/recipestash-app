@@ -41,6 +41,7 @@ export default function RecipeDetailPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarType, setSnackbarType] = useState<'success' | 'error' | 'info'>('info');
   const [activeTab, setActiveTab] = useState<'ingredients' | 'instructions'>('ingredients');
 
   // Hero / thumbnail selection
@@ -72,6 +73,7 @@ export default function RecipeDetailPage() {
       setRelatedPosts(posts);
     } catch (error: any) {
       console.error('Error loading recipe:', error);
+      setSnackbarType('error');
       setSnackbarMessage('Failed to load recipe details');
       setSnackbarVisible(true);
     } finally {
@@ -84,11 +86,13 @@ export default function RecipeDetailPage() {
     try {
       const updatedRecipe = await recipesApi.toggleFavorite(recipe._id);
       setRecipe(updatedRecipe);
+      setSnackbarType('success');
       setSnackbarMessage(
         updatedRecipe.isFavorite ? 'Added to favorites ❤️' : 'Removed from favorites',
       );
       setSnackbarVisible(true);
     } catch (error) {
+      setSnackbarType('error');
       setSnackbarMessage('Failed to update favorite');
       setSnackbarVisible(true);
     }
@@ -114,6 +118,7 @@ export default function RecipeDetailPage() {
         featured: !recipe.featured,
       });
       setRecipe(updatedRecipe);
+      setSnackbarType('success');
       setSnackbarMessage(
         updatedRecipe.featured 
           ? 'Recipe set as featured ⭐' 
@@ -122,6 +127,7 @@ export default function RecipeDetailPage() {
       setSnackbarVisible(true);
     } catch (error: any) {
       console.error('Error toggling featured status:', error);
+      setSnackbarType('error');
       setSnackbarMessage(error.message || 'Failed to update featured status');
       setSnackbarVisible(true);
     }
@@ -147,6 +153,7 @@ export default function RecipeDetailPage() {
               
               await recipesApi.deleteRecipe(recipe!._id);
               
+              setSnackbarType('success');
               setSnackbarMessage('Recipe deleted successfully ✓');
               setSnackbarVisible(true);
               
@@ -156,6 +163,7 @@ export default function RecipeDetailPage() {
               }, 1500);
             } catch (error: any) {
               console.error('Error deleting recipe:', error);
+              setSnackbarType('error');
               setSnackbarMessage(error.message || 'Failed to delete recipe');
               setSnackbarVisible(true);
               setLoading(false);
@@ -527,7 +535,16 @@ export default function RecipeDetailPage() {
         </View>
       </Modal>
 
-        <Snackbar visible={snackbarVisible} onDismiss={() => setSnackbarVisible(false)} duration={3000}>
+        <Snackbar 
+          visible={snackbarVisible} 
+          onDismiss={() => setSnackbarVisible(false)} 
+          duration={3000}
+          style={[
+            styles.snackbar,
+            snackbarType === 'success' && styles.snackbarSuccess,
+            snackbarType === 'error' && styles.snackbarError,
+          ]}
+        >
           {snackbarMessage}
         </Snackbar>
       </View>
@@ -563,6 +580,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary.main, borderRadius: 8,
   },
   errorButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  snackbar: {
+    backgroundColor: Colors.status.info,
+  },
+  snackbarSuccess: {
+    backgroundColor: Colors.status.success,
+  },
+  snackbarError: {
+    backgroundColor: Colors.status.error,
+  },
 
   // ─── hero ──────────────────────────────────────────────────
   heroWrapper: { height: HEADER_HEIGHT, position: 'relative' },

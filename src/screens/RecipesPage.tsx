@@ -2,7 +2,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ImageBackground, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Avatar, Card, Chip, IconButton, Menu, Searchbar, Snackbar, Text } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import ShimmerLoader from '../components/ShimmerLoader';
 import SkeletonList from '../components/SkeletonList';
 import { Recipe, recipesApi } from '../services/api';
@@ -13,6 +13,7 @@ type FilterType = 'all' | 'favorites' | 'recent' | 'az';
 
 export default function RecipesPage() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -21,6 +22,7 @@ export default function RecipesPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarType, setSnackbarType] = useState<'success' | 'error' | 'info'>('info');
   const [menuVisible, setMenuVisible] = useState<Record<string, boolean>>({});
   const [offline, setOffline] = useState(false);
 
@@ -54,6 +56,7 @@ export default function RecipesPage() {
       setRecipes(recipesData);
     } catch (error: any) {
       console.error('Error loading recipes:', error);
+      setSnackbarType('error');
       setSnackbarMessage('Failed to load recipes');
       setSnackbarVisible(true);
     } finally {
@@ -70,6 +73,7 @@ export default function RecipesPage() {
         setRecipes(searchResults);
       } catch (error: any) {
         console.error('Error searching recipes:', error);
+        setSnackbarType('error');
         setSnackbarMessage('Failed to search recipes');
         setSnackbarVisible(true);
       }
@@ -133,6 +137,7 @@ export default function RecipesPage() {
       );
     } catch (error: any) {
       console.error('Error toggling favorite:', error);
+      setSnackbarType('error');
       setSnackbarMessage('Failed to update favorite');
       setSnackbarVisible(true);
     }
@@ -162,6 +167,7 @@ export default function RecipesPage() {
       setSnackbarVisible(true);
     } catch (error: any) {
       console.error('Error toggling featured status:', error);
+      setSnackbarType('error');
       setSnackbarMessage(error.message || 'Failed to update featured status');
       setSnackbarVisible(true);
     }
@@ -180,6 +186,7 @@ export default function RecipesPage() {
       setSnackbarVisible(true);
     } catch (error: any) {
       console.error('Error deleting recipe:', error);
+      setSnackbarType('error');
       setSnackbarMessage('Failed to delete recipe');
       setSnackbarVisible(true);
     }
@@ -256,6 +263,10 @@ export default function RecipesPage() {
 
         <ScrollView
           style={styles.content}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: insets.bottom + 80 }
+          ]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
@@ -434,6 +445,11 @@ export default function RecipesPage() {
             visible={snackbarVisible}
             onDismiss={() => setSnackbarVisible(false)}
             duration={3000}
+            style={[
+              styles.snackbar,
+              snackbarType === 'success' && styles.snackbarSuccess,
+              snackbarType === 'error' && styles.snackbarError,
+            ]}
           >
             {snackbarMessage}
           </Snackbar>
@@ -465,9 +481,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 0,
-    paddingBottom: 40,
   },
   searchbarSkeletonContainer: {
     margin: 16,
@@ -567,6 +584,15 @@ const styles = StyleSheet.create({
   emptyText: {
     color: Colors.text.primary,
     textAlign: 'center',
+  },
+  snackbar: {
+    backgroundColor: Colors.status.info,
+  },
+  snackbarSuccess: {
+    backgroundColor: Colors.status.success,
+  },
+  snackbarError: {
+    backgroundColor: Colors.status.error,
   },
 });
 

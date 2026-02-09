@@ -1,7 +1,7 @@
 import React from 'react';
-import { ImageBackground, View, ScrollView, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ImageBackground, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme';
 
 // ─── Content sections ────────────────────────────────────────────────────────
@@ -84,7 +84,7 @@ Any disputes arising under these Terms shall be resolved through binding arbitra
     heading: '11. Contact Us',
     body: `If you have questions about these Terms, contact us at:
 
-support@recipestash.com`,
+recipestashsup@gmail.com`,
   },
 ];
 

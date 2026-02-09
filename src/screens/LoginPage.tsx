@@ -27,6 +27,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarType, setSnackbarType] = useState<'success' | 'error' | 'info'>('info');
 
   const validateEmail = (value: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -62,6 +63,7 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
+      setSnackbarType('info');
       const response = await authApi.login({
         email: email.trim().toLowerCase(),
         password,
@@ -71,6 +73,7 @@ export default function LoginPage() {
         throw new Error(response.message || 'Invalid email or password');
       }
 
+      setSnackbarType('success');
       setSnackbarMessage('Login successful! 🎉');
       setSnackbarVisible(true);
 
@@ -82,6 +85,7 @@ export default function LoginPage() {
       }, 600);
     } catch (error: any) {
       console.error('Login error:', error);
+      setSnackbarType('error');
       setSnackbarMessage(error?.message || 'Invalid email or password');
       setSnackbarVisible(true);
     } finally {
@@ -196,6 +200,11 @@ export default function LoginPage() {
           visible={snackbarVisible}
           onDismiss={() => setSnackbarVisible(false)}
           duration={3000}
+          style={[
+            styles.snackbar,
+            snackbarType === 'success' && styles.snackbarSuccess,
+            snackbarType === 'error' && styles.snackbarError,
+          ]}
         >
           {snackbarMessage}
         </Snackbar>
@@ -313,6 +322,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  snackbar: {
+    backgroundColor: Colors.status.info,
+  },
+  snackbarSuccess: {
+    backgroundColor: Colors.status.success,
+  },
+  snackbarError: {
+    backgroundColor: Colors.status.error,
   },
   footer: {
     marginTop: 24,

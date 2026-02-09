@@ -14,6 +14,7 @@ export default function FollowingPage() {
   const [loading, setLoading] = useState(true);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarType, setSnackbarType] = useState<'success' | 'error' | 'info'>('info');
 
   useEffect(() => {
     loadFollowing();
@@ -26,6 +27,7 @@ export default function FollowingPage() {
       setFollowing(data);
     } catch (error: any) {
       console.error('Error loading following:', error);
+      setSnackbarType('error');
       setSnackbarMessage('Failed to load following');
       setSnackbarVisible(true);
     } finally {
@@ -81,6 +83,11 @@ export default function FollowingPage() {
             visible={snackbarVisible}
             onDismiss={() => setSnackbarVisible(false)}
             duration={3000}
+            style={[
+              styles.snackbar,
+              snackbarType === 'success' && styles.snackbarSuccess,
+              snackbarType === 'error' && styles.snackbarError,
+            ]}
           >
             {snackbarMessage}
           </Snackbar>
@@ -124,5 +131,14 @@ const styles = StyleSheet.create({
     color: Colors.text.disabled,
     textAlign: 'center',
     paddingVertical: 40,
+  },
+  snackbar: {
+    backgroundColor: Colors.status.info,
+  },
+  snackbarSuccess: {
+    backgroundColor: Colors.status.success,
+  },
+  snackbarError: {
+    backgroundColor: Colors.status.error,
   },
 });

@@ -11,7 +11,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Button,
@@ -24,6 +23,7 @@ import {
   Text,
   TextInput
 } from 'react-native-paper';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Post, postsApi, Recipe, recipesApi } from '../services/api';
 import { Colors } from '../theme';
@@ -33,6 +33,7 @@ const MAX_POST_LENGTH = 500;
 export default function CreatePostPage() {
   const navigation = useNavigation();
   const route = useRoute();
+  const insets = useSafeAreaInsets();
 
   // Edit mode
   const editPost = (route.params as any)?.post as Post | undefined;
@@ -45,6 +46,7 @@ export default function CreatePostPage() {
   const [loading, setLoading] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarType, setSnackbarType] = useState<'success' | 'error' | 'info'>('info');
   const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
   
   // Refs for cursor position tracking
@@ -159,12 +161,14 @@ export default function CreatePostPage() {
 
   const handleSubmit = async () => {
     if (!content.trim()) {
+      setSnackbarType('error');
       setSnackbarMessage('Please write something to post');
       setSnackbarVisible(true);
       return;
     }
 
     if (content.length > MAX_POST_LENGTH) {
+      setSnackbarType('error');
       setSnackbarMessage(`Post must be ${MAX_POST_LENGTH} characters or less`);
       setSnackbarVisible(true);
       return;
@@ -181,9 +185,11 @@ export default function CreatePostPage() {
 
       if (isEditMode) {
         await postsApi.updatePost(editPost.id, postData);
+        setSnackbarType('success');
         setSnackbarMessage('Post updated successfully! ✨');
       } else {
         await postsApi.createPost(postData);
+        setSnackbarType('success');
         setSnackbarMessage('Post created successfully! 🎉');
       }
 
@@ -194,6 +200,7 @@ export default function CreatePostPage() {
       }, 1000);
     } catch (error: any) {
       console.error('Error saving post:', error);
+      setSnackbarType('error');
       setSnackbarMessage(error.message || 'Failed to save post');
       setSnackbarVisible(true);
     } finally {
@@ -223,133 +230,126 @@ export default function CreatePostPage() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.container}
         >
-        <ScrollView style={styles.scrollView}>
-          <View style={styles.content}>
-            <Card style={styles.glassCard}>
-            <Card.Content>
-              <Text variant="titleLarge" style={styles.sectionTitle}>
-                {isEditMode ? 'Edit Post' : 'Create Post'}
-              </Text>
-
-              <View style={styles.inputContainer}>
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    ref={textInputRef}
-                    label="What's on your mind?"
-                    value={content}
-                    onChangeText={setContent}
-                    onSelectionChange={handleSelectionChange}
-                    mode="outlined"
-                    style={styles.input}
-                    placeholder="Share your cooking journey..."
-                    multiline
-                    numberOfLines={6}
-                    maxLength={MAX_POST_LENGTH}
-                    outlineColor={Colors.border.main}
-                    activeOutlineColor={Colors.primary.main}
-                  />
-                  <TouchableOpacity
-                    style={styles.emojiButton}
-                    onPress={() => setEmojiPickerVisible(true)}
-                    activeOpacity={0.7}
-                  >
-                    <Icon name="emoticon-happy-outline" size={28} color={Colors.primary.main} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View style={styles.characterCounter}>
-                <Text 
-                  variant="bodySmall" 
-                  style={[
-                    styles.characterCounterText,
-                    content.length > MAX_POST_LENGTH * 0.9 && styles.characterCounterWarning
-                  ]}
-                >
-                  {content.length} / {MAX_POST_LENGTH} characters
-                </Text>
-              </View>
-              
-              <Text variant="titleMedium" style={styles.label}>
-                Link a Recipe (Optional)
-              </Text>
-
-              {selectedRecipe ? (
-                <Card style={styles.glassCard}>
-                  <Card.Content style={styles.selectedRecipeContent}>
-                    {selectedRecipe.featuredImage || selectedRecipe.imageUrl ? (
-                      <Image
-                        source={{ uri: selectedRecipe.featuredImage || selectedRecipe.imageUrl }}
-                        style={styles.selectedRecipeImage}
-                      />
-                    ) : (
-                      <View style={styles.selectedRecipePlaceholder}>
-                        <Icon
-                          name={getRecipeIcon(selectedRecipe.category)}
-                          size={32}
-                          color={Colors.primary.main}
-                        />
-                      </View>
-                    )}
-                    <View style={styles.selectedRecipeInfo}>
-                      <Text variant="titleMedium" style={styles.selectedRecipeTitle}>
-                        {selectedRecipe.title}
-                      </Text>
-                      <Text variant="bodySmall" style={styles.selectedRecipeCategory}>
-                        {selectedRecipe.category} • {selectedRecipe.prepTime + selectedRecipe.cookTime} mins
-                      </Text>
-                    </View>
-                    <IconButton
-                      icon="close-circle"
-                      size={24}
-                      iconColor={Colors.text.secondary}
-                      onPress={handleRemoveRecipe}
-                    />
-                  </Card.Content>
-                </Card>
-              ) : (
-                <Button
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: insets.bottom + 100 }
+          ]}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* SINGLE CARD CONTAINER - NO NESTING */}
+          <View style={styles.card}>
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  ref={textInputRef}
+                  label="What's on your mind?"
+                  value={content}
+                  onChangeText={setContent}
+                  onSelectionChange={handleSelectionChange}
                   mode="outlined"
-                  onPress={handleOpenRecipeSelector}
-                  icon="book-open-page-variant"
-                  style={styles.selectButton}
-                  textColor={Colors.primary.main}
-                  disabled={loadingRecipes}
+                  style={styles.input}
+                  placeholder="Share your cooking journey..."
+                  multiline
+                  numberOfLines={6}
+                  maxLength={MAX_POST_LENGTH}
+                  outlineColor={Colors.border.main}
+                  activeOutlineColor={Colors.primary.main}
+                />
+                <TouchableOpacity
+                  style={styles.emojiButton}
+                  onPress={() => setEmojiPickerVisible(true)}
+                  activeOpacity={0.7}
                 >
-                  {loadingRecipes ? 'Loading recipes...' : 'Select Recipe'}
-                </Button>
-              )}
-            </Card.Content>
-          </Card>
-        </View>
-      </ScrollView>
+                  <Icon name="emoticon-happy-outline" size={28} color={Colors.primary.main} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            
+            <View style={styles.characterCounter}>
+              <Text 
+                variant="bodySmall" 
+                style={[
+                  styles.characterCounterText,
+                  content.length > MAX_POST_LENGTH * 0.9 && styles.characterCounterWarning
+                ]}
+              >
+                {content.length} / {MAX_POST_LENGTH} characters
+              </Text>
+            </View>
+            
+            <Text variant="titleMedium" style={styles.label}>
+              Link a Recipe (Optional)
+            </Text>
 
-      {/* Fixed Bottom Buttons */}
-      <View style={styles.bottomButtonsContainer}>
-        <Button
-          mode="contained"
-          onPress={handleSubmit}
-          style={styles.submitButton}
-          contentStyle={styles.submitButtonContent}
-          loading={loading}
-          disabled={loading}
-          buttonColor={Colors.primary.main}
-          icon="check"
-        >
-          {loading ? (isEditMode ? 'Updating...' : 'Posting...') : isEditMode ? 'Update Post' : 'Post'}
-        </Button>
+            {selectedRecipe ? (
+              <View style={styles.selectedRecipeContainer}>
+                {selectedRecipe.featuredImage || selectedRecipe.imageUrl ? (
+                  <Image
+                    source={{ uri: selectedRecipe.featuredImage || selectedRecipe.imageUrl }}
+                    style={styles.selectedRecipeImage}
+                  />
+                ) : (
+                  <View style={styles.selectedRecipePlaceholder}>
+                    <Icon
+                      name={getRecipeIcon(selectedRecipe.category)}
+                      size={32}
+                      color={Colors.primary.main}
+                    />
+                  </View>
+                )}
+                <View style={styles.selectedRecipeInfo}>
+                  <Text variant="titleMedium" style={styles.selectedRecipeTitle}>
+                    {selectedRecipe.title}
+                  </Text>
+                  <Text variant="bodySmall" style={styles.selectedRecipeCategory}>
+                    {selectedRecipe.category} • {selectedRecipe.prepTime + selectedRecipe.cookTime} mins
+                  </Text>
+                </View>
+                <IconButton
+                  icon="close-circle"
+                  size={24}
+                  iconColor={Colors.text.secondary}
+                  onPress={handleRemoveRecipe}
+                />
+              </View>
+            ) : (
+              <Button
+                mode="outlined"
+                onPress={handleOpenRecipeSelector}
+                icon="book-open-page-variant"
+                style={styles.selectButton}
+                textColor={Colors.primary.main}
+                disabled={loadingRecipes}
+              >
+                {loadingRecipes ? 'Loading recipes...' : 'Select Recipe'}
+              </Button>
+            )}
+          </View>
 
-        <Button
-          mode="outlined"
-          onPress={() => navigation.goBack()}
-          style={styles.cancelButton}
-          contentStyle={styles.cancelButtonContent}
-          disabled={loading}
-          textColor={Colors.text.primary}
-          icon="close"
-        >
-          Cancel
-        </Button>
-      </View>
+          {/* Action Buttons */}
+          <TouchableOpacity 
+            style={[styles.postButton, (!content.trim() || loading) && styles.postButtonDisabled]}
+            onPress={handleSubmit}
+            disabled={!content.trim() || loading}
+          >
+            <Icon name="check" size={20} color="#fff" />
+            <Text style={styles.postButtonText}>
+              {loading ? (isEditMode ? 'Updating...' : 'Posting...') : isEditMode ? 'Update Post' : 'Post'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.cancelButton}
+            onPress={() => navigation.goBack()}
+            disabled={loading}
+          >
+            <Icon name="close" size={20} color={Colors.text.primary} />
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+        </ScrollView>
+
 
       {/* Bottom Drawer using Portal and Modal */}
       <Portal>
@@ -473,7 +473,16 @@ export default function CreatePostPage() {
         </Modal>
       </Portal>
 
-          <Snackbar visible={snackbarVisible} onDismiss={() => setSnackbarVisible(false)} duration={3000}>
+          <Snackbar 
+            visible={snackbarVisible} 
+            onDismiss={() => setSnackbarVisible(false)} 
+            duration={3000}
+            style={[
+              styles.snackbar,
+              snackbarType === 'success' && styles.snackbarSuccess,
+              snackbarType === 'error' && styles.snackbarError,
+            ]}
+          >
             {snackbarMessage}
           </Snackbar>
         </KeyboardAvoidingView>
@@ -497,26 +506,20 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  content: {
+  scrollContent: {
     padding: 16,
-    paddingBottom: 100, // Add padding so content doesn't get hidden behind buttons
   },
-  glassCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  // SINGLE CARD - NO DOUBLE CONTAINER
+  card: {
+    backgroundColor: '#fff',
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    padding: 20,
     marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
-    overflow: 'hidden',
-  },
-  card: {
-    marginBottom: 16,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   sectionTitle: {
     fontWeight: 'bold',
@@ -596,58 +599,66 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
   selectButton: {
-    marginBottom: 16,
+    marginTop: 8,
     borderColor: Colors.primary.main,
   },
-  bottomButtonsContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.3)',
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderLeftColor: 'rgba(255, 255, 255, 0.3)',
-    borderRightColor: 'rgba(255, 255, 255, 0.3)',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-  },
-  submitButton: {
-    marginBottom: 12,
+  selectedRecipeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.default,
     borderRadius: 12,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    padding: 12,
+    marginTop: 8,
   },
-  submitButtonContent: {
-    paddingVertical: 10,
+  postButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary.main,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    gap: 8,
+    shadowColor: Colors.primary.main,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  postButtonDisabled: {
+    backgroundColor: 'rgba(177, 89, 18, 0.4)',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  postButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
   cancelButton: {
-    marginBottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
     borderWidth: 1.5,
     borderColor: Colors.text.primary,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    borderRadius: 12,
+    padding: 16,
+    gap: 8,
   },
-  cancelButtonContent: {
-    paddingVertical: 10,
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  snackbar: {
+    backgroundColor: Colors.status.info,
+  },
+  snackbarSuccess: {
+    backgroundColor: Colors.status.success,
+  },
+  snackbarError: {
+    backgroundColor: Colors.status.error,
   },
   // Drawer Styles
   drawerOverlay: {

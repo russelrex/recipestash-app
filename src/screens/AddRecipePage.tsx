@@ -1,7 +1,6 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { Alert, ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Avatar,
@@ -18,6 +17,7 @@ import {
   TextInput,
   useTheme
 } from 'react-native-paper';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import ImageUploadSection from '../components/ImageUploadSection';
 import { authApi, CreateRecipeData, recipesApi, UpdateRecipeData } from '../services/api';
 import type { ImageData } from '../services/imagePicker';
@@ -36,6 +36,7 @@ export default function AddRecipePage() {
   const navigation = useNavigation();
   const route = useRoute();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const params = route.params as any;
   
   const recipeId = params?.recipeId;
@@ -70,6 +71,7 @@ export default function AddRecipePage() {
   const [loadingRecipe, setLoadingRecipe] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarType, setSnackbarType] = useState<'success' | 'error' | 'info'>('info');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -103,6 +105,7 @@ export default function AddRecipePage() {
       }
     } catch (error: any) {
       console.error('Error loading recipe:', error);
+      setSnackbarType('error');
       setSnackbarMessage(error.message || 'Failed to load recipe');
       setSnackbarVisible(true);
       setTimeout(() => navigation.goBack(), 2000);
@@ -123,8 +126,6 @@ export default function AddRecipePage() {
 
     if (!description.trim()) {
       newErrors.description = 'Description is required';
-    } else if (description.trim().length < 10) {
-      newErrors.description = 'Description must be at least 10 characters';
     }
 
     if (!prepTime || parseInt(prepTime) <= 0) {
@@ -159,6 +160,7 @@ export default function AddRecipePage() {
       // Surface the first error in the snackbar so it's obvious what to fix
       const firstErrorKey = errorKeys[0];
       const firstErrorMessage = newErrors[firstErrorKey];
+      setSnackbarType('error');
       setSnackbarMessage(firstErrorMessage);
       setSnackbarVisible(true);
 
@@ -257,6 +259,7 @@ export default function AddRecipePage() {
         });
 
         await recipesApi.updateRecipe(recipeId!, recipeData);
+        setSnackbarType('success');
         setSnackbarMessage('Recipe updated successfully! ✨');
       } else {
         // Get current user info for ownerId and ownerName
@@ -291,6 +294,7 @@ export default function AddRecipePage() {
         }
 
         await recipesApi.createRecipe(recipeData);
+        setSnackbarType('success');
         setSnackbarMessage('Recipe created successfully! 🎉');
       }
 
@@ -306,6 +310,7 @@ export default function AddRecipePage() {
         response: error.response?.data,
         status: error.response?.status,
       });
+      setSnackbarType('error');
       setSnackbarMessage(error.message || 'Failed to save recipe');
       setSnackbarVisible(true);
     } finally {
@@ -358,7 +363,10 @@ export default function AddRecipePage() {
           <ScrollView 
             style={styles.scrollView} 
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: insets.bottom + 80 }
+            ]}
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.content}>
@@ -758,6 +766,11 @@ export default function AddRecipePage() {
           visible={snackbarVisible}
           onDismiss={() => setSnackbarVisible(false)}
           duration={3000}
+          style={[
+            styles.snackbar,
+            snackbarType === 'success' && styles.snackbarSuccess,
+            snackbarType === 'error' && styles.snackbarError,
+          ]}
         >
           {snackbarMessage}
         </Snackbar>
@@ -970,6 +983,15 @@ const styles = StyleSheet.create({
   },
   cancelButtonContent: {
     paddingVertical: 6,
+  },
+  snackbar: {
+    backgroundColor: Colors.status.info,
+  },
+  snackbarSuccess: {
+    backgroundColor: Colors.status.success,
+  },
+  snackbarError: {
+    backgroundColor: Colors.status.error,
   },
   checkboxContainer: {
     flexDirection: 'row',

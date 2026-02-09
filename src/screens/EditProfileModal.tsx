@@ -8,7 +8,8 @@ import {
   ActivityIndicator, IconButton, Surface, Divider,
 } from 'react-native-paper';
 import { authApi, UserProfile } from '../services/api';
-import ImagePickerService from '../services/imagePicker';
+import { useImagePicker } from '../hooks/useImagePicker';
+import { imageUploadService } from '../services/imageUploadService';
 
 const Colors = {
   primary: '#B15912',
@@ -31,44 +32,58 @@ export default function EditProfileModal({
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [avatarBase64, setAvatarBase64] = useState<string | null>(null);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [imagePickerVisible, setImagePickerVisible] = useState(false);
+
+  const { pickFromLibrary, pickFromCamera, isLoading: pickingImage } = useImagePicker({
+    aspect: [1, 1],
+    quality: 0.8,
+    allowsEditing: true,
+    maxSizeMB: 5, // 5MB max for profile pictures
+  });
 
   useEffect(() => {
     if (visible && currentProfile) {
       setName(currentProfile.name || '');
       setBio(currentProfile.bio || '');
       setAvatarPreview(currentProfile.avatarUrl || null);
-      setAvatarBase64(null);
+      setAvatarUri(null);
     }
   }, [visible, currentProfile]);
 
   // ── image picker ──────────────────────────────────────────────────────
   const handlePickFromGallery = useCallback(async () => {
     setImagePickerVisible(false);
-    const img = await ImagePickerService.pickFromGallery();
-    if (img) {
-      setAvatarPreview(img.uri);
-      // ImagePickerService already returns a full data URI in base64 field
-      setAvatarBase64(img.base64.startsWith('data:') ? img.base64 : `data:${img.type};base64,${img.base64}`);
+    try {
+      const img = await pickFromLibrary();
+      if (img) {
+        setAvatarPreview(img.uri);
+        setAvatarUri(img.uri);
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to pick image');
     }
-  }, []);
+  }, [pickFromLibrary]);
 
   const handleTakePhoto = useCallback(async () => {
     setImagePickerVisible(false);
-    const img = await ImagePickerService.takePhoto();
-    if (img) {
-      setAvatarPreview(img.uri);
-      // ImagePickerService already returns a full data URI in base64 field
-      setAvatarBase64(img.base64.startsWith('data:') ? img.base64 : `data:${img.type};base64,${img.base64}`);
+    try {
+      const img = await pickFromCamera();
+      if (img) {
+        setAvatarPreview(img.uri);
+        setAvatarUri(img.uri);
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to take photo');
     }
-  }, []);
+  }, [pickFromCamera]);
 
   const handleRemoveAvatar = useCallback(() => {
     setImagePickerVisible(false);
     setAvatarPreview(null);
-    setAvatarBase64('');
+    setAvatarUri(null);
   }, []);
 
   // ── validation ────────────────────────────────────────────────────────
@@ -94,7 +109,28 @@ export default function EditProfileModal({
         name: name.trim(),
         bio: bio.trim(),
       };
-      if (avatarBase64 !== null) payload.avatarUrl = avatarBase64;
+
+      // Upload image if a new one was selected
+      if (avatarUri) {
+        setUploading(true);
+        try {
+          console.log('Uploading profile picture...');
+          const uploadResult = await imageUploadService.uploadProfilePicture(avatarUri);
+          console.log('Upload result:', uploadResult);
+          payload.avatarUrl = uploadResult.url;
+        } catch (uploadError: any) {
+          console.error('Upload error:', uploadError);
+          Alert.alert('Upload Failed', uploadError.message || 'Failed to upload image. Please try again.');
+          setUploading(false);
+          setSaving(false);
+          return;
+        } finally {
+          setUploading(false);
+        }
+      } else if (avatarPreview === null && currentProfile?.avatarUrl) {
+        // User removed avatar - send empty string to clear it
+        payload.avatarUrl = '';
+      }
 
       const updated = await authApi.updateProfile(payload);
       onSave(updated);
@@ -164,36 +200,44 @@ export default function EditProfileModal({
           keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
         >
           <View style={styles.modalHeader}>
-            <Button onPress={onClose} textColor={Colors.muted} disabled={saving}>Cancel</Button>
+            <Button onPress={onClose} textColor={Colors.muted} disabled={saving || uploading || pickingImage}>Cancel</Button>
             <Text style={styles.modalTitle}>Edit Profile</Text>
-            <Button onPress={handleSave} textColor={Colors.primary} disabled={saving}>
-              {saving ? 'Saving…' : 'Save'}
+            <Button onPress={handleSave} textColor={Colors.primary} disabled={saving || uploading || pickingImage}>
+              {saving || uploading ? 'Saving…' : 'Save'}
             </Button>
           </View>
           <Divider />
 
           <TouchableOpacity
             style={styles.avatarContainer}
-            onPress={() => !saving && setImagePickerVisible(true)}
+            onPress={() => !saving && !uploading && !pickingImage && setImagePickerVisible(true)}
             activeOpacity={0.7}
+            disabled={saving || uploading || pickingImage}
           >
             {renderAvatar()}
             <Surface style={styles.cameraChip}>
               <IconButton icon="camera" size={18} iconColor="#fff" style={styles.cameraIcon} />
             </Surface>
+            {(uploading || pickingImage) && (
+              <View style={styles.avatarLoadingOverlay}>
+                <ActivityIndicator size="small" color="#fff" />
+              </View>
+            )}
           </TouchableOpacity>
-          <Text style={styles.changePhotoHint}>Tap to change photo</Text>
+          <Text style={styles.changePhotoHint}>
+            {uploading ? 'Uploading...' : pickingImage ? 'Processing...' : 'Tap to change photo'}
+          </Text>
 
           <View style={styles.fieldsContainer}>
             <TextInput
               label="Name" value={name} onChangeText={setName}
-              style={styles.input} maxLength={50} editable={!saving}
+              style={styles.input} maxLength={50} editable={!saving && !uploading && !pickingImage}
               mode="outlined" outlineColor={Colors.border} activeOutlineColor={Colors.primary}
             />
             <TextInput
               label="Bio" value={bio} onChangeText={setBio}
               style={[styles.input, styles.bioInput]}
-              maxLength={200} multiline numberOfLines={3} editable={!saving}
+              maxLength={200} multiline numberOfLines={3} editable={!saving && !uploading && !pickingImage}
               mode="outlined" outlineColor={Colors.border} activeOutlineColor={Colors.primary}
               placeholder="Tell others about yourself…"
             />
@@ -202,18 +246,20 @@ export default function EditProfileModal({
 
           <View style={styles.saveButtonContainer}>
             <Button
-              mode="contained" onPress={handleSave} disabled={saving}
+              mode="contained" onPress={handleSave} disabled={saving || uploading || pickingImage}
               style={styles.saveButton} contentStyle={styles.saveButtonContent}
               buttonColor={Colors.primary} textColor="#fff"
             >
-              {saving ? 'Saving…' : 'Save Changes'}
+              {saving || uploading ? 'Saving…' : 'Save Changes'}
             </Button>
           </View>
 
-          {saving && (
+          {(saving || uploading) && (
             <View style={styles.loadingOverlay}>
               <ActivityIndicator size="large" color={Colors.primary} />
-              <Text style={styles.loadingText}>Saving your profile…</Text>
+              <Text style={styles.loadingText}>
+                {uploading ? 'Uploading image…' : 'Saving your profile…'}
+              </Text>
             </View>
           )}
         </KeyboardAvoidingView>
@@ -262,6 +308,17 @@ const styles = StyleSheet.create({
   },
   cameraIcon: { margin: 0 },
   changePhotoHint: { textAlign: 'center', color: Colors.primary, fontSize: 13, marginBottom: 20 },
+  avatarLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
   fieldsContainer: { paddingHorizontal: 20 },
   input: { marginBottom: 16, backgroundColor: '#fff' },

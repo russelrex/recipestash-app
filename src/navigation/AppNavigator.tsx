@@ -12,7 +12,6 @@ import { Colors } from '../theme';
 
 import AddRecipePage from '../screens/AddRecipePage';
 import CreatePostPage from '../screens/CreatePostPage';
-import DebugScreen from '../screens/DebugScreen';
 import FollowersPage from '../screens/FollowersPage';
 import FollowingPage from '../screens/FollowingPage';
 import HomePage from '../screens/HomePage';
@@ -306,6 +305,19 @@ export default function AppNavigator() {
         screenOptions={{
           headerShown: true,
           header: (props) => <CustomAppBar {...props} />,
+          headerStyle: {
+            backgroundColor: Colors.background.default, // Match body color
+            elevation: 0, // Remove shadow on Android
+            shadowOpacity: 0, // Remove shadow on iOS
+            height: 56, // Reduced height
+          },
+          headerTitleStyle: {
+            fontSize: 18,
+            fontWeight: '600',
+            color: Colors.text.primary,
+          },
+          headerTintColor: Colors.text.primary,
+          headerShadowVisible: false, // Remove bottom border
         }}
       >
         <Stack.Screen 
@@ -385,11 +397,6 @@ export default function AppNavigator() {
           name="Settings" 
           component={SettingsPage}
           options={{ title: 'Settings' }}
-        />
-        <Stack.Screen 
-          name="Debug" 
-          component={DebugScreen}
-          options={{ title: 'Debug Panel' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

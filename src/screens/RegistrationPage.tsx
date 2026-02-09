@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Text, Snackbar } from 'react-native-paper';
+import { Snackbar, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { authApi } from '../services/api';
@@ -22,17 +22,20 @@ export default function RegistrationPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [tosAccepted, setTosAccepted] = useState(false);
 
   const [nameError, setNameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [tosError, setTosError] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarType, setSnackbarType] = useState<'success' | 'error' | 'info'>('info');
 
   const validateEmail = (value: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -45,6 +48,7 @@ export default function RegistrationPage() {
     setNameError('');
     setEmailError('');
     setPasswordError('');
+    setConfirmPasswordError('');
     setTosError('');
 
     if (!name.trim()) {
@@ -71,6 +75,14 @@ export default function RegistrationPage() {
       valid = false;
     }
 
+    if (!confirmPassword) {
+      setConfirmPasswordError('Please confirm your password');
+      valid = false;
+    } else if (confirmPassword !== password) {
+      setConfirmPasswordError('Passwords do not match');
+      valid = false;
+    }
+
     if (!tosAccepted) {
       setTosError('You must accept the Terms of Service and Privacy Policy');
       valid = false;
@@ -84,12 +96,14 @@ export default function RegistrationPage() {
 
     setLoading(true);
     try {
+      setSnackbarType('info');
       await authApi.register({
         name: name.trim(),
         email: email.trim().toLowerCase(),
         password,
       });
 
+      setSnackbarType('success');
       setSnackbarMessage('Account created successfully! 🎉');
       setSnackbarVisible(true);
 
@@ -101,6 +115,7 @@ export default function RegistrationPage() {
       }, 600);
     } catch (error: any) {
       console.error('Registration error:', error);
+      setSnackbarType('error');
       setSnackbarMessage(error?.message || 'Registration failed. Please try again.');
       setSnackbarVisible(true);
     } finally {
@@ -207,6 +222,53 @@ export default function RegistrationPage() {
               {!!passwordError && <Text style={styles.errorText}>{passwordError}</Text>}
             </View>
 
+            {/* Confirm Password Input */}
+            <View style={styles.inputContainer}>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  confirmPasswordError ? styles.inputWrapperError : undefined,
+                  confirmPassword && password && confirmPassword === password 
+                    ? styles.inputWrapperSuccess 
+                    : confirmPassword && password && confirmPassword !== password 
+                    ? styles.inputWrapperError 
+                    : undefined,
+                ]}
+              >
+                <Icon 
+                  name="lock-check" 
+                  size={20} 
+                  color={
+                    confirmPassword && password && confirmPassword === password
+                      ? Colors.status.success || '#4CAF50'
+                      : confirmPassword && password && confirmPassword !== password
+                      ? Colors.status.error
+                      : Colors.text.primary
+                  } 
+                  style={styles.inputIcon} 
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Confirm Password *"
+                  placeholderTextColor="rgba(12, 22, 7, 0.5)"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoComplete="password-new"
+                />
+                {confirmPassword && password && confirmPassword === password && (
+                  <Icon 
+                    name="check-circle" 
+                    size={20} 
+                    color={Colors.status.success || '#4CAF50'} 
+                    style={styles.successIcon} 
+                  />
+                )}
+              </View>
+              {!!confirmPasswordError && <Text style={styles.errorText}>{confirmPasswordError}</Text>}
+            </View>
+
             {/* Terms Checkbox */}
             <View style={styles.checkboxContainer}>
               <Pressable
@@ -273,6 +335,11 @@ export default function RegistrationPage() {
           visible={snackbarVisible}
           onDismiss={() => setSnackbarVisible(false)}
           duration={3000}
+          style={[
+            styles.snackbar,
+            snackbarType === 'success' && styles.snackbarSuccess,
+            snackbarType === 'error' && styles.snackbarError,
+          ]}
         >
           {snackbarMessage}
         </Snackbar>
@@ -347,8 +414,14 @@ const styles = StyleSheet.create({
   inputWrapperError: {
     borderColor: Colors.status.error,
   },
+  inputWrapperSuccess: {
+    borderColor: Colors.status.success || '#4CAF50',
+  },
   inputIcon: {
     marginRight: 12,
+  },
+  successIcon: {
+    marginLeft: 8,
   },
   input: {
     flex: 1,
@@ -428,6 +501,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  snackbar: {
+    backgroundColor: Colors.status.info,
+  },
+  snackbarSuccess: {
+    backgroundColor: Colors.status.success,
+  },
+  snackbarError: {
+    backgroundColor: Colors.status.error,
   },
   footer: {
     marginTop: 24,

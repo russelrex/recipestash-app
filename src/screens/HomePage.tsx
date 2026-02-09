@@ -1,9 +1,8 @@
 import { useNavigation } from '@react-navigation/native';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../theme';
 
 export default function HomePage() {
@@ -11,15 +10,6 @@ export default function HomePage() {
 
   const content = (
     <View style={styles.overlay}>
-      {/* Debug Button */}
-      <TouchableOpacity
-        onPress={() => navigation.navigate('Debug' as never)}
-        style={styles.debugButton}
-      >
-        <Icon name="bug" size={18} color={Colors.text.primary} />
-        <Text style={styles.debugButtonText}>Debug Panel</Text>
-      </TouchableOpacity>
-
       {/* Center Section - Authentication */}
       <View style={styles.centerSection}>
         <View style={styles.authCard}>
@@ -155,27 +145,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: Colors.text.primary,
     fontStyle: 'italic',
-  },
-  debugButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'flex-end',
-    marginHorizontal: 24,
-    marginTop: 20,
-    marginBottom: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 20,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  debugButtonText: {
-    fontSize: 14,
-    color: Colors.text.primary,
-    fontWeight: '600',
   },
 });
 

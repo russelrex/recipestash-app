@@ -1,7 +1,7 @@
 import React from 'react';
-import { ImageBackground, View, ScrollView, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ImageBackground, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme';
 
 // ─── Policy sections ─────────────────────────────────────────────────────────
@@ -72,7 +72,7 @@ Content Visibility — By default your recipes are visible only to you. Sharing 
 
 Data Export — You can export all of your recipes as a JSON file at any time from Settings → Export Recipes.
 
-Account Deletion — You may contact support@recipestash.com to request full deletion of your account and associated data.`,
+Account Deletion — You may contact recipestashsup@gmail.com to request full deletion of your account and associated data.`,
   },
   {
     heading: '6. Cookies & Local Storage',
@@ -82,7 +82,7 @@ The authentication token is removed when you log out. Cached recipe data can be 
   },
   {
     heading: '7. Children\'s Privacy',
-    body: `The App is not intended for children under the age of 13. We do not knowingly collect personal information from children under 13. If you believe we have inadvertently collected such information, please contact us immediately at support@recipestash.com so we can delete it.`,
+    body: `The App is not intended for children under the age of 13. We do not knowingly collect personal information from children under 13. If you believe we have inadvertently collected such information, please contact us immediately at recipestashsup@gmail.com so we can delete it.`,
   },
   {
     heading: '8. Security',
@@ -111,7 +111,7 @@ We encourage you to review this policy periodically.`,
     heading: '11. Contact Us',
     body: `If you have any questions or concerns about this Privacy Policy or our data practices, please contact us at:
 
-support@recipestash.com`,
+recipestashsup@gmail.com`,
   },
 ];
 
