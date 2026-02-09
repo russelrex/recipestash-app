@@ -1,41 +1,20 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useEffect, useState } from 'react';
-import { Asset } from 'expo-asset';
-import { ImageBackground, StyleSheet, View } from 'react-native';
-import { Button, Surface, Text, useTheme } from 'react-native-paper';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import { Button, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme';
 
 export default function HomePage() {
   const navigation = useNavigation();
-  const theme = useTheme();
-  const [bgLoaded, setBgLoaded] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    Asset.fromModule(require('../../assets/images/placeholder_bg.jpg'))
-      .downloadAsync()
-      .finally(() => {
-        if (isMounted) {
-          setBgLoaded(true);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   const content = (
     <View style={styles.overlay}>
       {/* Center Section - Authentication */}
       <View style={styles.centerSection}>
-        <Surface style={styles.authCard} elevation={3}>
-          <Text variant="headlineSmall" style={styles.welcomeText}>
-            Welcome!
-          </Text>
-          <Text variant="bodyMedium" style={styles.subText}>
+        <View style={styles.authCard}>
+          <Text style={styles.welcomeText}>Welcome!</Text>
+          <Text style={styles.subText}>
             Sign in or create an account to get started
           </Text>
 
@@ -56,7 +35,7 @@ export default function HomePage() {
           >
             Create Account
           </Button>
-        </Surface>
+        </View>
       </View>
 
       {/* Bottom Section - Description */}
@@ -71,24 +50,9 @@ export default function HomePage() {
     </View>
   );
 
-  // While the background image is downloading, show the same layout on a solid background
-  if (!bgLoaded) {
-    return (
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={[styles.background, { backgroundColor: Colors.background.default }]}>{content}</View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <ImageBackground
-        source={require('../../assets/images/placeholder_bg.jpg')}
-        style={styles.background}
-        resizeMode="cover"
-      >
-        {content}
-      </ImageBackground>
+      <View style={styles.background}>{content}</View>
     </SafeAreaView>
   );
 }
@@ -96,11 +60,12 @@ export default function HomePage() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background.default,
+    backgroundColor: '#B8D156',
   },
   background: {
     flex: 1,
     width: '100%',
+    backgroundColor: '#B8D156',
   },
   overlay: {
     flex: 1,
@@ -129,27 +94,29 @@ const styles = StyleSheet.create({
   authCard: {
     width: '100%',
     maxWidth: 500,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    // Glassmorphism card to match Login / Registration
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.4)',
     padding: 24,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
     elevation: 8,
-    overflow: 'hidden',
   },
   welcomeText: {
+    fontSize: 32,
     fontWeight: 'bold',
     marginBottom: 8,
     textAlign: 'center',
+    color: '#0C1607',
   },
   subText: {
     color: Colors.text.primary,
-    marginBottom: 32,
+    marginBottom: 24,
     textAlign: 'center',
   },
   primaryButton: {
