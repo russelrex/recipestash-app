@@ -12,6 +12,7 @@ import { Colors } from '../theme';
 
 import AddRecipePage from '../screens/AddRecipePage';
 import CreatePostPage from '../screens/CreatePostPage';
+import DebugScreen from '../screens/DebugScreen';
 import FollowersPage from '../screens/FollowersPage';
 import FollowingPage from '../screens/FollowingPage';
 import HomePage from '../screens/HomePage';
@@ -384,6 +385,11 @@ export default function AppNavigator() {
           name="Settings" 
           component={SettingsPage}
           options={{ title: 'Settings' }}
+        />
+        <Stack.Screen 
+          name="Debug" 
+          component={DebugScreen}
+          options={{ title: 'Debug Panel' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

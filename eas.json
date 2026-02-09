@@ -13,8 +13,11 @@
     },
     "preview": {
       "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
-        "EXPO_PUBLIC_API_URL": "${EXPO_PUBLIC_API_URL}"
+        "EXPO_PUBLIC_API_URL": "https://recipestash-backend-production.up.railway.app"
       }
     },
     "production": {
