@@ -1,14 +1,13 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Dimensions, ImageBackground, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { ImageBackground, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Avatar, Card, Chip, IconButton, Menu, Searchbar, Snackbar, Text } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import ShimmerLoader from '../components/ShimmerLoader';
 import SkeletonList from '../components/SkeletonList';
 import { Recipe, recipesApi } from '../services/api';
 import { isOfflineMode } from '../services/cache/offlineUtils';
 import { Colors } from '../theme';
-
-const { height } = Dimensions.get('window');
 
 type FilterType = 'all' | 'favorites' | 'recent' | 'az';
 
@@ -204,46 +203,49 @@ export default function RecipesPage() {
 
   if (loading && !refreshing) {
     return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ImageBackground
+          source={require('../../assets/images/placeholder_bg.jpg')}
+          style={styles.background}
+          resizeMode="cover"
+        >
+          <View style={styles.overlay}>
+            {/* Search bar skeleton */}
+            <View style={styles.searchbarSkeletonContainer}>
+              <ShimmerLoader width="100%" height={40} borderRadius={12} />
+            </View>
+
+            <ScrollView contentContainerStyle={styles.loadingScrollContent}>
+              {/* Filter chips skeleton */}
+              <View style={styles.filterSkeletonRow}>
+                {Array.from({ length: 4 }).map((_, idx) => (
+                  <ShimmerLoader
+                    key={idx}
+                    width={80 + idx * 10}
+                    height={32}
+                    borderRadius={16}
+                    style={{ marginRight: 8 }}
+                  />
+                ))}
+              </View>
+
+              {/* List skeleton */}
+              <SkeletonList count={8} hasImage />
+            </ScrollView>
+          </View>
+        </ImageBackground>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ImageBackground
         source={require('../../assets/images/placeholder_bg.jpg')}
         style={styles.background}
         resizeMode="cover"
       >
         <View style={styles.overlay}>
-          {/* Search bar skeleton */}
-          <View style={styles.searchbarSkeletonContainer}>
-            <ShimmerLoader width="100%" height={40} borderRadius={12} />
-          </View>
-
-          <ScrollView contentContainerStyle={styles.loadingScrollContent}>
-            {/* Filter chips skeleton */}
-            <View style={styles.filterSkeletonRow}>
-              {Array.from({ length: 4 }).map((_, idx) => (
-                <ShimmerLoader
-                  key={idx}
-                  width={80 + idx * 10}
-                  height={32}
-                  borderRadius={16}
-                  style={{ marginRight: 8 }}
-                />
-              ))}
-            </View>
-
-            {/* List skeleton */}
-            <SkeletonList count={8} hasImage />
-          </ScrollView>
-        </View>
-      </ImageBackground>
-    );
-  }
-
-  return (
-    <ImageBackground
-      source={require('../../assets/images/placeholder_bg.jpg')}
-      style={styles.background}
-      resizeMode="cover"
-    >
-      <View style={styles.overlay}>
         <Searchbar
           placeholder="Search recipes..."
           onChangeText={handleSearch}
@@ -428,22 +430,27 @@ export default function RecipesPage() {
           )}
         </ScrollView>
 
-        <Snackbar
-          visible={snackbarVisible}
-          onDismiss={() => setSnackbarVisible(false)}
-          duration={3000}
-        >
-          {snackbarMessage}
-        </Snackbar>
-      </View>
-    </ImageBackground>
+          <Snackbar
+            visible={snackbarVisible}
+            onDismiss={() => setSnackbarVisible(false)}
+            duration={3000}
+          >
+            {snackbarMessage}
+          </Snackbar>
+        </View>
+      </ImageBackground>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background.default,
+  },
   background: {
+    flex: 1,
     width: '100%',
-    height,
   },
   overlay: {
     flex: 1,
@@ -458,8 +465,9 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 16,
-    paddingBottom: 100,
+    paddingHorizontal: 16,
+    paddingTop: 0,
+    paddingBottom: 40,
   },
   searchbarSkeletonContainer: {
     margin: 16,

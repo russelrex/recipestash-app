@@ -1,6 +1,7 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
-import { Dimensions, ImageBackground, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ImageBackground, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Card,
@@ -20,8 +21,6 @@ import {
   type UserProfile,
 } from '../services/api';
 import { Colors } from '../theme';
-
-const { height } = Dimensions.get('window');
 
 export default function UserProfilePage() {
   const route = useRoute();
@@ -112,23 +111,26 @@ export default function UserProfilePage() {
 
   if (loading) {
     return (
-      <ImageBackground
-        source={require('../../assets/images/placeholder_bg.jpg')}
-        style={styles.background}
-        resizeMode="cover"
-      >
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.secondary.main} />
-          <Text style={styles.loadingText}>Loading profile...</Text>
-        </View>
-      </ImageBackground>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ImageBackground
+          source={require('../../assets/images/placeholder_bg.jpg')}
+          style={styles.background}
+          resizeMode="cover"
+        >
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.secondary.main} />
+            <Text style={styles.loadingText}>Loading profile...</Text>
+          </View>
+        </ImageBackground>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ImageBackground
-      source={require('../../assets/images/placeholder_bg.jpg')}
-      style={styles.background}
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ImageBackground
+        source={require('../../assets/images/placeholder_bg.jpg')}
+        style={styles.background}
       resizeMode="cover"
     >
       <View style={styles.overlay}>
@@ -267,14 +269,19 @@ export default function UserProfilePage() {
           </View>
         </ScrollView>
       </View>
-    </ImageBackground>
+      </ImageBackground>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background.default,
+  },
   background: {
+    flex: 1,
     width: '100%',
-    height,
   },
   overlay: {
     flex: 1,

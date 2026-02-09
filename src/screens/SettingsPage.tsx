@@ -1,6 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { Alert, ImageBackground, Linking, Platform, Modal as RNModal, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Button, Divider, List, Snackbar, Switch, Text } from 'react-native-paper';
 import { authApi, followsApi, recipesApi } from '../services/api';
 import cacheService from '../services/cache/cacheService';
@@ -565,8 +566,9 @@ export default function SettingsPage() {
   const bgImage = require('../../assets/images/placeholder_bg.jpg');
 
   return (
-    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
-      <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+        <View style={styles.container}>
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           <View style={styles.glassContainer}>
             {offline && (
@@ -800,16 +802,20 @@ export default function SettingsPage() {
         style={styles.snackbar}
       >
         {snackbarMessage}
-      </Snackbar>
-    </ImageBackground>
+        </Snackbar>
+      </ImageBackground>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background.default,
+  },
   background: {
     flex: 1,
     width: '100%',
-    height: '100%',
   },
   container: {
     flex: 1,

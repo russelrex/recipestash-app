@@ -1,6 +1,7 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
-import { Alert, Dimensions, ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Avatar,
@@ -21,8 +22,6 @@ import ImageUploadSection from '../components/ImageUploadSection';
 import { authApi, CreateRecipeData, recipesApi, UpdateRecipeData } from '../services/api';
 import type { ImageData } from '../services/imagePicker';
 import { Colors } from '../theme';
-
-const { height } = Dimensions.get('window');
 
 const CATEGORIES = [
   { label: 'Breakfast', value: 'breakfast', icon: 'coffee' },
@@ -345,15 +344,16 @@ export default function AddRecipePage() {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ImageBackground
-        source={require('../../assets/images/placeholder_bg.jpg')}
-        style={styles.background}
-        resizeMode="cover"
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
       >
+        <ImageBackground
+          source={require('../../assets/images/placeholder_bg.jpg')}
+          style={styles.background}
+          resizeMode="cover"
+        >
         <View style={styles.overlay}>
           <ScrollView 
             style={styles.scrollView} 
@@ -752,20 +752,25 @@ export default function AddRecipePage() {
             </View>
           </ScrollView>
         </View>
-      </ImageBackground>
+        </ImageBackground>
 
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={3000}
-      >
-        {snackbarMessage}
-      </Snackbar>
-    </KeyboardAvoidingView>
+        <Snackbar
+          visible={snackbarVisible}
+          onDismiss={() => setSnackbarVisible(false)}
+          duration={3000}
+        >
+          {snackbarMessage}
+        </Snackbar>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background.default,
+  },
   container: {
     flex: 1,
   },
@@ -780,8 +785,8 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
   background: {
+    flex: 1,
     width: '100%',
-    height,
   },
   overlay: {
     flex: 1,

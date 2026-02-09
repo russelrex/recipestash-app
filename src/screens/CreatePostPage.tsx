@@ -1,7 +1,6 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Dimensions,
   Image,
   ImageBackground,
   KeyboardAvoidingView,
@@ -12,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Button,
@@ -28,7 +28,6 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Post, postsApi, Recipe, recipesApi } from '../services/api';
 import { Colors } from '../theme';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAX_POST_LENGTH = 500;
 
 export default function CreatePostPage() {
@@ -218,11 +217,12 @@ export default function CreatePostPage() {
   const bgImage = require('../../assets/images/placeholder_bg.jpg');
 
   return (
-    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.container}
+        >
         <ScrollView style={styles.scrollView}>
           <View style={styles.content}>
             <Card style={styles.glassCard}>
@@ -473,19 +473,23 @@ export default function CreatePostPage() {
         </Modal>
       </Portal>
 
-      <Snackbar visible={snackbarVisible} onDismiss={() => setSnackbarVisible(false)} duration={3000}>
-        {snackbarMessage}
-      </Snackbar>
-      </KeyboardAvoidingView>
-    </ImageBackground>
+          <Snackbar visible={snackbarVisible} onDismiss={() => setSnackbarVisible(false)} duration={3000}>
+            {snackbarMessage}
+          </Snackbar>
+        </KeyboardAvoidingView>
+      </ImageBackground>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background.default,
+  },
   background: {
     flex: 1,
     width: '100%',
-    height: '100%',
   },
   container: {
     flex: 1,
@@ -659,7 +663,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   drawerContainer: {
-    height: SCREEN_HEIGHT * 0.75,
+    height: '75%',
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,

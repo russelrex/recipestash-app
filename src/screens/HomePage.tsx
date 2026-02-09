@@ -1,11 +1,10 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { Asset } from 'expo-asset';
-import { Dimensions, ImageBackground, StyleSheet, View } from 'react-native';
+import { ImageBackground, StyleSheet, View } from 'react-native';
 import { Button, Surface, Text, useTheme } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme';
-
-const { height } = Dimensions.get('window');
 
 export default function HomePage() {
   const navigation = useNavigation();
@@ -74,32 +73,43 @@ export default function HomePage() {
 
   // While the background image is downloading, show the same layout on a solid background
   if (!bgLoaded) {
-    return <View style={[styles.background, { backgroundColor: Colors.background.default }]}>{content}</View>;
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <View style={[styles.background, { backgroundColor: Colors.background.default }]}>{content}</View>
+      </SafeAreaView>
+    );
   }
 
   return (
-    <ImageBackground
-      source={require('../../assets/images/placeholder_bg.jpg')}
-      style={styles.background}
-      resizeMode="cover"
-    >
-      {content}
-    </ImageBackground>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <ImageBackground
+        source={require('../../assets/images/placeholder_bg.jpg')}
+        style={styles.background}
+        resizeMode="cover"
+      >
+        {content}
+      </ImageBackground>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background.default,
+  },
   background: {
+    flex: 1,
     width: '100%',
-    height,
   },
   overlay: {
     flex: 1,
     justifyContent: 'space-between',
+    paddingVertical: 40,
   },
   topSection: {
     alignItems: 'center',
-    paddingTop: height * 0.1,
+    paddingTop: 20,
     paddingBottom: 20,
   },
   title: {
@@ -118,12 +128,12 @@ const styles = StyleSheet.create({
   },
   authCard: {
     width: '100%',
-    maxWidth: 400,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 16,
+    maxWidth: 500,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
-    padding: 32,
+    padding: 24,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
@@ -145,6 +155,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     width: '100%',
     marginBottom: 12,
+    borderRadius: 12,
   },
   secondaryButton: {
     width: '100%',
@@ -154,7 +165,7 @@ const styles = StyleSheet.create({
   },
   bottomSection: {
     alignItems: 'center',
-    paddingBottom: height * 0.08,
+    paddingBottom: 40,
     paddingHorizontal: 32,
   },
   description: {

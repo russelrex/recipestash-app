@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   TextInput,
   Button,
@@ -162,11 +163,12 @@ export default function PostDetailPage() {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
           <PostCard
@@ -207,44 +209,49 @@ export default function PostDetailPage() {
         </View>
       </ScrollView>
 
-      <View style={styles.commentInputContainer}>
-        <Avatar.Text
-          size={36}
-          label={currentUserName.substring(0, 2).toUpperCase()}
-          style={styles.commentAvatar}
-        />
-        <TextInput
-          value={commentText}
-          onChangeText={setCommentText}
-          placeholder="Write a comment..."
-          mode="outlined"
-          style={styles.commentInput}
-          multiline
-          maxLength={500}
-          disabled={submitting}
-        />
-        <IconButton
-          icon="send"
-          size={24}
-          onPress={handleAddComment}
-          disabled={submitting || !commentText.trim()}
-          loading={submitting}
-          iconColor={commentText.trim() ? Colors.primary.main : Colors.text.disabled}
-        />
-      </View>
+        <View style={styles.commentInputContainer}>
+          <Avatar.Text
+            size={36}
+            label={currentUserName.substring(0, 2).toUpperCase()}
+            style={styles.commentAvatar}
+          />
+          <TextInput
+            value={commentText}
+            onChangeText={setCommentText}
+            placeholder="Write a comment..."
+            mode="outlined"
+            style={styles.commentInput}
+            multiline
+            maxLength={500}
+            disabled={submitting}
+          />
+          <IconButton
+            icon="send"
+            size={24}
+            onPress={handleAddComment}
+            disabled={submitting || !commentText.trim()}
+            loading={submitting}
+            iconColor={commentText.trim() ? Colors.primary.main : Colors.text.disabled}
+          />
+        </View>
 
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={3000}
-      >
-        {snackbarMessage}
-      </Snackbar>
-    </KeyboardAvoidingView>
+        <Snackbar
+          visible={snackbarVisible}
+          onDismiss={() => setSnackbarVisible(false)}
+          duration={3000}
+        >
+          {snackbarMessage}
+        </Snackbar>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background.default,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.background.default,

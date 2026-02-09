@@ -6,8 +6,6 @@ import { followsApi, Follow } from '../services/api';
 import { Colors } from '../theme';
 import UserCard from '../components/UserCard';
 
-const { height } = Dimensions.get('window');
-
 export default function FollowingPage() {
   const route = useRoute();
   const userId = (route.params as any)?.userId as string;
@@ -51,49 +49,55 @@ export default function FollowingPage() {
   }
 
   return (
-    <ImageBackground
-      source={require('../../assets/images/dashboard_bg.jpg')}
-      style={styles.background}
-      resizeMode="cover"
-    >
-      <View style={styles.overlay}>
-        <FlatList
-          data={following}
-          renderItem={({ item }) => (
-            <UserCard
-              userId={item.followingId}
-              userName={item.followingName}
-              showFollowButton={true}
-              onFollowChange={() => loadFollowing()}
-            />
-          )}
-          keyExtractor={(item, index) => item?.id || `following-${index}`}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text variant="bodyLarge" style={styles.emptyText}>
-                Not following anyone yet
-              </Text>
-            </View>
-          }
-        />
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ImageBackground
+        source={require('../../assets/images/dashboard_bg.jpg')}
+        style={styles.background}
+        resizeMode="cover"
+      >
+        <View style={styles.overlay}>
+          <FlatList
+            data={following}
+            renderItem={({ item }) => (
+              <UserCard
+                userId={item.followingId}
+                userName={item.followingName}
+                showFollowButton={true}
+                onFollowChange={() => loadFollowing()}
+              />
+            )}
+            keyExtractor={(item, index) => item?.id || `following-${index}`}
+            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text variant="bodyLarge" style={styles.emptyText}>
+                  Not following anyone yet
+                </Text>
+              </View>
+            }
+          />
 
-        <Snackbar
-          visible={snackbarVisible}
-          onDismiss={() => setSnackbarVisible(false)}
-          duration={3000}
-        >
-          {snackbarMessage}
-        </Snackbar>
-      </View>
-    </ImageBackground>
+          <Snackbar
+            visible={snackbarVisible}
+            onDismiss={() => setSnackbarVisible(false)}
+            duration={3000}
+          >
+            {snackbarMessage}
+          </Snackbar>
+        </View>
+      </ImageBackground>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background.default,
+  },
   background: {
+    flex: 1,
     width: '100%',
-    height,
   },
   overlay: {
     flex: 1,

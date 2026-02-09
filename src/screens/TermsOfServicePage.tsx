@@ -1,6 +1,8 @@
 import React from 'react';
 import { ImageBackground, View, ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from 'react-native-paper';
+import { Colors } from '../theme';
 
 // ─── Content sections ────────────────────────────────────────────────────────
 // Each entry: { heading, body }
@@ -92,41 +94,46 @@ export default function TermsOfServicePage() {
   const bgImage = require('../../assets/images/placeholder_bg.jpg');
 
   return (
-    <View style={styles.root}>
-      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-          <View style={styles.glassContainer}>
-            {/* Effective date banner */}
-            <Text style={styles.effectiveDate}>Effective Date: February 1, 2025</Text>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.root}>
+        <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+            <View style={styles.glassContainer}>
+              {/* Effective date banner */}
+              <Text style={styles.effectiveDate}>Effective Date: February 1, 2025</Text>
 
-            {SECTIONS.map((section, idx) => (
-              <View key={idx} style={styles.section}>
-                <Text style={styles.heading}>{section.heading}</Text>
-                {section.body.split('\n\n').map((paragraph, pIdx) => (
-                  <Text key={pIdx} style={styles.body}>{paragraph}</Text>
-                ))}
-              </View>
-            ))}
+              {SECTIONS.map((section, idx) => (
+                <View key={idx} style={styles.section}>
+                  <Text style={styles.heading}>{section.heading}</Text>
+                  {section.body.split('\n\n').map((paragraph, pIdx) => (
+                    <Text key={pIdx} style={styles.body}>{paragraph}</Text>
+                  ))}
+                </View>
+              ))}
 
-            {/* Bottom padding so last section isn't flush */}
-            <View style={styles.footer} />
-          </View>
-        </ScrollView>
-      </ImageBackground>
-    </View>
+              {/* Bottom padding so last section isn't flush */}
+              <View style={styles.footer} />
+            </View>
+          </ScrollView>
+        </ImageBackground>
+      </View>
+    </SafeAreaView>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background.default,
+  },
   root: {
     flex: 1,
   },
   background: {
     flex: 1,
     width: '100%',
-    height: '100%',
   },
   scroll: {
     flex: 1,

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Button,
@@ -169,8 +170,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
-      <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+        <View style={styles.container}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -349,24 +351,28 @@ export default function ProfilePage() {
         currentProfile={profile}
       />
 
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={2500}
-        style={styles.snackbar}
-      >
-        {snackbarMessage}
-      </Snackbar>
-      </View>
-    </ImageBackground>
+          <Snackbar
+            visible={snackbarVisible}
+            onDismiss={() => setSnackbarVisible(false)}
+            duration={2500}
+            style={styles.snackbar}
+          >
+            {snackbarMessage}
+          </Snackbar>
+        </View>
+      </ImageBackground>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background.default,
+  },
   background: {
     flex: 1,
     width: '100%',
-    height: '100%',
   },
   container: {
     flex: 1,

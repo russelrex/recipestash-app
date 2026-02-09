@@ -1,12 +1,11 @@
 import { useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
-import { Dimensions, FlatList, ImageBackground, StyleSheet, View } from 'react-native';
+import { FlatList, ImageBackground, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Snackbar, Text } from 'react-native-paper';
 import UserCard from '../components/UserCard';
 import { Follow, followsApi } from '../services/api';
 import { Colors } from '../theme';
-
-const { height } = Dimensions.get('window');
 
 export default function FollowersPage() {
   const route = useRoute();
@@ -51,49 +50,55 @@ export default function FollowersPage() {
   }
 
   return (
-    <ImageBackground
-      source={require('../../assets/images/dashboard_bg.jpg')}
-      style={styles.background}
-      resizeMode="cover"
-    >
-      <View style={styles.overlay}>
-        <FlatList
-          data={followers}
-          renderItem={({ item }) => (
-            <UserCard
-              userId={item.followerId}
-              userName={item.followerName}
-              showFollowButton={true}
-              onFollowChange={() => loadFollowers()}
-            />
-          )}
-          keyExtractor={(item, index) => item?.id || `follower-${index}`}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text variant="bodyLarge" style={styles.emptyText}>
-                No followers yet
-              </Text>
-            </View>
-          }
-        />
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ImageBackground
+        source={require('../../assets/images/dashboard_bg.jpg')}
+        style={styles.background}
+        resizeMode="cover"
+      >
+        <View style={styles.overlay}>
+          <FlatList
+            data={followers}
+            renderItem={({ item }) => (
+              <UserCard
+                userId={item.followerId}
+                userName={item.followerName}
+                showFollowButton={true}
+                onFollowChange={() => loadFollowers()}
+              />
+            )}
+            keyExtractor={(item, index) => item?.id || `follower-${index}`}
+            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text variant="bodyLarge" style={styles.emptyText}>
+                  No followers yet
+                </Text>
+              </View>
+            }
+          />
 
-        <Snackbar
-          visible={snackbarVisible}
-          onDismiss={() => setSnackbarVisible(false)}
-          duration={3000}
-        >
-          {snackbarMessage}
-        </Snackbar>
-      </View>
-    </ImageBackground>
+          <Snackbar
+            visible={snackbarVisible}
+            onDismiss={() => setSnackbarVisible(false)}
+            duration={3000}
+          >
+            {snackbarMessage}
+          </Snackbar>
+        </View>
+      </ImageBackground>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background.default,
+  },
   background: {
+    flex: 1,
     width: '100%',
-    height,
   },
   overlay: {
     flex: 1,

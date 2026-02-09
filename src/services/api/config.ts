@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 const BACKEND_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
+  process.env.EXPO_PUBLIC_API_URL ?? 'https://recipestash-backend-production.up.railway.app';
 export const API_BASE_URL = `${BACKEND_URL}/api`;
 
 const apiClient = axios.create({

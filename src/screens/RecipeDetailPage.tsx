@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Divider,
@@ -239,8 +240,9 @@ export default function RecipeDetailPage() {
   // RENDER
   // ═══════════════════════════════════════════════════
   return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.container}>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
         {/* ─── Hero ──────────────────────────────────── */}
         <View style={styles.heroWrapper}>
@@ -525,10 +527,11 @@ export default function RecipeDetailPage() {
         </View>
       </Modal>
 
-      <Snackbar visible={snackbarVisible} onDismiss={() => setSnackbarVisible(false)} duration={3000}>
-        {snackbarMessage}
-      </Snackbar>
-    </View>
+        <Snackbar visible={snackbarVisible} onDismiss={() => setSnackbarVisible(false)} duration={3000}>
+          {snackbarMessage}
+        </Snackbar>
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -537,6 +540,10 @@ export default function RecipeDetailPage() {
 // ═══════════════════════════════════════════════════════════════
 const styles = StyleSheet.create({
   // ─── root ──────────────────────────────────────────────────
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background.default,
+  },
   container: { flex: 1, backgroundColor: Colors.background.default },
   scrollView: { flex: 1 },
 

@@ -1,12 +1,11 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
-import { Dimensions, ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, HelperText, Snackbar, Surface, Text, TextInput } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import offlineAuth from '../services/cache/offlineAuth';
 import { Colors } from '../theme';
-
-const { height } = Dimensions.get('window');
 
 export default function OfflineLoginPage() {
   const navigation = useNavigation();
@@ -112,23 +111,24 @@ export default function OfflineLoginPage() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ImageBackground
-        source={require('../../assets/images/homepage_bg02.jpg')}
-        style={styles.background}
-        resizeMode="cover"
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
       >
-        <View style={styles.overlay}>
-          <View style={styles.centerSection}>
-            <Surface style={styles.authCard} elevation={3}>
-              <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-              >
+        <ImageBackground
+          source={require('../../assets/images/homepage_bg02.jpg')}
+          style={styles.background}
+          resizeMode="cover"
+        >
+          <View style={styles.overlay}>
+            <View style={styles.centerSection}>
+              <Surface style={styles.authCard} elevation={3}>
+                <ScrollView
+                  contentContainerStyle={styles.scrollContent}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                >
                 <Text variant="headlineSmall" style={styles.welcomeText}>
                   Offline Mode
                 </Text>
@@ -211,34 +211,39 @@ export default function OfflineLoginPage() {
                 >
                   {loading ? 'Signing In...' : 'Sign In Offline'}
                 </Button>
-              </ScrollView>
-            </Surface>
+                </ScrollView>
+              </Surface>
+            </View>
           </View>
-        </View>
-      </ImageBackground>
+        </ImageBackground>
 
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={3000}
-        action={{
-          label: 'Close',
-          onPress: () => setSnackbarVisible(false),
-        }}
-      >
-        {snackbarMessage}
-      </Snackbar>
-    </KeyboardAvoidingView>
+        <Snackbar
+          visible={snackbarVisible}
+          onDismiss={() => setSnackbarVisible(false)}
+          duration={3000}
+          action={{
+            label: 'Close',
+            onPress: () => setSnackbarVisible(false),
+          }}
+        >
+          {snackbarMessage}
+        </Snackbar>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background.default,
+  },
   container: {
     flex: 1,
   },
   background: {
+    flex: 1,
     width: '100%',
-    height,
   },
   overlay: {
     flex: 1,
@@ -246,6 +251,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
+    paddingVertical: 40,
   },
   centerSection: {
     width: '100%',
@@ -253,12 +259,12 @@ const styles = StyleSheet.create({
   },
   authCard: {
     width: '100%',
-    maxWidth: 400,
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    maxWidth: 500,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
-    padding: 32,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    padding: 24,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
@@ -268,6 +274,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   scrollContent: {
+    flexGrow: 1,
     width: '100%',
   },
   welcomeText: {
@@ -290,7 +297,7 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: 4,
     width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
   helperText: {
     marginTop: 0,
@@ -301,6 +308,7 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: 8,
     marginBottom: 12,
+    borderRadius: 12,
   },
   buttonContent: {
     paddingVertical: 8,

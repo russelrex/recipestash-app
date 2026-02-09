@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { ImageBackground, View, FlatList, StyleSheet, RefreshControl } from 'react-native';
 import { ActivityIndicator, Text, Snackbar } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import PostCard from '../components/PostCard';
 import { postsApi, type Post } from '../services/api';
@@ -126,17 +127,20 @@ export default function NewsfeedPage() {
 
   if (loading && !refreshing) {
     return (
-      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
-        <View style={styles.container}>
-          <SkeletonList count={6} hasImage />
-        </View>
-      </ImageBackground>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+          <View style={styles.container}>
+            <SkeletonList count={6} hasImage />
+          </View>
+        </ImageBackground>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
-      <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+        <View style={styles.container}>
         <FlatList
         data={posts}
         renderItem={({ item }) => (
@@ -160,23 +164,27 @@ export default function NewsfeedPage() {
         ListEmptyComponent={renderEmpty}
       />
 
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={3000}
-      >
-        {snackbarMessage}
-      </Snackbar>
-      </View>
-    </ImageBackground>
+          <Snackbar
+            visible={snackbarVisible}
+            onDismiss={() => setSnackbarVisible(false)}
+            duration={3000}
+          >
+            {snackbarMessage}
+          </Snackbar>
+        </View>
+      </ImageBackground>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background.default,
+  },
   background: {
     flex: 1,
     width: '100%',
-    height: '100%',
   },
   container: {
     flex: 1,
@@ -192,6 +200,8 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 40,
   },
   emptyContainer: {
     padding: 40,
