@@ -3,8 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ImageBackground, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Avatar, Card, Chip, IconButton, Menu, Searchbar, Snackbar, Text } from 'react-native-paper';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import ShimmerLoader from '../components/ShimmerLoader';
-import SkeletonList from '../components/SkeletonList';
+import { RecipeListSkeleton } from '../components/Loading/LoadingComponents';
 import { Recipe, recipesApi } from '../services/api';
 import { isOfflineMode } from '../services/cache/offlineUtils';
 import { COLORS, SHADOWS } from '../styles/modernStyles';
@@ -215,27 +214,8 @@ export default function RecipesPage() {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.overlay}>
-          {/* Search bar skeleton */}
-          <View style={styles.searchbarSkeletonContainer}>
-            <ShimmerLoader width="100%" height={40} borderRadius={12} />
-          </View>
-
           <ScrollView contentContainerStyle={styles.loadingScrollContent}>
-            {/* Filter chips skeleton */}
-            <View style={styles.filterSkeletonRow}>
-              {Array.from({ length: 4 }).map((_, idx) => (
-                <ShimmerLoader
-                  key={idx}
-                  width={80 + idx * 10}
-                  height={32}
-                  borderRadius={16}
-                  style={{ marginRight: 8 }}
-                />
-              ))}
-            </View>
-
-            {/* List skeleton */}
-            <SkeletonList count={8} hasImage />
+            <RecipeListSkeleton count={4} />
           </ScrollView>
         </View>
       </SafeAreaView>

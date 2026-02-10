@@ -11,6 +11,11 @@ import FollowButton from '../components/FollowButton';
 import PostCard from '../components/PostCard';
 import ProfileAvatar from '../components/ProfileAvatar';
 import {
+  PostListSkeleton,
+  ProfileCardSkeleton,
+  RecipeListSkeleton,
+} from '../components/Loading/LoadingComponents';
+import {
   authApi,
   followsApi,
   postsApi,
@@ -115,10 +120,15 @@ export default function UserProfilePage() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading profile...</Text>
-        </View>
+        <ScrollView contentContainerStyle={styles.loadingScroll}>
+          <ProfileCardSkeleton />
+          <View style={styles.loadingSectionCard}>
+            <RecipeListSkeleton count={2} />
+          </View>
+          <View style={styles.loadingSectionCard}>
+            <PostListSkeleton count={2} />
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -266,6 +276,10 @@ export default function UserProfilePage() {
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
   background: {
     flex: 1,
     paddingTop: 24,
@@ -277,15 +291,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  loadingScroll: {
+    flexGrow: 1,
+    padding: SPACING.md,
+    paddingBottom: 100,
     backgroundColor: COLORS.background,
   },
-  loadingText: {
-    marginTop: 10,
-    color: COLORS.textSecondary,
+  loadingSectionCard: {
+    marginTop: SPACING.md,
   },
   glassCard: {
     marginHorizontal: SPACING.md,

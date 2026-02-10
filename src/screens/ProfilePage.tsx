@@ -1,7 +1,6 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ImageBackground,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -16,9 +15,11 @@ import {
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ProfileAvatar from '../components/ProfileAvatar';
-import ShimmerLoader from '../components/ShimmerLoader';
-import SkeletonList from '../components/SkeletonList';
-import SkeletonProfileHeader from '../components/SkeletonProfileHeader';
+import {
+  PostListSkeleton,
+  ProfileCardSkeleton,
+  RecipeListSkeleton,
+} from '../components/Loading/LoadingComponents';
 import {
   authApi,
   followsApi,
@@ -132,8 +133,6 @@ export default function ProfilePage() {
     return icons[category.toLowerCase()] || 'food';
   };
 
-  const bgImage = require('../../assets/images/placeholder_bg.jpg');
-  
   if (loading && !refreshing) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -142,28 +141,23 @@ export default function ProfilePage() {
           contentContainerStyle={styles.loadingScrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.loadingCard}>
-            <SkeletonProfileHeader />
+          {/* Profile header skeleton */}
+          <ProfileCardSkeleton />
 
-            <View style={styles.sectionSkeleton}>
-              <ShimmerLoader
-                width={180}
-                height={24}
-                borderRadius={8}
-                style={{ marginBottom: 12 }}
-              />
-              <SkeletonList count={3} hasImage />
+          {/* Featured recipes skeleton */}
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.skeletonTitle} />
             </View>
+            <RecipeListSkeleton count={2} />
+          </View>
 
-            <View style={styles.sectionSkeleton}>
-              <ShimmerLoader
-                width={160}
-                height={24}
-                borderRadius={8}
-                style={{ marginBottom: 12 }}
-              />
-              <SkeletonList count={3} hasImage={false} />
+          {/* Recent posts skeleton */}
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.skeletonTitle} />
             </View>
+            <PostListSkeleton count={2} />
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -171,7 +165,6 @@ export default function ProfilePage() {
   }
 
   return (
-    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
       <View style={styles.container}>
         <ScrollView
           style={styles.scrollView}
@@ -334,23 +327,22 @@ export default function ProfilePage() {
           </View>
         </ScrollView>
 
-      <EditProfileModal
-        visible={editModalVisible}
-        onClose={() => setEditModalVisible(false)}
-        onSave={handleProfileSaved}
-        currentProfile={profile}
-      />
+        <EditProfileModal
+          visible={editModalVisible}
+          onClose={() => setEditModalVisible(false)}
+          onSave={handleProfileSaved}
+          currentProfile={profile}
+        />
 
-          <Snackbar
-            visible={snackbarVisible}
-            onDismiss={() => setSnackbarVisible(false)}
-            duration={2500}
-            style={styles.snackbar}
-          >
-            {snackbarMessage}
-          </Snackbar>
+        <Snackbar
+          visible={snackbarVisible}
+          onDismiss={() => setSnackbarVisible(false)}
+          duration={2500}
+          style={styles.snackbar}
+        >
+          {snackbarMessage}
+        </Snackbar>
       </View>
-    </ImageBackground>
   );
 }
 
@@ -359,13 +351,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  background: {
-    flex: 1,
-    width: '100%',
-  },
   container: {
     paddingTop: 24,
     flex: 1,
+    backgroundColor: COLORS.background,
   },
   scrollView: {
     flex: 1,
@@ -380,9 +369,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     paddingBottom: SPACING.xl,
   },
-  loadingCard: {
-    ...(CARD_STYLES.elevated as object),
-  },
+  loadingCard: {},
   profileCard: {
     ...(CARD_STYLES.elevated as object),
     marginBottom: SPACING.md,
@@ -588,6 +575,12 @@ const styles = StyleSheet.create({
   },
   sectionSkeleton: {
     marginTop: SPACING.lg,
+  },
+  skeletonTitle: {
+    width: 160,
+    height: 22,
+    borderRadius: 8,
+    backgroundColor: COLORS.cardBackgroundAlt,
   },
 });
 

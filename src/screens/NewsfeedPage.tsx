@@ -1,11 +1,12 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
-import { FlatList, ImageBackground, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Snackbar, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PostCard from '../components/PostCard';
-import SkeletonList from '../components/SkeletonList';
 import { postsApi, type Post } from '../services/api';
+import { PostListSkeleton } from '../components/Loading/LoadingComponents';
+import { COLORS } from '../styles/modernStyles';
 import { Colors } from '../theme';
 
 export default function NewsfeedPage() {
@@ -123,24 +124,19 @@ export default function NewsfeedPage() {
     );
   };
 
-  const bgImage = require('../../assets/images/placeholder_bg.jpg');
-
   if (loading && !refreshing) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
-          <View style={styles.container}>
-            <SkeletonList count={6} hasImage />
-          </View>
-        </ImageBackground>
+        <View style={styles.container}>
+          <PostListSkeleton count={6} />
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
-    // <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
-        <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.container}>
         <FlatList
         data={posts}
         renderItem={({ item }) => (
@@ -171,24 +167,20 @@ export default function NewsfeedPage() {
           >
             {snackbarMessage}
           </Snackbar>
-        </View>
-      </ImageBackground>
-    // </SafeAreaView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background.default,
-  },
-  background: {
-    flex: 1,
-    width: '100%',
+    backgroundColor: COLORS.background,
   },
   container: {
     paddingTop: 24,
     flex: 1,
+    backgroundColor: COLORS.background,
   },
   loadingContainer: {
     flex: 1,
