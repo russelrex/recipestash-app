@@ -1,15 +1,17 @@
 import { useNavigation } from '@react-navigation/native';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ImageBackground, StyleSheet, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BUTTON_STYLES, CARD_STYLES, COLORS, TYPOGRAPHY } from '../styles/modernStyles';
-import { Colors } from '../theme';
+import { CARD_STYLES, COLORS, TYPOGRAPHY } from '../styles/modernStyles';
+
+const bgImage = require('../../assets/images/placeholder_bg.jpg');
 
 export default function HomePage() {
   const navigation = useNavigation();
 
   const content = (
+    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
     <View style={styles.overlay}>
       {/* Center Section - Authentication */}
       <View style={styles.centerSection}>
@@ -51,6 +53,7 @@ export default function HomePage() {
         </Text>
       </View>
     </View>
+    </ImageBackground>
   );
 
   return (
@@ -61,13 +64,12 @@ export default function HomePage() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
   background: {
     flex: 1,
     width: '100%',
+  },
+  safeArea: {
+    flex: 1,
     backgroundColor: COLORS.background,
   },
   overlay: {

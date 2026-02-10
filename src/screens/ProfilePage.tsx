@@ -1,6 +1,7 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  ImageBackground,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -14,12 +15,12 @@ import {
   Text
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import ProfileAvatar from '../components/ProfileAvatar';
 import {
   PostListSkeleton,
   ProfileCardSkeleton,
   RecipeListSkeleton,
 } from '../components/Loading/LoadingComponents';
+import ProfileAvatar from '../components/ProfileAvatar';
 import {
   authApi,
   followsApi,
@@ -120,6 +121,8 @@ export default function ProfilePage() {
     setSnackbarVisible(true);
   };
 
+  const bgImage = require('../../assets/images/placeholder_bg.jpg');
+
   const getRecipeIcon = (category: string) => {
     const icons: Record<string, string> = {
       breakfast: 'coffee',
@@ -165,6 +168,7 @@ export default function ProfilePage() {
   }
 
   return (
+    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
       <View style={styles.container}>
         <ScrollView
           style={styles.scrollView}
@@ -343,18 +347,18 @@ export default function ProfilePage() {
           {snackbarMessage}
         </Snackbar>
       </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  background: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    width: '100%',
   },
   container: {
     paddingTop: 24,
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   scrollView: {
     flex: 1,

@@ -1,6 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import {
+  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -9,8 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Text, Snackbar } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Snackbar, Text } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { authApi } from '../services/api';
 import { BUTTON_STYLES, CARD_STYLES, COLORS, TYPOGRAPHY } from '../styles/modernStyles';
@@ -59,6 +59,8 @@ export default function LoginPage() {
     return valid;
   };
 
+  const bgImage = require('../../assets/images/placeholder_bg.jpg');
+
   const handleLogin = async () => {
     if (!validate()) return;
 
@@ -95,7 +97,7 @@ export default function LoginPage() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
@@ -210,18 +212,17 @@ export default function LoginPage() {
           {snackbarMessage}
         </Snackbar>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  background: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    width: '100%',
   },
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   scrollContent: {
     flexGrow: 1,
