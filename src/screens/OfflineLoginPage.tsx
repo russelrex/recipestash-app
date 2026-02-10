@@ -1,10 +1,11 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
-import { ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, HelperText, Snackbar, Surface, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import offlineAuth from '../services/cache/offlineAuth';
+import { CARD_STYLES, COLORS } from '../styles/modernStyles';
 import { Colors } from '../theme';
 
 export default function OfflineLoginPage() {
@@ -116,14 +117,10 @@ export default function OfflineLoginPage() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
-        <ImageBackground
-          source={require('../../assets/images/homepage_bg02.jpg')}
-          style={styles.background}
-          resizeMode="cover"
-        >
+        <View style={styles.background}>
           <View style={styles.overlay}>
             <View style={styles.centerSection}>
-              <Surface style={styles.authCard} elevation={3}>
+              <Surface style={[styles.authCard, CARD_STYLES.elevated]} elevation={0}>
                 <ScrollView
                   contentContainerStyle={styles.scrollContent}
                   keyboardShouldPersistTaps="handled"
@@ -154,8 +151,8 @@ export default function OfflineLoginPage() {
                   autoCapitalize="none"
                   autoComplete="email"
                   left={<TextInput.Icon icon="email-outline" />}
-                  outlineColor={emailError ? Colors.status.error : 'rgba(255, 255, 255, 0.8)'}
-                  activeOutlineColor={emailError ? Colors.status.error : Colors.primary.main}
+                  outlineColor={emailError ? Colors.status.error : COLORS.border}
+                  activeOutlineColor={emailError ? Colors.status.error : COLORS.primary}
                   error={!!emailError}
                   disabled={loading}
                   theme={{ colors: { onSurface: Colors.text.primary } }}
@@ -187,8 +184,8 @@ export default function OfflineLoginPage() {
                       onPress={() => setShowPassword(!showPassword)}
                     />
                   }
-                  outlineColor={passwordError ? Colors.status.error : 'rgba(255, 255, 255, 0.8)'}
-                  activeOutlineColor={passwordError ? Colors.status.error : Colors.primary.main}
+                  outlineColor={passwordError ? Colors.status.error : COLORS.border}
+                  activeOutlineColor={passwordError ? Colors.status.error : COLORS.primary}
                   error={!!passwordError}
                   disabled={loading}
                   theme={{ colors: { onSurface: Colors.text.primary } }}
@@ -215,7 +212,7 @@ export default function OfflineLoginPage() {
               </Surface>
             </View>
           </View>
-        </ImageBackground>
+        </View>
 
         <Snackbar
           visible={snackbarVisible}
@@ -236,10 +233,11 @@ export default function OfflineLoginPage() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background.default,
+    backgroundColor: COLORS.background,
   },
   container: {
     flex: 1,
+    backgroundColor: COLORS.background,
   },
   background: {
     flex: 1,
@@ -247,7 +245,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(250, 250, 248, 0.3)',
+    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
@@ -260,17 +258,8 @@ const styles = StyleSheet.create({
   authCard: {
     width: '100%',
     maxWidth: 500,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
     padding: 24,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
     overflow: 'hidden',
   },
   scrollContent: {
@@ -297,7 +286,7 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: 4,
     width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: COLORS.cardBackground,
   },
   helperText: {
     marginTop: 0,

@@ -3,6 +3,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { BUTTON_STYLES, CARD_STYLES, COLORS, TYPOGRAPHY } from '../styles/modernStyles';
 import { Colors } from '../theme';
 
 export default function HomePage() {
@@ -12,7 +13,7 @@ export default function HomePage() {
     <View style={styles.overlay}>
       {/* Center Section - Authentication */}
       <View style={styles.centerSection}>
-        <View style={styles.authCard}>
+        <View style={[styles.authCard, CARD_STYLES.elevated]}>
           <Text style={styles.welcomeText}>Welcome!</Text>
           <Text style={styles.subText}>
             Sign in or create an account to get started
@@ -23,6 +24,7 @@ export default function HomePage() {
             onPress={() => navigation.navigate('Login' as never)}
             style={styles.primaryButton}
             contentStyle={styles.buttonContent}
+            buttonColor={COLORS.primary}
           >
             Sign In
           </Button>
@@ -32,6 +34,7 @@ export default function HomePage() {
             onPress={() => navigation.navigate('Registration' as never)}
             style={styles.secondaryButton}
             contentStyle={styles.buttonContent}
+            textColor={COLORS.primary}
           >
             Create Account
           </Button>
@@ -60,12 +63,12 @@ export default function HomePage() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#B8D156',
+    backgroundColor: COLORS.background,
   },
   background: {
     flex: 1,
     width: '100%',
-    backgroundColor: '#B8D156',
+    backgroundColor: COLORS.background,
   },
   overlay: {
     flex: 1,
@@ -94,28 +97,16 @@ const styles = StyleSheet.create({
   authCard: {
     width: '100%',
     maxWidth: 500,
-    // Glassmorphism card to match Login / Registration
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
     padding: 24,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 8,
   },
   welcomeText: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    ...TYPOGRAPHY.h2,
     marginBottom: 8,
     textAlign: 'center',
-    color: '#0C1607',
   },
   subText: {
-    color: Colors.text.primary,
+    ...TYPOGRAPHY.bodySmall,
     marginBottom: 24,
     textAlign: 'center',
   },
@@ -137,13 +128,13 @@ const styles = StyleSheet.create({
   },
   description: {
     textAlign: 'center',
-    color: Colors.text.primary,
+    color: COLORS.textSecondary,
     marginBottom: 8,
     lineHeight: 22,
   },
   tagline: {
     textAlign: 'center',
-    color: Colors.text.primary,
+    color: COLORS.textSecondary,
     fontStyle: 'italic',
   },
 });

@@ -1,10 +1,12 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Dimensions, ImageBackground, RefreshControl, ScrollView, StyleSheet, View, TouchableOpacity } from 'react-native';
+import { Dimensions, RefreshControl, ScrollView, StyleSheet, View, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Avatar, Card, Chip, Snackbar, Text } from 'react-native-paper';
 import ShimmerLoader from '../components/ShimmerLoader';
 import SkeletonList from '../components/SkeletonList';
 import { authApi, recipesApi, type Recipe, type RecipeStats } from '../services/api';
+import { COLORS, SHADOWS } from '../styles/modernStyles';
 import { Colors } from '../theme';
 
 const { height } = Dimensions.get('window');
@@ -90,13 +92,8 @@ export default function Dashboard() {
   };
 
   if (loading && !refreshing) {
-    const bgImage = require('../../assets/images/dashboard_bg.jpg');
     return (
-      <ImageBackground
-        source={bgImage}
-        style={styles.background}
-        resizeMode="cover"
-      >
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView style={styles.content} contentContainerStyle={styles.loadingScrollContent}>
           {/* Welcome card skeleton */}
           <View style={styles.welcomeCardSkeleton}>
@@ -126,17 +123,13 @@ export default function Dashboard() {
             <SkeletonList count={3} hasImage horizontal />
           </View>
         </ScrollView>
-      </ImageBackground>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ImageBackground
-      source={require('../../assets/images/dashboard_bg.jpg')}
-      style={styles.background}
-      resizeMode="cover"
-    >
-      <View style={styles.overlay}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.container}>
         <ScrollView
           style={styles.content}
           contentContainerStyle={{ paddingBottom: 100 }}
@@ -260,17 +253,18 @@ export default function Dashboard() {
           {snackbarMessage}
         </Snackbar>
       </View>
-    </ImageBackground>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
-    width: '100%',
-    height,
-  },
-  overlay: {
+  safeArea: {
     flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
   },
   content: {
     flex: 1,
@@ -299,15 +293,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   glassCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: COLORS.cardBackground,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
+    borderColor: COLORS.border,
+    ...(SHADOWS.small as object),
     overflow: 'hidden',
     marginBottom: 16,
   },

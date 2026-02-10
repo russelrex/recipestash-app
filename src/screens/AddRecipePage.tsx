@@ -17,7 +17,7 @@ import {
   TextInput,
   useTheme
 } from 'react-native-paper';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ImageUploadSection from '../components/ImageUploadSection';
 import { authApi, CreateRecipeData, recipesApi, UpdateRecipeData } from '../services/api';
 import type { ImageData } from '../services/imagePicker';
@@ -367,7 +367,6 @@ export default function AddRecipePage() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
@@ -793,7 +792,6 @@ export default function AddRecipePage() {
           {snackbarMessage}
         </Snackbar>
       </KeyboardAvoidingView>
-    </SafeAreaView>
   );
 }
 

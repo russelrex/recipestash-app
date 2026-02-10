@@ -1,7 +1,6 @@
 import { useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { FlatList, ImageBackground, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Snackbar, Text } from 'react-native-paper';
 import UserCard from '../components/UserCard';
 import { Follow, followsApi } from '../services/api';
@@ -50,7 +49,6 @@ export default function FollowersPage() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ImageBackground
         source={require('../../assets/images/dashboard_bg.jpg')}
         style={styles.background}
@@ -87,7 +85,6 @@ export default function FollowersPage() {
           </Snackbar>
         </View>
       </ImageBackground>
-    </SafeAreaView>
   );
 }
 

@@ -1,12 +1,12 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { ImageBackground, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Card,
   Text
 } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import FollowButton from '../components/FollowButton';
 import PostCard from '../components/PostCard';
 import ProfileAvatar from '../components/ProfileAvatar';
@@ -20,6 +20,7 @@ import {
   type Recipe,
   type UserProfile,
 } from '../services/api';
+import { CARD_STYLES, COLORS, SPACING, TYPOGRAPHY } from '../styles/modernStyles';
 import { Colors } from '../theme';
 
 export default function UserProfilePage() {
@@ -94,6 +95,8 @@ export default function UserProfilePage() {
     }
   };
 
+  const bgImage = require('../../assets/images/placeholder_bg.jpg');
+
   const isOwnProfile = currentUserId === userId;
 
   const getRecipeIcon = (category: string) => {
@@ -112,30 +115,19 @@ export default function UserProfilePage() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ImageBackground
-          source={require('../../assets/images/placeholder_bg.jpg')}
-          style={styles.background}
-          resizeMode="cover"
-        >
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.secondary.main} />
-            <Text style={styles.loadingText}>Loading profile...</Text>
-          </View>
-        </ImageBackground>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>Loading profile...</Text>
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ImageBackground
-        source={require('../../assets/images/placeholder_bg.jpg')}
-        style={styles.background}
-      resizeMode="cover"
-    >
+    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
       <View style={styles.overlay}>
         <ScrollView style={styles.container}>
-          <Card style={styles.profileCard} elevation={4}>
+          <Card style={[styles.profileCard, CARD_STYLES.elevated]} elevation={0}>
             <Card.Content style={styles.profileContent}>
               <ProfileAvatar
                 name={userName}
@@ -205,7 +197,7 @@ export default function UserProfilePage() {
           </Card>
 
           {/* Featured Recipes Section */}
-          <Card style={styles.glassCard}>
+          <Card style={[styles.glassCard, CARD_STYLES.standard]} elevation={0}>
             <Card.Content>
               <View style={styles.sectionHeader}>
                 <Text variant="titleLarge" style={styles.sectionTitle}>
@@ -269,18 +261,14 @@ export default function UserProfilePage() {
           </View>
         </ScrollView>
       </View>
-      </ImageBackground>
-    </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.background.default,
-  },
   background: {
     flex: 1,
+    paddingTop: 24,
     width: '100%',
   },
   overlay: {
@@ -293,37 +281,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(250, 250, 248, 0.3)',
+    backgroundColor: COLORS.background,
   },
   loadingText: {
     marginTop: 10,
-    color: Colors.text.primary,
+    color: COLORS.textSecondary,
   },
   glassCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
-    overflow: 'hidden',
+    marginHorizontal: SPACING.md,
+    marginBottom: SPACING.md,
   },
   profileCard: {
-    margin: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
+    margin: SPACING.md,
   },
   profileContent: {
     alignItems: 'center',
@@ -334,9 +303,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   name: {
-    fontWeight: 'bold',
+    ...(TYPOGRAPHY.h2 as object),
     marginBottom: 16,
-    color: Colors.text.primary,
+    color: COLORS.text,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -350,18 +319,18 @@ const styles = StyleSheet.create({
   },
   statDivider: {
     width: 1,
-    backgroundColor: Colors.border.main,
+    backgroundColor: COLORS.border,
   },
   statNumber: {
     fontWeight: 'bold',
-    color: Colors.text.primary,
+    color: COLORS.primary,
   },
   statLabel: {
-    color: Colors.text.secondary,
+    color: COLORS.textSecondary,
     marginTop: 4,
   },
   postsSection: {
-    padding: 16,
+    padding: SPACING.md,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -370,12 +339,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontWeight: 'bold',
+    ...(TYPOGRAPHY.h3 as object),
     marginBottom: 12,
-    color: Colors.text.primary,
+    color: COLORS.text,
   },
   emptyText: {
-    color: Colors.text.secondary,
+    color: COLORS.textSecondary,
     textAlign: 'center',
     paddingVertical: 12,
   },
@@ -393,7 +362,7 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderRadius: 10,
     overflow: 'hidden',
-    backgroundColor: '#eee',
+    backgroundColor: COLORS.cardBackgroundAlt,
   },
   recipeThumb: {
     width: '100%',
@@ -402,7 +371,9 @@ const styles = StyleSheet.create({
   recipeThumbPlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background.default,
+    backgroundColor: COLORS.cardBackgroundAlt,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   recipeThumbIcon: {
     fontSize: 28,
@@ -410,6 +381,6 @@ const styles = StyleSheet.create({
   recipeGridTitle: {
     marginTop: 6,
     textAlign: 'center',
-    color: '#333',
+    color: COLORS.text,
   },
 });

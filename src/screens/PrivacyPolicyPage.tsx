@@ -1,7 +1,8 @@
 import React from 'react';
-import { ImageBackground, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CARD_STYLES, COLORS, SPACING, TYPOGRAPHY } from '../styles/modernStyles';
 import { Colors } from '../theme';
 
 // ─── Policy sections ─────────────────────────────────────────────────────────
@@ -118,29 +119,25 @@ recipestashsup@gmail.com`,
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function PrivacyPolicyPage() {
-  const bgImage = require('../../assets/images/placeholder_bg.jpg');
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.root}>
-        <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
-          <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-            <View style={styles.glassContainer}>
-              <Text style={styles.effectiveDate}>Effective Date: February 1, 2025</Text>
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          <View style={styles.card}>
+            <Text style={styles.effectiveDate}>Effective Date: February 1, 2025</Text>
 
-              {SECTIONS.map((section, idx) => (
-                <View key={idx} style={styles.section}>
-                  <Text style={styles.heading}>{section.heading}</Text>
-                  {section.body.split('\n\n').map((paragraph, pIdx) => (
-                    <Text key={pIdx} style={styles.body}>{paragraph}</Text>
-                  ))}
-                </View>
-              ))}
+            {SECTIONS.map((section, idx) => (
+              <View key={idx} style={styles.section}>
+                <Text style={styles.heading}>{section.heading}</Text>
+                {section.body.split('\n\n').map((paragraph, pIdx) => (
+                  <Text key={pIdx} style={styles.body}>{paragraph}</Text>
+                ))}
+              </View>
+            ))}
 
-              <View style={styles.footer} />
-            </View>
-          </ScrollView>
-        </ImageBackground>
+            <View style={styles.footer} />
+          </View>
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
@@ -151,38 +148,26 @@ export default function PrivacyPolicyPage() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background.default,
+    backgroundColor: COLORS.background,
   },
   root: {
     flex: 1,
-  },
-  background: {
-    flex: 1,
-    width: '100%',
+    backgroundColor: COLORS.background,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 32,
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.xl,
   },
-  glassContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
+  card: {
+    ...(CARD_STYLES.standard as object),
   },
   effectiveDate: {
     fontSize: 12,
-    color: '#555',
+    color: COLORS.textSecondary,
     fontStyle: 'italic',
     marginBottom: 20,
     textAlign: 'center',
@@ -191,14 +176,13 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   heading: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#B15912',
+    ...(TYPOGRAPHY.h4 as object),
+    color: COLORS.primary,
     marginBottom: 8,
   },
   body: {
     fontSize: 14,
-    color: '#333',
+    color: COLORS.text,
     lineHeight: 21,
     marginBottom: 8,
   },

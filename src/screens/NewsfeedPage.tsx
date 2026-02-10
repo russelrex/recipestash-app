@@ -1,12 +1,12 @@
-import React, { useState, useCallback } from 'react';
-import { ImageBackground, View, FlatList, StyleSheet, RefreshControl } from 'react-native';
-import { ActivityIndicator, Text, Snackbar } from 'react-native-paper';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
+import { FlatList, ImageBackground, RefreshControl, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Snackbar, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import PostCard from '../components/PostCard';
+import SkeletonList from '../components/SkeletonList';
 import { postsApi, type Post } from '../services/api';
 import { Colors } from '../theme';
-import SkeletonList from '../components/SkeletonList';
 
 export default function NewsfeedPage() {
   const navigation = useNavigation();
@@ -138,7 +138,7 @@ export default function NewsfeedPage() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    // <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
         <View style={styles.container}>
         <FlatList
@@ -173,7 +173,7 @@ export default function NewsfeedPage() {
           </Snackbar>
         </View>
       </ImageBackground>
-    </SafeAreaView>
+    // </SafeAreaView>
   );
 }
 
@@ -187,6 +187,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   container: {
+    paddingTop: 24,
     flex: 1,
   },
   loadingContainer: {

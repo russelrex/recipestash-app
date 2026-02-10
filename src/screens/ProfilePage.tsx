@@ -30,6 +30,7 @@ import {
   type UserProfile,
 } from '../services/api';
 import { isOfflineMode } from '../services/cache/offlineUtils';
+import { CARD_STYLES, COLORS, SPACING, TYPOGRAPHY } from '../styles/modernStyles';
 import { Colors } from '../theme';
 import EditProfileModal from './EditProfileModal';
 
@@ -132,15 +133,16 @@ export default function ProfilePage() {
   };
 
   const bgImage = require('../../assets/images/placeholder_bg.jpg');
-
+  
   if (loading && !refreshing) {
     return (
-      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.loadingScrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.glassContainer}>
+          <View style={styles.loadingCard}>
             <SkeletonProfileHeader />
 
             <View style={styles.sectionSkeleton}>
@@ -164,128 +166,120 @@ export default function ProfilePage() {
             </View>
           </View>
         </ScrollView>
-      </ImageBackground>
+      </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
-        <View style={styles.container}>
+    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+      <View style={styles.container}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.glassContainer}>
-            <Card style={styles.glassCard}>
-          <Card.Content style={styles.headerContent}>
-            <View style={styles.headerTop}>
-              <ProfileAvatar
-                name={profile?.name || userName}
-                avatarUrl={profile?.avatarUrl}
-                size={80}
-                style={styles.avatar}
-              />
-              {/* <IconButton
-                icon="cog"
-                size={24}
-                onPress={() => navigation.navigate('Settings' as never)}
-                style={styles.settingsButton}
-              /> */}
-            </View>
+          {/* Profile Header Card */}
+          <View style={styles.profileCard}>
+            <View style={styles.headerContent}>
+                <ProfileAvatar
+                  name={profile?.name || userName}
+                  avatarUrl={profile?.avatarUrl}
+                  size={100}
+                  style={styles.avatar}
+                />
 
-            <Text variant="headlineSmall" style={styles.name}>
-              {userName}
-            </Text>
-
-            {profile?.bio
-              ? <Text variant="bodyMedium" style={styles.bio}>{profile.bio}</Text>
-              : <Text variant="bodyMedium" style={styles.bioPlaceholder}>No bio yet</Text>
-            }
-
-            {!offline && (
-              <Button
-                mode="outlined"
-                onPress={() => setEditModalVisible(true)}
-                style={styles.editButton}
-                icon="pencil"
-                textColor={Colors.primary.main}
-              >
-                Edit Profile
-              </Button>
-            )}
-            {offline && (
-              <Text variant="bodySmall" style={styles.offlineBadge}>
-                📱 Offline Mode - Profile editing disabled
+              <Text variant="headlineSmall" style={styles.name}>
+                {userName}
               </Text>
-            )}
 
-            <View style={styles.statsContainer}>
-              <View style={styles.statItem}>
-                <Text variant="titleLarge" style={styles.statNumber}>
-                  {recipes.length}
-                </Text>
-                <Text variant="bodyMedium" style={styles.statLabel}>
-                  Recipes
-                </Text>
-              </View>
+              {profile?.bio
+                ? <Text variant="bodyMedium" style={styles.bio}>{profile.bio}</Text>
+                : <Text variant="bodyMedium" style={styles.bioPlaceholder}>No bio yet</Text>
+              }
 
-              <View style={styles.statDivider} />
-
-              <TouchableOpacity
-                style={styles.statItem}
-                onPress={() =>
-                  navigation.navigate('Followers' as never, { userId } as never)
-                }
-              >
-                <Text variant="titleLarge" style={styles.statNumber}>
-                  {followStats?.followersCount || 0}
+              {!offline && (
+                <Button
+                  mode="outlined"
+                  onPress={() => setEditModalVisible(true)}
+                  style={styles.editButton}
+                  icon="pencil"
+                  textColor={COLORS.primary}
+                >
+                  Edit Profile
+                </Button>
+              )}
+              {offline && (
+                <Text variant="bodySmall" style={styles.offlineBadge}>
+                  📱 Offline Mode - Profile editing disabled
                 </Text>
-                <Text variant="bodyMedium" style={styles.statLabel}>
-                  Followers
-                </Text>
-              </TouchableOpacity>
+              )}
 
-              <View style={styles.statDivider} />
-
-              <TouchableOpacity
-                style={styles.statItem}
-                onPress={() =>
-                  navigation.navigate('Following' as never, { userId } as never)
-                }
-              >
-                <Text variant="titleLarge" style={styles.statNumber}>
-                  {followStats?.followingCount || 0}
-                </Text>
-                <Text variant="bodyMedium" style={styles.statLabel}>
-                  Following
-                </Text>
-              </TouchableOpacity>
-
-              <View style={styles.statDivider} />
-
-              <View style={styles.statItem}>
-                <Text variant="titleLarge" style={styles.statNumber}>
-                  {posts.length}
-                </Text>
-                <Text variant="bodyMedium" style={styles.statLabel}>
-                  Posts
-                </Text>
-              </View>
-            </View>
-          </Card.Content>
-        </Card>
-
-            <Card style={styles.glassCard}>
-              <Card.Content>
-                <View style={styles.sectionHeader}>
-                  <Text variant="titleLarge" style={styles.sectionTitle}>
-                    Featured Recipes
+              <View style={styles.statsContainer}>
+                <View style={styles.statItem}>
+                  <Text variant="titleLarge" style={styles.statNumber}>
+                    {recipes.length}
+                  </Text>
+                  <Text variant="bodyMedium" style={styles.statLabel}>
+                    Recipes
                   </Text>
                 </View>
+
+                <View style={styles.statDivider} />
+
+                <TouchableOpacity
+                  style={styles.statItem}
+                  onPress={() =>
+                    navigation.navigate('Followers' as never, { userId } as never)
+                  }
+                >
+                  <Text variant="titleLarge" style={styles.statNumber}>
+                    {followStats?.followersCount || 0}
+                  </Text>
+                  <Text variant="bodyMedium" style={styles.statLabel}>
+                    Followers
+                  </Text>
+                </TouchableOpacity>
+
+                <View style={styles.statDivider} />
+
+                <TouchableOpacity
+                  style={styles.statItem}
+                  onPress={() =>
+                    navigation.navigate('Following' as never, { userId } as never)
+                  }
+                >
+                  <Text variant="titleLarge" style={styles.statNumber}>
+                    {followStats?.followingCount || 0}
+                  </Text>
+                  <Text variant="bodyMedium" style={styles.statLabel}>
+                    Following
+                  </Text>
+                </TouchableOpacity>
+
+                <View style={styles.statDivider} />
+
+                <View style={styles.statItem}>
+                  <Text variant="titleLarge" style={styles.statNumber}>
+                    {posts.length}
+                  </Text>
+                  <Text variant="bodyMedium" style={styles.statLabel}>
+                    Posts
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Featured Recipes Card */}
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <Text variant="titleLarge" style={styles.sectionTitle}>
+                Featured Recipes
+              </Text>
+            </View>
             {(() => {
               const featuredRecipes = recipes.filter((r: Recipe) => r.featured === true).slice(0, 3);
               return featuredRecipes.length === 0
@@ -319,12 +313,11 @@ export default function ProfilePage() {
                   </View>
                 );
             })()}
-          </Card.Content>
-        </Card>
+          </View>
 
-            <Card style={styles.glassCard}>
-              <Card.Content>
-                <Text variant="titleLarge" style={styles.sectionTitle}>Recent Posts</Text>
+          {/* Recent Posts Card */}
+          <View style={styles.sectionCard}>
+            <Text variant="titleLarge" style={styles.sectionTitle}>Recent Posts</Text>
             {posts.length === 0
               ? <Text variant="bodyMedium" style={styles.emptyText}>No posts yet</Text>
               : posts.slice(0, 3).map((post: Post) => (
@@ -338,8 +331,6 @@ export default function ProfilePage() {
                   </View>
                 ))
             }
-              </Card.Content>
-            </Card>
           </View>
         </ScrollView>
 
@@ -358,60 +349,44 @@ export default function ProfilePage() {
           >
             {snackbarMessage}
           </Snackbar>
-        </View>
-      </ImageBackground>
-    </SafeAreaView>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background.default,
+    backgroundColor: COLORS.background,
   },
   background: {
     flex: 1,
     width: '100%',
   },
   container: {
+    paddingTop: 24,
     flex: 1,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    paddingBottom: 100,
   },
   loadingScrollContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    paddingBottom: 32,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    paddingBottom: SPACING.xl,
   },
-  glassContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
+  loadingCard: {
+    ...(CARD_STYLES.elevated as object),
   },
-  glassCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
-    overflow: 'hidden',
+  profileCard: {
+    ...(CARD_STYLES.elevated as object),
+    marginBottom: SPACING.md,
+    alignItems: 'center',
   },
   headerCard: {
     margin: 16,
@@ -424,37 +399,39 @@ const styles = StyleSheet.create({
   headerTop: {
     width: '100%',
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'flex-start',
     marginBottom: 8,
   },
   avatar: {
     borderWidth: 2,
-    borderColor: Colors.border.light,
+    borderColor: COLORS.border,
+    alignItems: 'center',
   },
   settingsButton: {
     margin: 0,
   },
   name: {
-    fontWeight: 'bold',
+    ...(TYPOGRAPHY.h2 as object),
     marginTop: 8,
   },
   bio: {
     textAlign: 'center',
-    color: Colors.text.secondary,
+    color: COLORS.textSecondary,
     marginBottom: 12,
     paddingHorizontal: 16,
   },
   bioPlaceholder: {
     textAlign: 'center',
-    color: Colors.text.secondary,
+    color: COLORS.textSecondary,
     fontStyle: 'italic',
     marginBottom: 12,
   },
   editButton: {
     marginBottom: 16,
-    borderColor: Colors.primary.main,
+    borderColor: COLORS.primary,
     borderRadius: 20,
+    backgroundColor: COLORS.primaryAlpha10,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -462,7 +439,7 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: Colors.border.light,
+    borderTopColor: COLORS.border,
   },
   statItem: {
     alignItems: 'center',
@@ -470,16 +447,20 @@ const styles = StyleSheet.create({
   },
   statDivider: {
     width: 1,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: COLORS.border,
   },
   statNumber: {
     fontWeight: 'bold',
-    color: Colors.primary.main,
+    color: COLORS.primary,
   },
   statLabel: {
-    color: Colors.text.secondary,
+    color: COLORS.textSecondary,
     marginTop: 4,
     fontSize: 12,
+  },
+  sectionCard: {
+    ...(CARD_STYLES.standard as object),
+    marginBottom: SPACING.md,
   },
   featuredCard: {
     marginHorizontal: 16,
@@ -534,19 +515,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontWeight: 'bold',
+    ...(TYPOGRAPHY.h3 as object),
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: 32,
   },
   emptyText: {
-    color: Colors.text.secondary,
+    color: COLORS.textSecondary,
     textAlign: 'center',
     paddingVertical: 12,
   },
   seeAll: {
-    color: Colors.primary.main,
+    color: COLORS.primary,
     fontWeight: '600',
     fontSize: 14,
   },
@@ -564,7 +545,7 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderRadius: 10,
     overflow: 'hidden',
-    backgroundColor: '#eee',
+    backgroundColor: COLORS.cardBackgroundAlt,
   },
   recipeThumb: {
     width: '100%',
@@ -573,7 +554,9 @@ const styles = StyleSheet.create({
   recipeThumbPlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background.default,
+    backgroundColor: COLORS.cardBackgroundAlt,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   recipeThumbIcon: {
     fontSize: 28,
@@ -581,27 +564,30 @@ const styles = StyleSheet.create({
   recipeGridTitle: {
     marginTop: 6,
     textAlign: 'center',
-    color: '#333',
+    color: COLORS.text,
   },
   viewAllButton: {
     paddingVertical: 12,
     alignItems: 'center',
   },
   viewAllText: {
-    color: Colors.primary.main,
+    color: COLORS.primary,
     fontWeight: 'bold',
   },
   chip: {
-    backgroundColor: Colors.background.default,
+    backgroundColor: COLORS.cardBackgroundAlt,
   },
   snackbar: {
-    backgroundColor: Colors.primary.main,
+    backgroundColor: COLORS.primary,
   },
   offlineBadge: {
     color: Colors.status.warning || '#FF9800',
     fontStyle: 'italic',
     textAlign: 'center',
     marginBottom: 12,
+  },
+  sectionSkeleton: {
+    marginTop: SPACING.lg,
   },
 });
 

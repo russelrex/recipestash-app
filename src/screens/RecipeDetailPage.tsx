@@ -829,7 +829,7 @@ const styles = StyleSheet.create({
   galleryThumb: {
     width: 60, height: 60, borderRadius: 8,
     overflow: 'hidden',
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)',
+    borderWidth: 2, borderColor: '#E5E7EB',
   },
   galleryThumbActive: {
     borderColor: Colors.primary.main,

@@ -3,13 +3,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Image,
   ImageBackground,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import {
   ActivityIndicator,
@@ -23,9 +22,10 @@ import {
   Text,
   TextInput
 } from 'react-native-paper';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Post, postsApi, Recipe, recipesApi } from '../services/api';
+import { CARD_STYLES, COLORS, SHADOWS } from '../styles/modernStyles';
 import { Colors } from '../theme';
 
 const MAX_POST_LENGTH = 500;
@@ -159,6 +159,8 @@ export default function CreatePostPage() {
     cursorPosition.current = event.nativeEvent.selection?.start || content.length;
   };
 
+  const bgImage = require('../../assets/images/placeholder_bg.jpg');
+
   const handleSubmit = async () => {
     if (!content.trim()) {
       setSnackbarType('error');
@@ -221,15 +223,8 @@ export default function CreatePostPage() {
     return icons[category.toLowerCase()] || 'food';
   };
 
-  const bgImage = require('../../assets/images/placeholder_bg.jpg');
-
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.container}
-        >
+    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
         <ScrollView 
           style={styles.scrollView}
           contentContainerStyle={[
@@ -485,23 +480,15 @@ export default function CreatePostPage() {
           >
             {snackbarMessage}
           </Snackbar>
-        </KeyboardAvoidingView>
-      </ImageBackground>
-    </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.background.default,
-  },
   background: {
     flex: 1,
+    paddingTop: 24,
     width: '100%',
-  },
-  container: {
-    flex: 1,
   },
   scrollView: {
     flex: 1,
@@ -511,15 +498,8 @@ const styles = StyleSheet.create({
   },
   // SINGLE CARD - NO DOUBLE CONTAINER
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
+    ...(CARD_STYLES.standard as object),
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
   },
   sectionTitle: {
     fontWeight: 'bold',
@@ -565,7 +545,9 @@ const styles = StyleSheet.create({
   selectedRecipeCard: {
     marginBottom: 16,
     elevation: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: COLORS.cardBackgroundAlt,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   selectedRecipeContent: {
     flexDirection: 'row',
@@ -605,7 +587,9 @@ const styles = StyleSheet.create({
   selectedRecipeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.background.default,
+    backgroundColor: COLORS.cardBackgroundAlt,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     borderRadius: 12,
     padding: 12,
     marginTop: 8,
@@ -675,7 +659,7 @@ const styles = StyleSheet.create({
   },
   drawerContainer: {
     height: '75%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.cardBackground,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: Platform.OS === 'ios' ? 20 : 0,
@@ -711,7 +695,7 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     elevation: 0,
-    backgroundColor: Colors.background.default,
+    backgroundColor: COLORS.background,
   },
   searchInput: {
     fontSize: 16,
@@ -746,15 +730,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   recipeCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: COLORS.cardBackground,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    borderColor: COLORS.border,
+    ...(SHADOWS.small as object),
   },
   recipeCardContent: {
     flexDirection: 'row',
@@ -794,7 +774,7 @@ const styles = StyleSheet.create({
   },
   recipeChip: {
     height: 28,
-    backgroundColor: Colors.background.default,
+    backgroundColor: COLORS.cardBackgroundAlt,
   },
   recipeChipText: {
     fontSize: 11,

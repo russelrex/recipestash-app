@@ -12,6 +12,7 @@ import {
 } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { authApi, postsApi, recipesApi, type Comment, type Post } from '../services/api';
+import { CARD_STYLES, COLORS } from '../styles/modernStyles';
 import { Colors } from '../theme';
 import CommentItem from './CommentItem';
 import ProfileAvatar from './ProfileAvatar';
@@ -37,6 +38,7 @@ export default function PostCard({
   const [menuVisible, setMenuVisible] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showCommentInput, setShowCommentInput] = useState(false);
+  const [commentsVisible, setCommentsVisible] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -155,7 +157,9 @@ export default function PostCard({
     if (!commentsLoaded) {
       await loadComments();
     }
-    setShowCommentInput(!showCommentInput);
+    // Toggle both the comments section and the input field
+    setCommentsVisible(prev => !prev);
+    setShowCommentInput(prev => !prev);
   };
 
   const handleAddComment = async () => {
@@ -428,7 +432,7 @@ export default function PostCard({
 
         <Divider style={styles.divider} />
 
-        {showComments && commentsLoaded && (
+        {showComments && commentsLoaded && commentsVisible && (
           <View style={styles.commentsSection}>
             {visibleComments.map(comment => (
               <CommentItem
@@ -462,7 +466,7 @@ export default function PostCard({
           </Text>
         )}
 
-        {showCommentInput && (
+        {commentsVisible && showCommentInput && (
           <View style={styles.commentInputContainer}>
             <Avatar.Text
               size={32}
@@ -500,18 +504,9 @@ export default function PostCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 12,
-    marginHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
-    overflow: 'hidden',
+    ...(CARD_STYLES.standard as object),
+    padding: 0,
+    marginBottom: 16,
   },
   header: {
     flexDirection: 'row',
@@ -552,10 +547,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 12,
     padding: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    backgroundColor: COLORS.cardBackgroundAlt,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border.light,
+    borderColor: COLORS.border,
   },
   recipeHeader: {
     flexDirection: 'row',

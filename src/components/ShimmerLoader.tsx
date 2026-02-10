@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Dimensions, StyleSheet, View, ViewStyle } from 'react-native';
 
 interface ShimmerLoaderProps {
   width?: number | string;
@@ -8,6 +8,8 @@ interface ShimmerLoaderProps {
   borderRadius?: number;
   style?: ViewStyle | ViewStyle[];
 }
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
 
 export default function ShimmerLoader({
   width = '100%',
@@ -18,70 +20,61 @@ export default function ShimmerLoader({
   const animatedValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    let isMounted = true;
-    const delay = Math.random() * 200;
+    const animation = Animated.loop(
+      Animated.timing(animatedValue, {
+        toValue: 1,
+        duration: 1500,
+        useNativeDriver: true,
+      }),
+      { iterations: -1 }
+    );
 
-    const startAnimation = () => {
-      if (!isMounted) return;
-
-      const animation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(animatedValue, {
-            toValue: 1,
-            duration: 1200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(animatedValue, {
-            toValue: 0,
-            duration: 1200,
-            useNativeDriver: true,
-          }),
-        ]),
-      );
-
-      animation.start();
-
-      return animation;
-    };
-
-    let animation: Animated.CompositeAnimation | undefined;
-    const timeoutId = setTimeout(() => {
-      animation = startAnimation();
-    }, delay);
+    animation.start();
 
     return () => {
-      isMounted = false;
-      clearTimeout(timeoutId);
-      if (animation) {
-        animation.stop();
-      }
+      animation.stop();
     };
   }, [animatedValue]);
 
-  const opacity = animatedValue.interpolate({
+  const translateX = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.3, 0.7],
+    outputRange: [-SCREEN_WIDTH, SCREEN_WIDTH],
   });
 
+  const containerStyle: ViewStyle = {
+    width: width as any,
+    height: height as any,
+    borderRadius,
+  };
+
   return (
-    <Animated.View
+    <View
       style={[
         styles.container,
-        { width, height, borderRadius },
+        containerStyle,
         style,
       ]}
     >
-      <LinearGradient
-        colors={[
-          'rgba(255, 255, 255, 0.08)',
-          'rgba(255, 255, 255, 0.35)',
-          'rgba(255, 255, 255, 0.08)',
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            transform: [{ translateX }],
+          },
         ]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={[StyleSheet.absoluteFill, { opacity }]}
-      />
-    </Animated.View>
+      >
+        <LinearGradient
+          colors={[
+            'rgba(255, 255, 255, 0)',
+            'rgba(255, 255, 255, 0.3)',
+            'rgba(255, 255, 255, 0)',
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
+    </View>
   );
 }
 

@@ -7,6 +7,7 @@ import ShimmerLoader from '../components/ShimmerLoader';
 import SkeletonList from '../components/SkeletonList';
 import { Recipe, recipesApi } from '../services/api';
 import { isOfflineMode } from '../services/cache/offlineUtils';
+import { COLORS, SHADOWS } from '../styles/modernStyles';
 import { Colors } from '../theme';
 
 type FilterType = 'all' | 'favorites' | 'recent' | 'az';
@@ -207,52 +208,43 @@ export default function RecipesPage() {
   const formatTime = (prepTime: number, cookTime: number) => {
     return `${prepTime + cookTime} mins`;
   };
+  
+  const bgImage = require('../../assets/images/placeholder_bg.jpg');
 
   if (loading && !refreshing) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ImageBackground
-          source={require('../../assets/images/placeholder_bg.jpg')}
-          style={styles.background}
-          resizeMode="cover"
-        >
-          <View style={styles.overlay}>
-            {/* Search bar skeleton */}
-            <View style={styles.searchbarSkeletonContainer}>
-              <ShimmerLoader width="100%" height={40} borderRadius={12} />
+        <View style={styles.overlay}>
+          {/* Search bar skeleton */}
+          <View style={styles.searchbarSkeletonContainer}>
+            <ShimmerLoader width="100%" height={40} borderRadius={12} />
+          </View>
+
+          <ScrollView contentContainerStyle={styles.loadingScrollContent}>
+            {/* Filter chips skeleton */}
+            <View style={styles.filterSkeletonRow}>
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <ShimmerLoader
+                  key={idx}
+                  width={80 + idx * 10}
+                  height={32}
+                  borderRadius={16}
+                  style={{ marginRight: 8 }}
+                />
+              ))}
             </View>
 
-            <ScrollView contentContainerStyle={styles.loadingScrollContent}>
-              {/* Filter chips skeleton */}
-              <View style={styles.filterSkeletonRow}>
-                {Array.from({ length: 4 }).map((_, idx) => (
-                  <ShimmerLoader
-                    key={idx}
-                    width={80 + idx * 10}
-                    height={32}
-                    borderRadius={16}
-                    style={{ marginRight: 8 }}
-                  />
-                ))}
-              </View>
-
-              {/* List skeleton */}
-              <SkeletonList count={8} hasImage />
-            </ScrollView>
-          </View>
-        </ImageBackground>
+            {/* List skeleton */}
+            <SkeletonList count={8} hasImage />
+          </ScrollView>
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ImageBackground
-        source={require('../../assets/images/placeholder_bg.jpg')}
-        style={styles.background}
-        resizeMode="cover"
-      >
-        <View style={styles.overlay}>
+      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+      <View style={styles.container}>
         <Searchbar
           placeholder="Search recipes..."
           onChangeText={handleSearch}
@@ -453,31 +445,31 @@ export default function RecipesPage() {
           >
             {snackbarMessage}
           </Snackbar>
-        </View>
+      </View>
       </ImageBackground>
-    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.background.default,
-  },
   background: {
     flex: 1,
     width: '100%',
   },
-  overlay: {
+  container: {
+    paddingTop: 24,
     flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
   },
   searchbar: {
     margin: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: COLORS.cardBackground,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    elevation: 2,
+    borderColor: COLORS.border,
+    ...(SHADOWS.small as object),
   },
   content: {
     flex: 1,
@@ -521,16 +513,12 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   glassCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: COLORS.cardBackground,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: COLORS.border,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
+    ...(SHADOWS.small as object),
     overflow: 'hidden',
   },
   recipeCard: {

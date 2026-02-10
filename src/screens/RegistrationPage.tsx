@@ -14,6 +14,7 @@ import { Snackbar, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { authApi } from '../services/api';
+import { BUTTON_STYLES, CARD_STYLES, COLORS, TYPOGRAPHY } from '../styles/modernStyles';
 import { Colors } from '../theme';
 
 export default function RegistrationPage() {
@@ -141,7 +142,7 @@ export default function RegistrationPage() {
           </View>
 
           {/* Glassmorphism Card */}
-          <View style={styles.card}>
+          <View style={[styles.card, CARD_STYLES.elevated]}>
             {/* Name Input */}
             <View style={styles.inputContainer}>
               <View
@@ -154,7 +155,7 @@ export default function RegistrationPage() {
                 <TextInput
                   style={styles.input}
                   placeholder="Name *"
-                  placeholderTextColor="rgba(12, 22, 7, 0.5)"
+                  placeholderTextColor={COLORS.textLight}
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
@@ -176,7 +177,7 @@ export default function RegistrationPage() {
                 <TextInput
                   style={styles.input}
                   placeholder="Email Address *"
-                  placeholderTextColor="rgba(12, 22, 7, 0.5)"
+                  placeholderTextColor={COLORS.textLight}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -199,7 +200,7 @@ export default function RegistrationPage() {
                 <TextInput
                   style={styles.input}
                   placeholder="Password *"
-                  placeholderTextColor="rgba(12, 22, 7, 0.5)"
+                  placeholderTextColor={COLORS.textLight}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -250,7 +251,7 @@ export default function RegistrationPage() {
                 <TextInput
                   style={styles.input}
                   placeholder="Confirm Password *"
-                  placeholderTextColor="rgba(12, 22, 7, 0.5)"
+                  placeholderTextColor={COLORS.textLight}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showPassword}
@@ -305,13 +306,14 @@ export default function RegistrationPage() {
             <TouchableOpacity
               style={[
                 styles.button,
+                BUTTON_STYLES.primary,
                 (!tosAccepted || loading) && styles.buttonDisabled,
               ]}
               onPress={handleRegister}
               disabled={!tosAccepted || loading}
               activeOpacity={0.85}
             >
-              <Text style={styles.buttonText}>
+              <Text style={BUTTON_STYLES.primaryText}>
                 {loading ? 'Creating Account...' : 'Create Account'}
               </Text>
             </TouchableOpacity>
@@ -351,11 +353,11 @@ export default function RegistrationPage() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#B8D156',
+    backgroundColor: COLORS.background,
   },
   container: {
     flex: 1,
-    backgroundColor: '#B8D156',
+    backgroundColor: COLORS.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -368,32 +370,18 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#0C1607',
+    ...TYPOGRAPHY.h1,
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#0C1607',
-    opacity: 0.8,
+    ...TYPOGRAPHY.bodySmall,
   },
   card: {
     width: '100%',
     maxWidth: 500,
     alignSelf: 'center',
-    borderRadius: 24,
+    borderRadius: 16,
     padding: 24,
-
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 8,
   },
   inputContainer: {
     width: '100%',
@@ -403,9 +391,9 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: COLORS.cardBackground,
     borderWidth: 1.5,
-    borderColor: 'rgba(12, 22, 7, 0.2)',
+    borderColor: COLORS.borderDark,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 4,
@@ -426,7 +414,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#0C1607',
+    color: COLORS.text,
     paddingVertical: 12,
     paddingHorizontal: 0,
   },
@@ -438,7 +426,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginLeft: 4,
     fontSize: 12,
-    color: 'rgba(12, 22, 7, 0.6)',
+    color: COLORS.textSecondary,
   },
   errorText: {
     marginTop: 4,
@@ -470,37 +458,20 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     flex: 1,
     fontSize: 14,
-    color: '#0C1607',
+    color: COLORS.text,
     lineHeight: 20,
   },
   link: {
-    color: '#B15912',
+    color: COLORS.primary,
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
   button: {
     width: '100%',
-    backgroundColor: '#B15912',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginTop: 8,
-    shadowColor: '#B15912',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   buttonDisabled: {
-    backgroundColor: 'rgba(177, 89, 18, 0.4)',
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    opacity: 0.5,
   },
   snackbar: {
     backgroundColor: Colors.status.info,
@@ -518,11 +489,11 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: '#0C1607',
+    color: COLORS.textSecondary,
     textAlign: 'center',
   },
   signInLink: {
-    color: '#B15912',
+    color: COLORS.primary,
     fontWeight: '600',
   },
 });

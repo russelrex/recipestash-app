@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Appbar, Text } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { authApi } from '../services/api';
 import { Colors } from '../theme';
@@ -43,6 +44,7 @@ function CustomAppBar({ navigation, route, options, back }: any) {
 
 // Custom Tab Bar Component
 function CustomTabBar({ state, descriptors, navigation }: any) {
+  const insets = useSafeAreaInsets();
   const [showModal, setShowModal] = useState(false);
 
   const handleCenterPress = () => {
@@ -51,7 +53,13 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
   return (
     <>
-      <View style={styles.tabBarContainer}>
+      <View
+        style={[
+          styles.tabBarWrapper,
+          { paddingBottom: Math.max(insets.bottom, 10) },
+        ]}
+      >
+        <View style={styles.tabBarContainer}>
         {state.routes.map((route: any, index: number) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
@@ -106,25 +114,26 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           );
         })}
 
-        {/* Center FAB */}
-        <View style={styles.fabContainer}>
-          <TouchableOpacity
-            style={styles.fab}
-            onPress={handleCenterPress}
-            activeOpacity={0.8}
-          >
-            <Icon
-              name={showModal ? 'close' : 'plus'}
-              size={28}
-              color="#fff"
-            />
-          </TouchableOpacity>
+          {/* Center FAB */}
+          <View style={styles.fabContainer}>
+            <TouchableOpacity
+              style={styles.fab}
+              onPress={handleCenterPress}
+              activeOpacity={0.8}
+            >
+              <Icon
+                name={showModal ? 'close' : 'plus'}
+                size={28}
+                color="#fff"
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
       {/* Action Modal */}
       {showModal && (
-        <View style={styles.actionModal}>
+        <View style={[styles.actionModal, { bottom: 80 + insets.bottom }]}>
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => {
@@ -170,7 +179,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
       {/* Backdrop */}
       {showModal && (
         <TouchableOpacity
-          style={styles.backdrop}
+          style={[styles.backdrop, { bottom: 60 + insets.bottom }]}
           onPress={() => setShowModal(false)}
           activeOpacity={1}
         />
@@ -306,10 +315,7 @@ export default function AppNavigator() {
           headerShown: true,
           header: (props) => <CustomAppBar {...props} />,
           headerStyle: {
-            backgroundColor: Colors.background.default, // Match body color
-            elevation: 0, // Remove shadow on Android
-            shadowOpacity: 0, // Remove shadow on iOS
-            height: 56, // Reduced height
+            backgroundColor: Colors.background.default,
           },
           headerTitleStyle: {
             fontSize: 18,
@@ -404,15 +410,23 @@ export default function AppNavigator() {
 }
 
 const styles = StyleSheet.create({
+  tabBarWrapper: {
+    backgroundColor: '#C8DC7A',
+  },
   tabBarContainer: {
     flexDirection: 'row',
     height: 60,
     backgroundColor: Colors.background.paper,
     borderTopWidth: 1,
     borderTopColor: Colors.border.main,
-    paddingBottom: 5,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
+    marginHorizontal: 12,
+    paddingHorizontal: 4,
+    paddingBottom: 6,
+    paddingTop: 4,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },

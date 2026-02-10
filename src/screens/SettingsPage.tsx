@@ -1,11 +1,11 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { Alert, ImageBackground, Linking, Platform, Modal as RNModal, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Button, Divider, List, Snackbar, Switch, Text } from 'react-native-paper';
 import { authApi, followsApi, recipesApi } from '../services/api';
 import cacheService from '../services/cache/cacheService';
 import { isOfflineMode } from '../services/cache/offlineUtils';
+import { CARD_STYLES, COLORS } from '../styles/modernStyles';
 import { Colors } from '../theme';
 
 const DIETARY_OPTIONS = [
@@ -329,6 +329,7 @@ export default function SettingsPage() {
       console.error('Error during logout:', error);
     }
   };
+  const bgImage = require('../../assets/images/placeholder_bg.jpg');
 
   // ─── Render Modals ───────────────────────────────────────────────
 
@@ -563,12 +564,9 @@ export default function SettingsPage() {
     }
   };
 
-  const bgImage = require('../../assets/images/placeholder_bg.jpg');
-
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
-        <View style={styles.container}>
+    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+      <View style={styles.container}>
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           <View style={styles.glassContainer}>
             {offline && (
@@ -802,22 +800,18 @@ export default function SettingsPage() {
         style={styles.snackbar}
       >
         {snackbarMessage}
-        </Snackbar>
-      </ImageBackground>
-    </SafeAreaView>
+      </Snackbar>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.background.default,
-  },
   background: {
     flex: 1,
     width: '100%',
   },
   container: {
+    paddingTop: 24,
     flex: 1,
   },
   scrollView: {
@@ -828,16 +822,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   glassContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    ...(CARD_STYLES.standard as object),
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
   },
   offlineBanner: {
     backgroundColor: Colors.status.warning || '#FFF3CD',
@@ -967,7 +953,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: COLORS.primaryAlpha20,
     justifyContent: 'center',
     alignItems: 'center',
   },
