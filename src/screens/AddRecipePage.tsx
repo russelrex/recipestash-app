@@ -21,6 +21,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import ImageUploadSection from '../components/ImageUploadSection';
 import { authApi, CreateRecipeData, recipesApi, UpdateRecipeData } from '../services/api';
 import type { ImageData } from '../services/imagePicker';
+import { imageUploadService } from '../services/imageUploadService';
 import { Colors } from '../theme';
 
 const CATEGORIES = [
@@ -212,19 +213,36 @@ export default function AddRecipePage() {
       const validIngredients = ingredients.filter(i => i.trim());
       const validInstructions = instructions.filter(i => i.trim());
 
-      // Prepare featured image (base64 or existing URL)
-      // Only include if it has a value (not empty string)
+      // Get auth token for image uploads
+      const authToken = await authApi.getAuthToken();
+      if (!authToken || authToken === 'null' || authToken === 'offline') {
+        throw new Error('Authentication required. Please log in again.');
+      }
+
+      // Upload new featured image if selected
       let featuredImageData: string | undefined = undefined;
       if (featuredImage) {
-        featuredImageData = featuredImage.base64;
+        console.log('Uploading featured image...');
+        const uploadResult = await imageUploadService.uploadRecipeImage(featuredImage.uri, authToken);
+        featuredImageData = uploadResult.url;
+        console.log('Featured image uploaded:', featuredImageData);
       } else if (existingFeaturedUrl && existingFeaturedUrl.trim()) {
         featuredImageData = existingFeaturedUrl;
       }
 
-      // Prepare additional images (base64 or existing URLs)
+      // Upload new additional images
+      const uploadedAdditionalImages: string[] = [];
+      for (const img of additionalImages) {
+        console.log('Uploading additional image...');
+        const uploadResult = await imageUploadService.uploadRecipeImage(img.uri, authToken);
+        uploadedAdditionalImages.push(uploadResult.url);
+        console.log('Additional image uploaded:', uploadResult.url);
+      }
+
+      // Prepare additional images (existing URLs + newly uploaded)
       const additionalImagesData = [
         ...existingImageUrls.filter(url => url && url.trim()),
-        ...additionalImages.map(img => img.base64),
+        ...uploadedAdditionalImages,
       ].slice(0, 5); // Max 5 images
 
       if (isEditMode) {

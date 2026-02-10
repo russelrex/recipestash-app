@@ -8,15 +8,17 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  ActivityIndicator,
   Button,
   Card,
   Snackbar,
-  Text,
+  Text
 } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import ProfileAvatar from '../components/ProfileAvatar';
+import ShimmerLoader from '../components/ShimmerLoader';
+import SkeletonList from '../components/SkeletonList';
+import SkeletonProfileHeader from '../components/SkeletonProfileHeader';
 import {
   authApi,
   followsApi,
@@ -30,9 +32,6 @@ import {
 import { isOfflineMode } from '../services/cache/offlineUtils';
 import { Colors } from '../theme';
 import EditProfileModal from './EditProfileModal';
-import SkeletonProfileHeader from '../components/SkeletonProfileHeader';
-import SkeletonList from '../components/SkeletonList';
-import ShimmerLoader from '../components/ShimmerLoader';
 
 export default function ProfilePage() {
   const navigation = useNavigation();
