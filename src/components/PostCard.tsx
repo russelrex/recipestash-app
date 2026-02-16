@@ -1,9 +1,8 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import {
   Avatar,
-  Card,
   Divider,
   IconButton,
   Menu,
@@ -12,10 +11,20 @@ import {
 } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { authApi, postsApi, recipesApi, type Comment, type Post } from '../services/api';
-import { CARD_STYLES, COLORS } from '../styles/modernStyles';
+import { COLORS, SHADOWS, SPACING, TYPOGRAPHY } from '../styles/modernStyles';
 import { Colors } from '../theme';
 import CommentItem from './CommentItem';
 import ProfileAvatar from './ProfileAvatar';
+
+const placeholderImage = require('../../assets/images/recipe_placeholder.webp');
+
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = width - 32; // Account for padding
+const CARD_HEIGHT = 480; // Fixed height for all cards
+const IMAGE_SECTION_HEIGHT = 280; // Fixed height for image section
+const HEADER_HEIGHT = 60; // Fixed height for header
+const CONTENT_HEIGHT = 80; // Fixed height for content section
+const ACTIONS_HEIGHT = 50; // Fixed height for actions
 
 interface PostCardProps {
   post: Post;
@@ -53,7 +62,7 @@ export default function PostCard({
 
   useEffect(() => {
     setLocalPost(post);
-    setUserAvatarUrl(null); // Reset avatar when post changes
+    setUserAvatarUrl(null);
   }, [post]);
 
   // Fetch user avatar for post author
@@ -62,7 +71,7 @@ export default function PostCard({
 
     const loadUserAvatar = async () => {
       if (!localPost.userId) return;
-      if (userAvatarUrl) return; // Already loaded
+      if (userAvatarUrl) return;
 
       try {
         const userProfile = await authApi.getUserProfile(localPost.userId);
@@ -70,7 +79,6 @@ export default function PostCard({
           setUserAvatarUrl(userProfile.avatarUrl);
         }
       } catch (error) {
-        // silent: avatar is optional, fallback to initials
         console.warn('Failed to load user avatar:', error);
       }
     };
@@ -79,10 +87,9 @@ export default function PostCard({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localPost.userId]);
 
-  // If backend doesn't provide recipeImages yet, fetch recipe and derive up to 3 images.
+  // Hydrate recipe images if needed
   useEffect(() => {
     let cancelled = false;
 
@@ -104,7 +111,7 @@ export default function PostCard({
           setLocalPost(prev => ({ ...prev, recipeImages: images }));
         }
       } catch {
-        // silent: recipe images are an enhancement, not required for the post card
+        // silent: recipe images are optional
       }
     };
 
@@ -112,7 +119,6 @@ export default function PostCard({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localPost.recipeId]);
 
   const loadCurrentUserId = async () => {
@@ -157,7 +163,6 @@ export default function PostCard({
     if (!commentsLoaded) {
       await loadComments();
     }
-    // Toggle both the comments section and the input field
     setCommentsVisible(prev => !prev);
     setShowCommentInput(prev => !prev);
   };
@@ -211,19 +216,151 @@ export default function PostCard({
     ]);
   };
 
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
+  const formatTimeAgo = (date: string) => {
     const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+    const postDate = new Date(date);
+    const diffInSeconds = Math.floor((now.getTime() - postDate.getTime()) / 1000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    return `${Math.floor(diffInSeconds / 604800)}w ago`;
+  };
+
+  // Combine all images into a single array
+  const getAllImages = (): string[] => {
+    const images: string[] = [];
+    if (localPost.imageUrl) images.push(localPost.imageUrl);
+    if (localPost.recipeImages && localPost.recipeImages.length > 0) {
+      images.push(...localPost.recipeImages);
+    }
+    return images;
+  };
+
+  const images = getAllImages();
+
+  // Render images based on count
+  const renderImages = () => {
+    if (images.length === 0) {
+      // No images - show placeholder
+      return (
+        <Image
+          source={placeholderImage}
+          style={styles.singleImage}
+          resizeMode="cover"
+        />
+      );
+    }
+
+    if (images.length === 1) {
+      // Single image - full width
+      return (
+        <Image
+          source={images[0] ? { uri: images[0] } : placeholderImage}
+          defaultSource={placeholderImage}
+          style={styles.singleImage}
+          resizeMode="cover"
+        />
+      );
+    }
+
+    if (images.length === 2) {
+      // Two images - side by side
+      return (
+        <View style={styles.twoImagesRow}>
+          <Image
+            source={images[0] ? { uri: images[0] } : placeholderImage}
+            defaultSource={placeholderImage}
+            style={styles.halfImage}
+            resizeMode="cover"
+          />
+          <View style={styles.imageGap} />
+          <Image
+            source={images[1] ? { uri: images[1] } : placeholderImage}
+            defaultSource={placeholderImage}
+            style={styles.halfImage}
+            resizeMode="cover"
+          />
+        </View>
+      );
+    }
+
+    if (images.length === 3) {
+      // Three images - one large, two small stacked
+      return (
+        <View style={styles.threeImagesContainer}>
+          <Image
+            source={images[0] ? { uri: images[0] } : placeholderImage}
+            defaultSource={placeholderImage}
+            style={styles.largeImage}
+            resizeMode="cover"
+          />
+          <View style={styles.smallImagesColumn}>
+            <Image
+              source={images[1] ? { uri: images[1] } : placeholderImage}
+              defaultSource={placeholderImage}
+              style={styles.smallImage}
+              resizeMode="cover"
+            />
+            <View style={styles.imageGap} />
+            <Image
+              source={images[2] ? { uri: images[2] } : placeholderImage}
+              defaultSource={placeholderImage}
+              style={styles.smallImage}
+              resizeMode="cover"
+            />
+          </View>
+        </View>
+      );
+    }
+
+    // Four or more images - 2x2 grid with "+X" overlay on last image
+    const displayImages = images.slice(0, 4);
+    const remainingCount = images.length - 4;
+
+    return (
+      <View style={styles.gridContainer}>
+        <View style={styles.gridRow}>
+          <Image
+            source={displayImages[0] ? { uri: displayImages[0] } : placeholderImage}
+            defaultSource={placeholderImage}
+            style={styles.gridImage}
+            resizeMode="cover"
+          />
+          <View style={styles.imageGap} />
+          <Image
+            source={displayImages[1] ? { uri: displayImages[1] } : placeholderImage}
+            defaultSource={placeholderImage}
+            style={styles.gridImage}
+            resizeMode="cover"
+          />
+        </View>
+        <View style={styles.imageGap} />
+        <View style={styles.gridRow}>
+          <Image
+            source={displayImages[2] ? { uri: displayImages[2] } : placeholderImage}
+            defaultSource={placeholderImage}
+            style={styles.gridImage}
+            resizeMode="cover"
+          />
+          <View style={styles.imageGap} />
+          <View style={styles.gridImageContainer}>
+            <Image
+              source={displayImages[3] ? { uri: displayImages[3] } : placeholderImage}
+              defaultSource={placeholderImage}
+              style={styles.gridImage}
+              resizeMode="cover"
+            />
+            {remainingCount > 0 && (
+              <View style={styles.moreImagesOverlay}>
+                <Text style={styles.moreImagesText}>+{remainingCount}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+    );
   };
 
   const isOwnPost = currentUserId === localPost.userId;
@@ -231,426 +368,467 @@ export default function PostCard({
     ? localPost.likes.includes(currentUserId)
     : false;
 
-  const visibleComments = showComments
+  const visibleComments = showComments && commentsLoaded && commentsVisible
     ? comments.slice(0, maxCommentsPreview)
     : [];
   const hasMoreComments = comments.length > maxCommentsPreview;
 
+  // Calculate card height: base + linked recipe (if present) + comments (if visible)
+  const hasLinkedRecipe = localPost.recipeId && localPost.recipeTitle;
+  const linkedRecipeHeight = hasLinkedRecipe ? 40 : 0;
+  const commentsHeight = commentsVisible && comments.length > 0 ? undefined : 0; // Dynamic for comments
+  const baseCardHeight = HEADER_HEIGHT + CONTENT_HEIGHT + IMAGE_SECTION_HEIGHT + ACTIONS_HEIGHT + linkedRecipeHeight;
+
   return (
-    <Card style={styles.card}>
-      <Card.Content>
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() =>
-              navigation.navigate(
-                'UserProfile' as never,
-                { userId: localPost.userId } as never,
-              )
+    <View style={[styles.card, { height: baseCardHeight }]}>
+      {/* Header - Fixed Height */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate(
+              'UserProfile' as never,
+              { userId: localPost.userId } as never,
+            )
+          }
+          style={styles.userInfo}
+        >
+          <ProfileAvatar
+            name={localPost.userName}
+            avatarUrl={userAvatarUrl || undefined}
+            size={40}
+            style={styles.avatar}
+          />
+          <View style={styles.userDetails}>
+            <Text variant="titleMedium" style={styles.userName}>
+              {localPost.userName}
+            </Text>
+            <Text variant="bodySmall" style={styles.timestamp}>
+              {formatTimeAgo(localPost.createdAt)}
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        {isOwnPost && (
+          <Menu
+            visible={menuVisible}
+            onDismiss={() => setMenuVisible(false)}
+            anchor={
+              <IconButton
+                icon="dots-vertical"
+                size={20}
+                onPress={() => setMenuVisible(true)}
+              />
             }
-            style={styles.userInfo}
           >
-            <ProfileAvatar
-              name={localPost.userName}
-              avatarUrl={userAvatarUrl || undefined}
-              size={40}
-              style={styles.avatar}
+            <Menu.Item
+              onPress={() => {
+                setMenuVisible(false);
+                onUpdate?.(localPost);
+              }}
+              title="Edit"
+              leadingIcon="pencil"
             />
-            <View style={styles.userDetails}>
-              <Text variant="titleMedium" style={styles.userName}>
-                {localPost.userName}
-              </Text>
-              <Text variant="bodySmall" style={styles.timestamp}>
-                {formatTimestamp(localPost.createdAt)}
-              </Text>
-            </View>
-          </TouchableOpacity>
+            <Menu.Item
+              onPress={handleDelete}
+              title="Delete"
+              leadingIcon="delete"
+            />
+          </Menu>
+        )}
+      </View>
 
-          {isOwnPost && (
-            <Menu
-              visible={menuVisible}
-              onDismiss={() => setMenuVisible(false)}
-              anchor={
-                <IconButton
-                  icon="dots-vertical"
-                  size={20}
-                  onPress={() => setMenuVisible(true)}
-                />
-              }
-            >
-              <Menu.Item
-                onPress={() => {
-                  setMenuVisible(false);
-                  onUpdate?.(localPost);
-                }}
-                title="Edit"
-                leadingIcon="pencil"
-              />
-              <Menu.Item
-                onPress={handleDelete}
-                title="Delete"
-                leadingIcon="delete"
-              />
-            </Menu>
-          )}
-        </View>
-
-        <Text variant="bodyLarge" style={styles.content}>
+      {/* Content Text - Fixed Height with Ellipsis */}
+      <View style={styles.contentSection}>
+        <Text variant="bodyLarge" style={styles.contentText} numberOfLines={3}>
           {localPost.content}
         </Text>
+      </View>
 
-        {/* Post Image */}
-        {localPost.imageUrl && (
-          <Card.Cover source={{ uri: localPost.imageUrl }} style={styles.image} />
-        )}
+      {/* Images - Fixed Height */}
+      <View style={styles.imageSection}>
+        {renderImages()}
+      </View>
 
-        {/* Linked Recipe with Images */}
-        {localPost.recipeId && localPost.recipeTitle && (
-          <View style={styles.recipeSection}>
-          <TouchableOpacity
-              style={styles.recipeHeader}
-            onPress={() =>
-              navigation.navigate(
-                'RecipeDetail' as never,
-                { recipeId: localPost.recipeId } as never,
-              )
-            }
-          >
-              <Icon name="book-open-page-variant" size={18} color={Colors.primary.main} />
-              <Text variant="titleSmall" style={styles.recipeTitle}>
-                {localPost.recipeTitle}
-              </Text>
-              <Icon name="chevron-right" size={18} color={Colors.text.secondary} />
-            </TouchableOpacity>
-
-            {/* Recipe Images Grid - 3 Column Layout */}
-            {localPost.recipeImages && localPost.recipeImages.length > 0 && (
-              <View style={styles.recipeImagesGrid}>
-                {localPost.recipeImages.slice(0, 3).map((imageUrl, index) => {
-                  const imageCount = localPost.recipeImages?.length || 0;
-                  return (
-                    <TouchableOpacity
-                      key={index}
-                      style={styles.recipeImageWrapper}
-                      onPress={() =>
-                        navigation.navigate(
-                          'RecipeDetail' as never,
-                          { recipeId: localPost.recipeId } as never,
-                        )
-                      }
-                    >
-                      <Image source={{ uri: imageUrl }} style={styles.recipeGridImage} />
-                      {/* Show count badge on last image if there are more */}
-                      {index === 2 && imageCount > 3 && (
-                        <View style={styles.moreImagesBadge}>
-                          <Text style={styles.moreImagesText}>+{imageCount - 3}</Text>
-                        </View>
-                      )}
-          </TouchableOpacity>
-                  );
-                })}
-              </View>
-        )}
-          </View>
-        )}
-
-        {(localPost.likesCount > 0 || localPost.commentsCount > 0) && (
-          <View style={styles.countsContainer}>
-            {localPost.likesCount > 0 && (
-              <Text variant="bodySmall" style={styles.countText}>
-                {localPost.likesCount}{' '}
-                {localPost.likesCount === 1 ? 'like' : 'likes'}
-              </Text>
-            )}
-            {localPost.commentsCount > 0 && (
-              <Text variant="bodySmall" style={styles.countText}>
-                {localPost.commentsCount}{' '}
-                {localPost.commentsCount === 1 ? 'comment' : 'comments'}
-              </Text>
-            )}
-          </View>
-        )}
-
-        <Divider style={styles.divider} />
-
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleLikePress}
-            activeOpacity={0.7}
-          >
-            <IconButton
-              icon={isLiked ? 'heart' : 'heart-outline'}
-              iconColor={isLiked ? Colors.interaction.like : Colors.text.secondary}
-              size={24}
-              style={styles.actionIcon}
-            />
-            <Text
-              variant="bodyMedium"
-              style={[styles.actionText, isLiked && styles.actionTextActive]}
-            >
-              Like
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleCommentPress}
-            activeOpacity={0.7}
-          >
-            <IconButton
-              icon="comment-outline"
-              iconColor={Colors.text.secondary}
-              size={24}
-              style={styles.actionIcon}
-            />
-            <Text variant="bodyMedium" style={styles.actionText}>
-              Comment
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() =>
-              navigation.navigate(
-                'PostDetail' as never,
-                { postId: localPost.id } as never,
-              )
-            }
-            activeOpacity={0.7}
-          >
-            <IconButton
-              icon="eye-outline"
-              iconColor={Colors.text.secondary}
-              size={24}
-              style={styles.actionIcon}
-            />
-            <Text variant="bodyMedium" style={styles.actionText}>
-              View
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <Divider style={styles.divider} />
-
-        {showComments && commentsLoaded && commentsVisible && (
-          <View style={styles.commentsSection}>
-            {visibleComments.map(comment => (
-              <CommentItem
-                key={comment.id}
-                comment={comment}
-                onDelete={handleDeleteComment}
-              />
-            ))}
-
-            {hasMoreComments && (
-              <TouchableOpacity
-                style={styles.viewAllComments}
-                onPress={() =>
-                  navigation.navigate(
-                    'PostDetail' as never,
-                    { postId: localPost.id } as never,
-                  )
-                }
-              >
-                <Text variant="bodyMedium" style={styles.viewAllCommentsText}>
-                  View all {comments.length} comments
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-
-        {loadingComments && (
-          <Text variant="bodySmall" style={styles.loadingComments}>
-            Loading comments...
+      {/* Linked Recipe (if any) - Fixed Height */}
+      {hasLinkedRecipe && (
+        <TouchableOpacity
+          style={styles.linkedRecipe}
+          onPress={() =>
+            navigation.navigate(
+              'RecipeDetail' as never,
+              { recipeId: localPost.recipeId } as never,
+            )
+          }
+        >
+          <Icon name="book-open-variant" size={16} color={COLORS.primary} />
+          <Text style={styles.linkedRecipeText} numberOfLines={1}>
+            {localPost.recipeTitle}
           </Text>
-        )}
+          <Icon name="chevron-right" size={18} color={COLORS.textSecondary} style={{ marginLeft: 8 }} />
+        </TouchableOpacity>
+      )}
 
-        {commentsVisible && showCommentInput && (
-          <View style={styles.commentInputContainer}>
-            <Avatar.Text
-              size={32}
-              label={
-                currentUserId
-                  ? localPost.userName.substring(0, 2).toUpperCase()
-                  : '?'
+      {/* Actions - Fixed Height */}
+      <View style={styles.actions}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={handleLikePress}
+          activeOpacity={0.7}
+        >
+          <Icon
+            name={isLiked ? 'heart' : 'heart-outline'}
+            size={24}
+            color={isLiked ? '#EF4444' : COLORS.textSecondary}
+          />
+          <Text style={[styles.actionText, isLiked && styles.actionTextActive]}>
+            {localPost.likesCount || 0}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={handleCommentPress}
+          activeOpacity={0.7}
+        >
+          <Icon name="comment-outline" size={24} color={COLORS.textSecondary} />
+          <Text style={styles.actionText}>
+            {localPost.commentsCount || 0}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() =>
+            navigation.navigate(
+              'PostDetail' as never,
+              { postId: localPost.id } as never,
+            )
+          }
+          activeOpacity={0.7}
+        >
+          <Icon name="eye-outline" size={24} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Comments Section - Dynamic Height */}
+      {showComments && commentsLoaded && commentsVisible && (
+        <View style={styles.commentsSection}>
+          {visibleComments.map(comment => (
+            <CommentItem
+              key={comment.id}
+              comment={comment}
+              onDelete={handleDeleteComment}
+            />
+          ))}
+
+          {hasMoreComments && (
+            <TouchableOpacity
+              style={styles.viewAllComments}
+              onPress={() =>
+                navigation.navigate(
+                  'PostDetail' as never,
+                  { postId: localPost.id } as never,
+                )
               }
-              style={styles.commentAvatar}
-            />
-            <TextInput
-              value={commentText}
-              onChangeText={setCommentText}
-              placeholder="Write a comment..."
-              mode="outlined"
-              style={styles.commentInput}
-              multiline
-              maxLength={500}
-              disabled={submittingComment}
-              dense
-            />
-            <IconButton
-              icon="send"
-              size={20}
-              onPress={handleAddComment}
-              disabled={submittingComment || !commentText.trim()}
-              iconColor={commentText.trim() ? Colors.primary.main : Colors.text.disabled}
-            />
-          </View>
-        )}
-      </Card.Content>
-    </Card>
+            >
+              <Text style={styles.viewAllCommentsText}>
+                View all {comments.length} comments
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {loadingComments && (
+        <View style={styles.loadingComments}>
+          <Text style={styles.loadingCommentsText}>Loading comments...</Text>
+        </View>
+      )}
+
+      {/* Comment Input */}
+      {commentsVisible && showCommentInput && (
+        <View style={styles.commentInputContainer}>
+          <Avatar.Text
+            size={32}
+            label={
+              currentUserId
+                ? localPost.userName.substring(0, 2).toUpperCase()
+                : '?'
+            }
+            style={styles.commentAvatar}
+          />
+          <TextInput
+            value={commentText}
+            onChangeText={setCommentText}
+            placeholder="Write a comment..."
+            mode="outlined"
+            style={styles.commentInput}
+            multiline
+            maxLength={500}
+            disabled={submittingComment}
+            dense
+          />
+          <IconButton
+            icon="send"
+            size={20}
+            onPress={handleAddComment}
+            disabled={submittingComment || !commentText.trim()}
+            iconColor={commentText.trim() ? COLORS.primary : COLORS.textLight}
+          />
+        </View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Card Container - FIXED HEIGHT
   card: {
-    ...(CARD_STYLES.standard as object),
-    padding: 0,
+    width: CARD_WIDTH,
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 16,
     marginBottom: 16,
+    overflow: 'hidden',
+    ...SHADOWS.small,
   },
+
+  // Header Section - Fixed 60px
   header: {
+    height: HEADER_HEIGHT,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
+
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
+
   avatar: {
-    backgroundColor: Colors.primary.main,
+    backgroundColor: COLORS.primary,
   },
+
   userDetails: {
     marginLeft: 12,
+    flex: 1,
   },
+
   userName: {
-    fontWeight: 'bold',
-    color: Colors.text.primary,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 2,
   },
+
   timestamp: {
-    color: Colors.text.secondary,
+    color: COLORS.textSecondary,
     fontSize: 12,
   },
-  content: {
-    marginBottom: 12,
-    lineHeight: 22,
-    color: Colors.text.primary,
-    fontSize: 15,
+
+  // Content Section - Fixed 80px
+  contentSection: {
+    height: CONTENT_HEIGHT,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    justifyContent: 'center',
   },
-  image: {
-    marginBottom: 12,
-    borderRadius: 8,
+
+  contentText: {
+    ...(TYPOGRAPHY.body as object),
+    lineHeight: 20,
+    color: COLORS.text,
   },
-  recipeSection: {
-    marginTop: 8,
-    marginBottom: 12,
-    padding: 12,
-    backgroundColor: COLORS.cardBackgroundAlt,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+
+  // Image Section - Fixed 280px
+  imageSection: {
+    height: IMAGE_SECTION_HEIGHT,
+    backgroundColor: COLORS.border,
+    width: '100%',
   },
-  recipeHeader: {
-    flexDirection: 'row',
+
+  // No images placeholder
+  imagePlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    backgroundColor: COLORS.cardBackgroundAlt,
   },
-  recipeTitle: {
-    flex: 1,
-    marginLeft: 8,
-    fontWeight: '600',
-    color: Colors.primary.main,
-  },
-  recipeImagesGrid: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  recipeImageWrapper: {
-    flex: 1,
-    aspectRatio: 1,
-    position: 'relative',
-  },
-  recipeGridImage: {
+
+  // Single Image
+  singleImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 8,
-    backgroundColor: Colors.border.light,
   },
-  moreImagesBadge: {
+
+  // Two Images
+  twoImagesRow: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+
+  imageGap: {
+    width: 2,
+    backgroundColor: COLORS.cardBackground,
+  },
+
+  halfImage: {
+    flex: 1,
+    height: '100%',
+  },
+
+  // Three Images
+  threeImagesContainer: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+
+  largeImage: {
+    flex: 2,
+    height: '100%',
+  },
+
+  smallImagesColumn: {
+    flex: 1,
+  },
+
+  smallImage: {
+    flex: 1,
+    width: '100%',
+  },
+
+  // Four+ Images (2x2 Grid)
+  gridContainer: {
+    flex: 1,
+  },
+
+  gridRow: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+
+  gridImage: {
+    flex: 1,
+    height: '100%',
+  },
+
+  gridImageContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+
+  moreImagesOverlay: {
     position: 'absolute',
-    inset: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   moreImagesText: {
     color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '700',
   },
-  countsContainer: {
+
+  // Linked Recipe - Fixed 40px (if present)
+  linkedRecipe: {
+    height: 40,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.primaryAlpha10,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
-  countText: {
-    color: Colors.text.primary,
-    fontSize: 13,
+
+  linkedRecipeText: {
+    ...(TYPOGRAPHY.bodySmall as object),
+    color: COLORS.primary,
+    flex: 1,
+    marginLeft: 8,
   },
-  divider: {
-    marginVertical: 8,
-  },
+
+  // Actions Section - Fixed 50px
   actions: {
+    height: ACTIONS_HEIGHT,
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
+
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    marginRight: 24,
   },
-  actionIcon: {
-    margin: 0,
-  },
+
   actionText: {
-    color: Colors.text.primary,
-    fontWeight: '600',
-    marginLeft: -8,
+    ...(TYPOGRAPHY.bodySmall as object),
+    color: COLORS.textSecondary,
+    marginLeft: 6,
   },
+
   actionTextActive: {
-    color: Colors.interaction.like,
+    color: '#EF4444',
   },
+
+  // Comments Section - Dynamic Height
   commentsSection: {
-    marginTop: 8,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
+
   viewAllComments: {
     paddingVertical: 8,
   },
+
   viewAllCommentsText: {
-    color: Colors.text.secondary,
+    ...(TYPOGRAPHY.bodySmall as object),
+    color: COLORS.textSecondary,
     fontWeight: '600',
   },
+
   loadingComments: {
-    color: Colors.text.disabled,
-    textAlign: 'center',
     paddingVertical: 8,
+    paddingHorizontal: 16,
   },
+
+  loadingCommentsText: {
+    ...(TYPOGRAPHY.caption as object),
+    color: COLORS.textLight,
+    textAlign: 'center',
+  },
+
+  // Comment Input
   commentInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
+
   commentAvatar: {
-    backgroundColor: Colors.primary.main,
+    backgroundColor: COLORS.primary,
   },
+
   commentInput: {
     flex: 1,
     maxHeight: 100,
+    marginLeft: 8,
+    marginRight: 8,
   },
 });

@@ -384,6 +384,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   headerContent: {
+    width: '85%',
     alignItems: 'center',
     paddingVertical: 20,
   },
@@ -427,7 +428,10 @@ const styles = StyleSheet.create({
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    alignSelf: 'stretch',
     width: '100%',
+    marginHorizontal: -SPACING.md,
+    paddingHorizontal: SPACING.md,
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,

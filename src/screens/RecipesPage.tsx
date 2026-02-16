@@ -1,566 +1,512 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import React, { useCallback, useEffect, useState } from 'react';
-import { ImageBackground, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { Avatar, Card, Chip, IconButton, Menu, Searchbar, Snackbar, Text } from 'react-native-paper';
+import React, { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { Chip, Searchbar, Snackbar, Text } from 'react-native-paper';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { RecipeListSkeleton } from '../components/Loading/LoadingComponents';
+import { RecipeCard } from '../components/RecipeCard';
 import { Recipe, recipesApi } from '../services/api';
-import { isOfflineMode } from '../services/cache/offlineUtils';
-import { COLORS, SHADOWS } from '../styles/modernStyles';
-import { Colors } from '../theme';
+import { COLORS, SPACING } from '../styles/modernStyles';
 
-type FilterType = 'all' | 'favorites' | 'recent' | 'az';
+type FilterType = 'all' | 'breakfast' | 'lunch' | 'dinner' | 'dessert' | 'drinks' | 'snacks';
 
 export default function RecipesPage() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarType, setSnackbarType] = useState<'success' | 'error' | 'info'>('info');
-  const [menuVisible, setMenuVisible] = useState<Record<string, boolean>>({});
-  const [offline, setOffline] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
-      checkOfflineMode();
-      loadRecipes();
-    }, [])
+      loadRecipes(true);
+    }, [filter])
   );
 
-  const checkOfflineMode = async () => {
-    const offlineMode = await isOfflineMode();
-    setOffline(offlineMode);
-  };
-
-  useEffect(() => {
-    applyFilters();
-  }, [recipes, filter, searchQuery]);
-
-  const loadRecipes = async () => {
+  const loadRecipes = async (reset = false) => {
     try {
-      setLoading(true);
-      let recipesData: Recipe[] = [];
-
-      if (filter === 'favorites') {
-        recipesData = await recipesApi.getFavorites();
+      if (reset) {
+        setLoading(true);
+        setPage(1);
+        setRecipes([]);
       } else {
-        recipesData = await recipesApi.getAllRecipes();
+        setLoadingMore(true);
       }
 
-      setRecipes(recipesData);
+      console.log('📚 [RecipesPage] Loading recipes - Page:', reset ? 1 : page + 1);
+
+      const newRecipes = await recipesApi.getAllPublicRecipes({
+        page: reset ? 1 : page + 1,
+        limit: 10,
+        category: filter === 'all' ? undefined : filter,
+        search: searchQuery || undefined,
+      });
+
+      console.log('✅ [RecipesPage] Loaded', newRecipes.length, 'recipes');
+
+      if (reset) {
+        setRecipes(newRecipes);
+      } else {
+        setRecipes(prev => [...prev, ...newRecipes]);
+      }
+
+      // Check if there are more recipes
+      setHasMore(newRecipes.length === 10);
+      
+      if (!reset) {
+        setPage(prev => prev + 1);
+      }
     } catch (error: any) {
-      console.error('Error loading recipes:', error);
-      setSnackbarType('error');
+      console.error('❌ [RecipesPage] Error loading recipes:', error);
       setSnackbarMessage('Failed to load recipes');
       setSnackbarVisible(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
   };
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
+    
     if (query.trim()) {
       try {
+        console.log('🔍 [RecipesPage] Searching:', query);
         const searchResults = await recipesApi.searchRecipes(query);
         setRecipes(searchResults);
       } catch (error: any) {
-        console.error('Error searching recipes:', error);
-        setSnackbarType('error');
-        setSnackbarMessage('Failed to search recipes');
+        console.error('❌ [RecipesPage] Search error:', error);
+        setSnackbarMessage('Search failed');
         setSnackbarVisible(true);
       }
     } else {
-      loadRecipes();
+      loadRecipes(true);
     }
-  };
-
-  const applyFilters = () => {
-    let filtered = [...recipes];
-
-    // Apply filter
-    if (filter === 'favorites') {
-      filtered = filtered.filter(r => r.isFavorite);
-    } else if (filter === 'recent') {
-      filtered = filtered.sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-    } else if (filter === 'az') {
-      filtered = filtered.sort((a, b) => a.title.localeCompare(b.title));
-    }
-
-    // Apply search query (client-side filtering if not using API search)
-    if (searchQuery.trim() && filter !== 'all') {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        r =>
-          r.title.toLowerCase().includes(query) ||
-          r.description.toLowerCase().includes(query) ||
-          r.category.toLowerCase().includes(query)
-      );
-    }
-
-    setFilteredRecipes(filtered);
   };
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadRecipes();
+    loadRecipes(true);
   };
 
   const handleFilterChange = (newFilter: FilterType) => {
-    setFilter(newFilter);
-    if (newFilter === 'favorites') {
-      loadRecipes();
-    } else {
-      applyFilters();
+    if (filter !== newFilter) {
+      setFilter(newFilter);
+      setSearchQuery('');
     }
   };
 
-  const handleToggleFavorite = async (recipeId: string) => {
-    if (offline) {
-      setSnackbarMessage('This action is not available in offline mode');
-      setSnackbarVisible(true);
-      return;
-    }
-    try {
-      const updatedRecipe = await recipesApi.toggleFavorite(recipeId);
-      setRecipes(prev =>
-        prev.map(r => (r._id === recipeId ? updatedRecipe : r))
-      );
-    } catch (error: any) {
-      console.error('Error toggling favorite:', error);
-      setSnackbarType('error');
-      setSnackbarMessage('Failed to update favorite');
-      setSnackbarVisible(true);
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore && !searchQuery) {
+      loadRecipes(false);
     }
   };
 
-  const handleToggleFeatured = async (recipeId: string) => {
-    if (offline) {
-      setSnackbarMessage('This action is not available in offline mode');
-      setSnackbarVisible(true);
-      return;
-    }
-    try {
-      const recipe = recipes.find(r => r._id === recipeId);
-      if (!recipe) return;
-
-      const updatedRecipe = await recipesApi.updateRecipe(recipeId, {
-        featured: !recipe.featured,
-      });
-      setRecipes(prev =>
-        prev.map(r => (r._id === recipeId ? updatedRecipe : r))
-      );
-      setSnackbarMessage(
-        updatedRecipe.featured 
-          ? 'Recipe set as featured ⭐' 
-          : 'Recipe removed from featured',
-      );
-      setSnackbarVisible(true);
-    } catch (error: any) {
-      console.error('Error toggling featured status:', error);
-      setSnackbarType('error');
-      setSnackbarMessage(error.message || 'Failed to update featured status');
-      setSnackbarVisible(true);
-    }
+  const renderRecipeCard = ({ item }: { item: Recipe }) => {
+    return (
+      <RecipeCard
+        recipe={item}
+        onPress={() => {
+          (navigation as any).navigate('RecipeDetail', { recipeId: item._id });
+        }}
+      />
+    );
   };
 
-  const handleDelete = async (recipeId: string) => {
-    if (offline) {
-      setSnackbarMessage('This action is not available in offline mode');
-      setSnackbarVisible(true);
-      return;
-    }
-    try {
-      await recipesApi.deleteRecipe(recipeId);
-      setRecipes(prev => prev.filter(r => r._id !== recipeId));
-      setSnackbarMessage('Recipe deleted successfully');
-      setSnackbarVisible(true);
-    } catch (error: any) {
-      console.error('Error deleting recipe:', error);
-      setSnackbarType('error');
-      setSnackbarMessage('Failed to delete recipe');
-      setSnackbarVisible(true);
-    }
+  const renderFooter = () => {
+    if (!loadingMore) return null;
+    return (
+      <View style={styles.loadingMore}>
+        <ActivityIndicator size="small" color={COLORS.primary} />
+        <Text style={styles.loadingMoreText}>Loading more recipes...</Text>
+      </View>
+    );
   };
 
-  const getRecipeIcon = (category: string) => {
-    const icons: Record<string, string> = {
-      breakfast: 'coffee',
-      lunch: 'bowl-mix',
-      dinner: 'food-drumstick',
-      dessert: 'cake',
-      drinks: 'bottle-soda',
-      snacks: 'food-apple',
-    };
-    return icons[category.toLowerCase()] || 'food';
+  const renderEmpty = () => {
+    if (loading) return null;
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>
+          {searchQuery
+            ? 'No recipes found matching your search'
+            : 'No recipes yet. Be the first to create one!'}
+        </Text>
+      </View>
+    );
   };
 
-  const formatTime = (prepTime: number, cookTime: number) => {
-    return `${prepTime + cookTime} mins`;
-  };
-  
-  const bgImage = require('../../assets/images/placeholder_bg.jpg');
-
+  // LOADING STATE
   if (loading && !refreshing) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.overlay}>
-          <ScrollView contentContainerStyle={styles.loadingScrollContent}>
-            <RecipeListSkeleton count={4} />
-          </ScrollView>
-        </View>
+        <ScrollView contentContainerStyle={styles.loadingContent}>
+          <View style={styles.searchbarSkeleton} />
+          <RecipeListSkeleton count={3} />
+        </ScrollView>
       </SafeAreaView>
     );
   }
 
+  // LOADED STATE
   return (
-      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
+        {/* Search Bar */}
         <Searchbar
           placeholder="Search recipes..."
           onChangeText={handleSearch}
           value={searchQuery}
           style={styles.searchbar}
-          iconColor="#37474F"
+          iconColor={COLORS.primary}
         />
 
+        {/* Category Filters */}
         <ScrollView
-          style={styles.content}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: insets.bottom + 80 }
-          ]}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterScrollView}
+          contentContainerStyle={styles.filterContainer}
+          nestedScrollEnabled={true}
         >
-          <View style={styles.filterContainer}>
-            <Chip
-              selected={filter === 'all'}
-              icon="view-grid"
-              mode="outlined"
-              style={styles.chip}
-              onPress={() => handleFilterChange('all')}
-            >
-              All
-            </Chip>
-            <Chip
-              selected={filter === 'favorites'}
-              icon="star"
-              mode="outlined"
-              style={styles.chip}
-              onPress={() => handleFilterChange('favorites')}
-            >
-              Favorites
-            </Chip>
-            <Chip
-              selected={filter === 'recent'}
-              icon="clock"
-              mode="outlined"
-              style={styles.chip}
-              onPress={() => handleFilterChange('recent')}
-            >
-              Recent
-            </Chip>
-            <Chip
-              selected={filter === 'az'}
-              icon="sort-alphabetical-ascending"
-              mode="outlined"
-              style={styles.chip}
-              onPress={() => handleFilterChange('az')}
-            >
-              A-Z
-            </Chip>
-          </View>
-
-          <View style={styles.titleContainer}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
-              {filter === 'favorites' ? 'Favorite Recipes' : 'All Recipes'} ({filteredRecipes.length})
-            </Text>
-            {offline && (
-              <Text variant="bodySmall" style={styles.offlineBadge}>
-                📱 Offline Mode
-              </Text>
+          <Chip
+            selected={filter === 'all'}
+            icon={({ size }) => (
+              <Icon 
+                name="view-grid" 
+                size={size} 
+                color={filter === 'all' ? '#FFFFFF' : COLORS.textSecondary}
+              />
             )}
-          </View>
-
-          {filteredRecipes.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text variant="bodyLarge" style={styles.emptyText}>
-                {searchQuery
-                  ? 'No recipes found matching your search'
-                  : filter === 'favorites'
-                  ? 'No favorite recipes yet'
-                  : 'No recipes yet. Create your first recipe!'}
-              </Text>
-            </View>
-          ) : (
-            filteredRecipes.map(recipe => (
-              <Card
-                key={recipe._id}
-                style={styles.glassCard}
-                onPress={() =>
-                  navigation.navigate(
-                    'RecipeDetail' as never,
-                    { recipeId: recipe._id } as never,
-                  )
-                }
-              >
-                {recipe.featuredImage || recipe.imageUrl ? (
-                  <Card.Cover source={{ uri: recipe.featuredImage || recipe.imageUrl }} />
-                ) : (
-                  <View style={styles.imagePlaceholder}>
-                    <Avatar.Icon
-                      icon={getRecipeIcon(recipe.category)}
-                      size={64}
-                      style={styles.placeholderIcon}
-                    />
-                  </View>
-                )}
-                <Card.Content>
-                  <View style={styles.cardHeader}>
-                    <View style={styles.cardTitleContainer}>
-                      <Card.Title
-                        title={recipe.title}
-                        subtitle={`${recipe.category} • ${formatTime(recipe.prepTime, recipe.cookTime)}`}
-                        titleNumberOfLines={2}
-                      />
-                    </View>
-                    <Menu
-                      visible={menuVisible[recipe._id] || false}
-                      onDismiss={() => setMenuVisible({ ...menuVisible, [recipe._id]: false })}
-                      anchor={
-                        <IconButton
-                          icon="dots-vertical"
-                          size={20}
-                          onPress={() =>
-                            setMenuVisible({ ...menuVisible, [recipe._id]: true })
-                          }
-                        />
-                      }
-                    >
-                      {!offline && (
-                        <>
-                          <Menu.Item
-                            onPress={() => {
-                              setMenuVisible({ ...menuVisible, [recipe._id]: false });
-                              handleToggleFavorite(recipe._id);
-                            }}
-                            title={recipe.isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
-                            leadingIcon={recipe.isFavorite ? 'star-off' : 'star'}
-                          />
-                          <Menu.Item
-                            onPress={() => {
-                              setMenuVisible({ ...menuVisible, [recipe._id]: false });
-                              handleToggleFeatured(recipe._id);
-                            }}
-                            title={recipe.featured ? 'Remove from featured' : 'Set as featured'}
-                            leadingIcon={recipe.featured ? 'star-off' : 'star'}
-                          />
-                          <Menu.Item
-                            onPress={() => {
-                              setMenuVisible({ ...menuVisible, [recipe._id]: false });
-                              handleDelete(recipe._id);
-                            }}
-                            title="Delete"
-                            leadingIcon="delete"
-                          />
-                        </>
-                      )}
-                      {offline && (
-                        <Menu.Item
-                          title="Offline Mode - Actions Disabled"
-                          leadingIcon="wifi-off"
-                          disabled
-                        />
-                      )}
-                    </Menu>
-                  </View>
-                  <Text variant="bodyMedium" style={styles.description} numberOfLines={2}>
-                    {recipe.description}
-                  </Text>
-                  <View style={styles.cardFooter}>
-                    <Chip
-                      icon={getRecipeIcon(recipe.category)}
-                      mode="outlined"
-                      style={styles.categoryChip}
-                    >
-                      {recipe.category}
-                    </Chip>
-                    <Chip
-                      icon="account-group"
-                      mode="outlined"
-                      style={styles.servingsChip}
-                    >
-                      {recipe.servings} servings
-                    </Chip>
-                    {recipe.isFavorite && (
-                      <Avatar.Icon icon="star" size={24} style={styles.favoriteIcon} />
-                    )}
-                  </View>
-                </Card.Content>
-              </Card>
-            ))
-          )}
+            onPress={() => handleFilterChange('all')}
+            mode={filter === 'all' ? 'flat' : 'outlined'}
+            style={[
+              styles.chip,
+              filter === 'all' && styles.chipSelected,
+              { marginRight: 8 }
+            ]}
+            textStyle={filter === 'all' ? styles.chipTextSelected : styles.chipText}
+          >
+            All
+          </Chip>
+          <Chip
+            selected={filter === 'breakfast'}
+            icon={({ size }) => (
+              <Icon 
+                name="coffee" 
+                size={size} 
+                color={filter === 'breakfast' ? '#FFFFFF' : COLORS.textSecondary}
+              />
+            )}
+            onPress={() => handleFilterChange('breakfast')}
+            mode={filter === 'breakfast' ? 'flat' : 'outlined'}
+            style={[
+              styles.chip,
+              filter === 'breakfast' && styles.chipSelected,
+              { marginRight: 8 }
+            ]}
+            textStyle={filter === 'breakfast' ? styles.chipTextSelected : styles.chipText}
+          >
+            Breakfast
+          </Chip>
+          <Chip
+            selected={filter === 'lunch'}
+            icon={({ size }) => (
+              <Icon 
+                name="bowl-mix" 
+                size={size} 
+                color={filter === 'lunch' ? '#FFFFFF' : COLORS.textSecondary}
+              />
+            )}
+            onPress={() => handleFilterChange('lunch')}
+            mode={filter === 'lunch' ? 'flat' : 'outlined'}
+            style={[
+              styles.chip,
+              filter === 'lunch' && styles.chipSelected,
+              { marginRight: 8 }
+            ]}
+            textStyle={filter === 'lunch' ? styles.chipTextSelected : styles.chipText}
+          >
+            Lunch
+          </Chip>
+          <Chip
+            selected={filter === 'dinner'}
+            icon={({ size }) => (
+              <Icon 
+                name="food-drumstick" 
+                size={size} 
+                color={filter === 'dinner' ? '#FFFFFF' : COLORS.textSecondary}
+              />
+            )}
+            onPress={() => handleFilterChange('dinner')}
+            mode={filter === 'dinner' ? 'flat' : 'outlined'}
+            style={[
+              styles.chip,
+              filter === 'dinner' && styles.chipSelected,
+              { marginRight: 8 }
+            ]}
+            textStyle={filter === 'dinner' ? styles.chipTextSelected : styles.chipText}
+          >
+            Dinner
+          </Chip>
+          <Chip
+            selected={filter === 'dessert'}
+            icon={({ size }) => (
+              <Icon 
+                name="cake" 
+                size={size} 
+                color={filter === 'dessert' ? '#FFFFFF' : COLORS.textSecondary}
+              />
+            )}
+            onPress={() => handleFilterChange('dessert')}
+            mode={filter === 'dessert' ? 'flat' : 'outlined'}
+            style={[
+              styles.chip,
+              filter === 'dessert' && styles.chipSelected,
+              { marginRight: 8 }
+            ]}
+            textStyle={filter === 'dessert' ? styles.chipTextSelected : styles.chipText}
+          >
+            Dessert
+          </Chip>
+          <Chip
+            selected={filter === 'drinks'}
+            icon={({ size }) => (
+              <Icon 
+                name="bottle-soda" 
+                size={size} 
+                color={filter === 'drinks' ? '#FFFFFF' : COLORS.textSecondary}
+              />
+            )}
+            onPress={() => handleFilterChange('drinks')}
+            mode={filter === 'drinks' ? 'flat' : 'outlined'}
+            style={[
+              styles.chip,
+              filter === 'drinks' && styles.chipSelected,
+              { marginRight: 8 }
+            ]}
+            textStyle={filter === 'drinks' ? styles.chipTextSelected : styles.chipText}
+          >
+            Drinks
+          </Chip>
+          <Chip
+            selected={filter === 'snacks'}
+            icon={({ size }) => (
+              <Icon 
+                name="food-apple" 
+                size={size} 
+                color={filter === 'snacks' ? '#FFFFFF' : COLORS.textSecondary}
+              />
+            )}
+            onPress={() => handleFilterChange('snacks')}
+            mode={filter === 'snacks' ? 'flat' : 'outlined'}
+            style={[
+              styles.chip,
+              filter === 'snacks' && styles.chipSelected,
+            ]}
+            textStyle={filter === 'snacks' ? styles.chipTextSelected : styles.chipText}
+          >
+            Snacks
+          </Chip>
         </ScrollView>
 
-          <Snackbar
-            visible={snackbarVisible}
-            onDismiss={() => setSnackbarVisible(false)}
-            duration={3000}
-            style={[
-              styles.snackbar,
-              snackbarType === 'success' && styles.snackbarSuccess,
-              snackbarType === 'error' && styles.snackbarError,
-            ]}
-          >
-            {snackbarMessage}
-          </Snackbar>
+        {/* Title */}
+        <View style={styles.titleContainer}>
+          <Text style={styles.sectionTitle}>
+            {filter === 'all' ? 'All Recipes' : `${filter.charAt(0).toUpperCase() + filter.slice(1)} Recipes`} ({recipes.length})
+          </Text>
+        </View>
+
+        {/* Recipe List */}
+        <FlatList
+          data={recipes}
+          renderItem={renderRecipeCard}
+          keyExtractor={(item) => item._id}
+          numColumns={2}
+          columnWrapperStyle={recipes.length > 0 ? styles.row : undefined}
+          contentContainerStyle={[
+            styles.listContent,
+            recipes.length === 0 && styles.listContentEmpty,
+            recipes.length > 0 && { paddingBottom: insets.bottom + 20 },
+          ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[COLORS.primary]}
+              tintColor={COLORS.primary}
+            />
+          }
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={renderFooter}
+          ListEmptyComponent={renderEmpty}
+          showsVerticalScrollIndicator={false}
+        />
+
+        {/* Snackbar */}
+        <Snackbar
+          visible={snackbarVisible}
+          onDismiss={() => setSnackbarVisible(false)}
+          duration={3000}
+        >
+          {snackbarMessage}
+        </Snackbar>
       </View>
-      </ImageBackground>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-    width: '100%',
-  },
-  container: {
-    paddingTop: 24,
-    flex: 1,
-  },
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  
+  container: {
+    flex: 1,
+  },
+  
   searchbar: {
-    margin: 16,
+    margin: SPACING.md,
     backgroundColor: COLORS.cardBackground,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    ...(SHADOWS.small as object),
+    elevation: 2,
   },
-  content: {
-    flex: 1,
+  
+  filterScrollView: {
+    marginBottom: SPACING.sm,
+    height: 115, // Fixed height for filter scroll view
+    flexGrow: 0, // Prevent expansion
   },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 0,
-  },
-  searchbarSkeletonContainer: {
-    margin: 16,
-  },
-  loadingScrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 32,
-  },
-  filterSkeletonRow: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
+  
   filterContainer: {
-    flexDirection: 'row',
-    marginBottom: 20,
-    gap: 8,
-    flexWrap: 'wrap',
+    paddingHorizontal: SPACING.md,
+    alignItems: 'center', // Center align chips vertically
+    paddingVertical: 4, // Add vertical padding
+    height: 48, // Fixed height to match scroll view
   },
+  
   chip: {
-    marginBottom: 8,
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-  sectionTitle: {
-    fontWeight: 'bold',
-    color: Colors.text.primary,
-  },
-  offlineBadge: {
-    color: Colors.status.warning || '#FF9800',
-    fontStyle: 'italic',
-  },
-  glassCard: {
+    marginRight: 0,
     backgroundColor: COLORS.cardBackground,
-    borderRadius: 16,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: COLORS.border,
-    marginBottom: 16,
-    ...(SHADOWS.small as object),
-    overflow: 'hidden',
+    height: 40, // Explicit height for chips
+    paddingVertical: 4, // Vertical padding
   },
-  recipeCard: {
-    marginBottom: 16,
-    elevation: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    borderRadius: 12,
-    overflow: 'hidden',
+  
+  chipSelected: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+    height: 40, 
+    minHeight: 40,
   },
-  imagePlaceholder: {
-    height: 200,
-    backgroundColor: Colors.border.light,
-    justifyContent: 'center',
-    alignItems: 'center',
+  
+  chipText: {
+    color: COLORS.text,
+    fontWeight: '500',
+    fontSize: 13, // Ensure text size
+    lineHeight: 18, // Proper line height
   },
-  placeholderIcon: {
-    backgroundColor: Colors.secondary.main,
+  
+  chipTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 13, // Ensure text size
+    lineHeight: 18, // Proper line height
   },
-  cardHeader: {
-    flexDirection: 'row',
+  
+  chipIcon: {
+    color: COLORS.primary, // Icon color for unselected chips
+  },
+  
+  chipIconSelected: {
+    color: '#FFFFFF', // White icon color for selected chips
+  },
+  
+  titleContainer: {
+    paddingHorizontal: SPACING.md,
+    marginTop: SPACING.sm, // Reduced top margin to move it closer to filters
+    marginBottom: SPACING.sm, // Reduced bottom margin
+  },
+  
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  
+  listContent: {
+    paddingHorizontal: SPACING.md,
+    flexGrow: 0, // Prevent list from expanding unnecessarily
+  },
+  
+  listContentEmpty: {
+    flexGrow: 0, // Don't expand unnecessarily
+    justifyContent: 'flex-start',
+    paddingTop: 0, // Remove top padding to reduce gap
+    paddingBottom: SPACING.lg,
+  },
+  
+  row: {
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
   },
-  cardTitleContainer: {
-    flex: 1,
+  
+  loadingContent: {
+    padding: SPACING.md,
   },
-  description: {
-    marginTop: 8,
-    marginBottom: 12,
-    color: Colors.text.primary,
+  
+  searchbarSkeleton: {
+    height: 56,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 12,
+    marginBottom: SPACING.md,
   },
-  cardFooter: {
+  
+  loadingMore: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
+    justifyContent: 'center',
+    paddingVertical: 20,
   },
-  categoryChip: {
-    marginRight: 8,
+  
+  loadingMoreText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginLeft: 12,
   },
-  servingsChip: {
-    marginRight: 8,
-  },
-  favoriteIcon: {
-    backgroundColor: Colors.primary.light,
-  },
+  
   emptyContainer: {
-    padding: 40,
+    paddingTop: SPACING.xl,
+    paddingBottom: SPACING.lg,
+    paddingHorizontal: SPACING.md,
     alignItems: 'center',
+    width: '100%',
+    justifyContent: 'center',
   },
+  
   emptyText: {
-    color: Colors.text.primary,
+    fontSize: 16,
+    color: COLORS.textSecondary,
     textAlign: 'center',
-  },
-  snackbar: {
-    backgroundColor: Colors.status.info,
-  },
-  snackbarSuccess: {
-    backgroundColor: Colors.status.success,
-  },
-  snackbarError: {
-    backgroundColor: Colors.status.error,
+    lineHeight: 24,
   },
 });
-

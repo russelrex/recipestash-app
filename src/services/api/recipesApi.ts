@@ -21,6 +21,12 @@ export interface Recipe {
   rating?: number;
   createdAt: string;
   updatedAt: string;
+  // Author info (populated when fetching public recipes)
+  author?: {
+    _id: string;
+    name: string;
+    profilePicture?: string;
+  };
 }
 
 export interface CreateRecipeData {
@@ -97,6 +103,29 @@ class RecipesApi {
         }
       }
       throw new Error(error.response?.data?.message || 'Failed to fetch recipes');
+    }
+  }
+
+  // NEW: Get all public recipes from all users
+  async getAllPublicRecipes(params?: {
+    page?: number;
+    limit?: number;
+    category?: string;
+    search?: string;
+  }): Promise<Recipe[]> {
+    try {
+      console.log('🌐 [API] Fetching all public recipes', params);
+      const response = await apiClient.get('/recipes/public', { params });
+      console.log('✅ [API] Received', response.data?.data?.length || 0, 'recipes');
+      
+      if (response.data.success) {
+        return response.data.data || [];
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch public recipes');
+      }
+    } catch (error: any) {
+      console.error('❌ [API] Error fetching public recipes:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch public recipes');
     }
   }
 

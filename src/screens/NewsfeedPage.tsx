@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingVertical: 16,
     paddingHorizontal: 16,
-    paddingBottom: 40,
+    paddingBottom: 100, // Extra padding for bottom navigation
   },
   emptyContainer: {
     padding: 40,
