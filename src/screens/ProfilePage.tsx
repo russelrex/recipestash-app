@@ -21,6 +21,7 @@ import {
   RecipeListSkeleton,
 } from '../components/Loading/LoadingComponents';
 import ProfileAvatar from '../components/ProfileAvatar';
+import { UserName } from '../components/UserName';
 import {
   authApi,
   followsApi,
@@ -32,6 +33,7 @@ import {
   type UserProfile,
 } from '../services/api';
 import { isOfflineMode } from '../services/cache/offlineUtils';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { CARD_STYLES, COLORS, SPACING, TYPOGRAPHY } from '../styles/modernStyles';
 import { Colors } from '../theme';
 import EditProfileModal from './EditProfileModal';
@@ -188,9 +190,32 @@ export default function ProfilePage() {
                   style={styles.avatar}
                 />
 
-              <Text variant="headlineSmall" style={styles.name}>
-                {userName}
-              </Text>
+              <UserName
+                name={userName}
+                subscription={profile?.subscription}
+                isPremium={profile?.isPremium}
+                style={styles.name}
+                badgeSize={20}
+                containerStyle={styles.nameRow}
+              />
+
+              {(profile?.subscription?.isPremium || profile?.isPremium) && (
+                <View style={styles.premiumBanner}>
+                  <Icon
+                    name={profile?.subscription?.tier === 'pro' ? 'crown' : 'star'}
+                    size={16}
+                    color={COLORS.primary}
+                  />
+                  <Text style={styles.premiumText}>
+                    {profile?.subscription?.tier === 'pro'
+                      ? 'Pro'
+                      : profile?.subscription?.tier === 'premium' || profile?.isPremium
+                        ? 'Premium'
+                        : 'Premium'}{' '}
+                    Member
+                  </Text>
+                </View>
+              )}
 
               {profile?.bio
                 ? <Text variant="bodyMedium" style={styles.bio}>{profile.bio}</Text>
@@ -406,6 +431,28 @@ const styles = StyleSheet.create({
   name: {
     ...(TYPOGRAPHY.h2 as object),
     marginTop: 8,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  premiumBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.primaryAlpha10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  premiumText: {
+    ...(TYPOGRAPHY.bodySmall as object),
+    color: COLORS.primary,
+    fontWeight: '600',
   },
   bio: {
     textAlign: 'center',

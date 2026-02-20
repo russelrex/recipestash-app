@@ -3,12 +3,14 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card, Text, Avatar } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import FollowButton from './FollowButton';
+import { PremiumBadge } from './PremiumBadge';
 import { authApi } from '../services/api';
 import { Colors } from '../theme';
 
 interface UserCardProps {
   userId: string;
   userName: string;
+  isPremium?: boolean;
   followersCount?: number;
   followingCount?: number;
   showFollowButton?: boolean;
@@ -18,6 +20,7 @@ interface UserCardProps {
 export default function UserCard({
   userId,
   userName,
+  isPremium,
   followersCount,
   followingCount,
   showFollowButton = true,
@@ -53,9 +56,12 @@ export default function UserCard({
               style={styles.avatar}
             />
             <View style={styles.details}>
-              <Text variant="titleMedium" style={styles.name}>
-                {userName}
-              </Text>
+              <View style={styles.nameRow}>
+                <Text variant="titleMedium" style={styles.name}>
+                  {userName}
+                </Text>
+                {isPremium && <PremiumBadge size={16} />}
+              </View>
               {(followersCount !== undefined || followingCount !== undefined) && (
                 <View style={styles.stats}>
                   {followersCount !== undefined && (
@@ -104,6 +110,10 @@ const styles = StyleSheet.create({
   details: {
     marginLeft: 12,
     flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   name: {
     fontWeight: 'bold',

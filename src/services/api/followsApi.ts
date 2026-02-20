@@ -4,8 +4,10 @@ export interface Follow {
   id: string;
   followerId: string;
   followerName: string;
+  followerIsPremium?: boolean;
   followingId: string;
   followingName: string;
+  followingIsPremium?: boolean;
   createdAt: string;
 }
 
@@ -18,6 +20,7 @@ export interface FollowStats {
 export interface SuggestedUser {
   id: string;
   name: string;
+  isPremium?: boolean;
   createdAt: string;
   updatedAt: string;
   followersCount: number;

@@ -1,5 +1,6 @@
 import cacheService from '../cache/cacheService';
 import apiClient from './config';
+import { Subscription } from '../../types/subscription';
 
 export interface Recipe {
   _id: string;
@@ -26,6 +27,8 @@ export interface Recipe {
     _id: string;
     name: string;
     profilePicture?: string;
+    isPremium?: boolean; // Legacy support
+    subscription?: Subscription; // New subscription-based
   };
 }
 

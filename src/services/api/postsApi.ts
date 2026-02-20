@@ -1,4 +1,5 @@
 import apiClient from './config';
+import { Subscription } from '../types/subscription';
 
 export interface Post {
   id: string;
@@ -7,11 +8,13 @@ export interface Post {
   content: string;
   recipeId?: string;
   recipeTitle?: string;
-  recipeImages?: string[]; // Add this - will store up to 3 images from recipe
+  recipeImages?: string[];
   imageUrl?: string;
   likes: string[];
   likesCount: number;
   commentsCount: number;
+  userIsPremium?: boolean; // Legacy support
+  userSubscription?: Subscription; // New subscription-based
   createdAt: string;
   updatedAt: string;
 }
@@ -21,6 +24,8 @@ export interface Comment {
   postId: string;
   userId: string;
   userName: string;
+  userIsPremium?: boolean; // Legacy support
+  userSubscription?: Subscription; // New subscription-based
   content: string;
   createdAt: string;
   updatedAt: string;
@@ -45,9 +50,28 @@ export interface PostsResponse {
 class PostsApi {
   private normalizePost(raw: any): Post {
     const id = raw?.id ?? raw?._id;
+    const userId = raw?.userId ?? raw?.user?._id ?? raw?.user?.id ?? raw?.author?._id ?? raw?.author?.id;
+    const userName = raw?.userName ?? raw?.user?.name ?? raw?.author?.name;
+    const userIsPremium =
+      raw?.userIsPremium === true ||
+      raw?.isPremium === true ||
+      raw?.user?.isPremium === true ||
+      raw?.author?.isPremium === true;
+    // Extract subscription from various possible locations
+    const userSubscription =
+      raw?.userSubscription ||
+      raw?.user?.subscription ||
+      raw?.author?.subscription ||
+      (raw?.userIsPremium || raw?.isPremium || raw?.user?.isPremium || raw?.author?.isPremium
+        ? { isPremium: true, tier: 'premium' as const }
+        : undefined);
     return {
       ...raw,
       id,
+      userId,
+      userName,
+      userIsPremium: userIsPremium || undefined,
+      userSubscription: userSubscription,
       likes: Array.isArray(raw?.likes) ? raw.likes : [],
       likesCount:
         typeof raw?.likesCount === 'number'
@@ -62,10 +86,22 @@ class PostsApi {
   private normalizeComment(raw: any): Comment {
     const id = raw?.id ?? raw?._id;
     const postId = raw?.postId ?? raw?.post ?? raw?.post?._id ?? raw?.post?.id;
+    const userIsPremium =
+      raw?.userIsPremium === true ||
+      raw?.isPremium === true ||
+      raw?.user?.isPremium === true ||
+      raw?.author?.isPremium === true;
+    const userSubscription =
+      raw?.userSubscription ||
+      raw?.user?.subscription ||
+      raw?.author?.subscription ||
+      (userIsPremium ? { isPremium: true, tier: 'premium' as const } : undefined);
     return {
       ...raw,
       id,
       postId,
+      userIsPremium: userIsPremium || undefined,
+      userSubscription: userSubscription,
     } as Comment;
   }
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { Text, Avatar, IconButton } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
+import { UserName } from './UserName';
 import { authApi, type Comment } from '../services/api';
 import { Colors } from '../theme';
 
@@ -72,9 +73,14 @@ export default function CommentItem({ comment, onDelete }: CommentItemProps) {
                 navigation.navigate('UserProfile' as never, { userId: comment.userId } as never)
               }
             >
-              <Text variant="titleSmall" style={styles.userName}>
-                {comment.userName}
-              </Text>
+              <UserName
+                name={comment.userName}
+                subscription={comment.userSubscription}
+                isPremium={comment.userIsPremium}
+                variant="titleSmall"
+                style={styles.userName}
+                badgeSize={14}
+              />
             </TouchableOpacity>
             {isOwnComment && (
               <IconButton icon="delete-outline" size={16} onPress={handleDelete} />

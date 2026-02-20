@@ -1,6 +1,15 @@
 import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
-import { Alert, Dimensions, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  Dimensions,
+  Image,
+  ImageBackground,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import {
   Avatar,
   Divider,
@@ -15,6 +24,7 @@ import { COLORS, SHADOWS, SPACING, TYPOGRAPHY } from '../styles/modernStyles';
 import { Colors } from '../theme';
 import CommentItem from './CommentItem';
 import ProfileAvatar from './ProfileAvatar';
+import { UserName } from './UserName';
 
 const placeholderImage = require('../../assets/images/recipe_placeholder.webp');
 
@@ -22,6 +32,7 @@ const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 32; // Account for padding
 const CARD_HEIGHT = 480; // Fixed height for all cards
 const IMAGE_SECTION_HEIGHT = 280; // Fixed height for image section
+const FEATURED_IMAGE_HEIGHT = 320; // Taller when linked recipe is featured
 const HEADER_HEIGHT = 60; // Fixed height for header
 const CONTENT_HEIGHT = 80; // Fixed height for content section
 const ACTIONS_HEIGHT = 50; // Fixed height for actions
@@ -61,7 +72,18 @@ export default function PostCard({
   }, []);
 
   useEffect(() => {
-    setLocalPost(post);
+    setLocalPost(prev => {
+      const next = { ...post };
+      // Preserve recipe fields if API (e.g. toggleLike) returns a partial post without them
+      if (post.id === prev?.id) {
+        if (next.recipeId == null && prev.recipeId != null) next.recipeId = prev.recipeId;
+        if (next.recipeTitle == null && prev.recipeTitle != null) next.recipeTitle = prev.recipeTitle;
+        if ((!next.recipeImages?.length) && prev.recipeImages?.length) next.recipeImages = prev.recipeImages;
+        if (next.userIsPremium == null && prev.userIsPremium != null) next.userIsPremium = prev.userIsPremium;
+        if (!next.userSubscription && prev.userSubscription) next.userSubscription = prev.userSubscription;
+      }
+      return next;
+    });
     setUserAvatarUrl(null);
   }, [post]);
 
@@ -239,11 +261,78 @@ export default function PostCard({
   };
 
   const images = getAllImages();
+  const hasLinkedRecipe = localPost.recipeId && localPost.recipeTitle;
 
-  // Render images based on count
+  const handleRecipePress = () => {
+    if (localPost.recipeId) {
+      navigation.navigate(
+        'RecipeDetail' as never,
+        { recipeId: localPost.recipeId } as never,
+      );
+    }
+  };
+
+  // Linked recipe: featured image as background with content overlay and recipe badge
+  const renderLinkedRecipeFeatured = () => {
+    const recipeImageUri =
+      (localPost.recipeImages && localPost.recipeImages[0]) ||
+      localPost.imageUrl ||
+      null;
+    const source = recipeImageUri
+      ? { uri: recipeImageUri }
+      : placeholderImage;
+
+    return (
+      <TouchableOpacity
+        activeOpacity={0.98}
+        onPress={handleRecipePress}
+        style={styles.featuredImageTouchable}
+      >
+        <ImageBackground
+          source={source}
+          style={styles.recipeImageBackground}
+          imageStyle={styles.recipeImageStyle}
+        >
+          <LinearGradient
+            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.35)', 'rgba(0,0,0,0.85)']}
+            locations={[0, 0.45, 1]}
+            style={styles.recipeGradientOverlay}
+          />
+          <View style={styles.recipeContentOverlay} pointerEvents="box-none">
+            <Text
+              style={styles.recipeContentText}
+              numberOfLines={3}
+            >
+              {localPost.content}
+            </Text>
+            <TouchableOpacity
+              style={styles.recipeBadge}
+              onPress={handleRecipePress}
+              activeOpacity={0.8}
+            >
+              <View style={styles.recipeBadgeContent}>
+                <Icon name="book-open-variant" size={18} color={COLORS.primary} />
+                <Text style={styles.recipeBadgeText} numberOfLines={1}>
+                  {localPost.recipeTitle}
+                </Text>
+                <Icon name="chevron-right" size={20} color={COLORS.primary} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        </ImageBackground>
+      </TouchableOpacity>
+    );
+  };
+
+  // Render images based on count (regular posts only)
   const renderImages = () => {
+    // If no linked recipe and no images, don't show image section at all
+    if (images.length === 0 && !hasLinkedRecipe) {
+      return null;
+    }
+
     if (images.length === 0) {
-      // No images - show placeholder
+      // No images but has linked recipe - show placeholder (legacy path; featured uses renderLinkedRecipeFeatured)
       return (
         <Image
           source={placeholderImage}
@@ -373,14 +462,28 @@ export default function PostCard({
     : [];
   const hasMoreComments = comments.length > maxCommentsPreview;
 
-  // Calculate card height: base + linked recipe (if present) + comments (if visible)
-  const hasLinkedRecipe = localPost.recipeId && localPost.recipeTitle;
-  const linkedRecipeHeight = hasLinkedRecipe ? 40 : 0;
-  const commentsHeight = commentsVisible && comments.length > 0 ? undefined : 0; // Dynamic for comments
-  const baseCardHeight = HEADER_HEIGHT + CONTENT_HEIGHT + IMAGE_SECTION_HEIGHT + ACTIONS_HEIGHT + linkedRecipeHeight;
+  // Calculate card height
+  const shouldShowImageSection = images.length > 0 || hasLinkedRecipe;
+  const contentSectionHeight = hasLinkedRecipe ? 0 : CONTENT_HEIGHT;
+  const imageSectionHeight = shouldShowImageSection
+    ? hasLinkedRecipe
+      ? FEATURED_IMAGE_HEIGHT
+      : IMAGE_SECTION_HEIGHT
+    : 0;
+  const baseCardHeight =
+    HEADER_HEIGHT +
+    contentSectionHeight +
+    imageSectionHeight +
+    ACTIONS_HEIGHT;
+
+  // When comments are expanded, allow card to grow so comment list + input are visible
+  const isCommentsExpanded = showComments && (commentsVisible || showCommentInput);
+  const cardStyle = isCommentsExpanded
+    ? [styles.card, { minHeight: baseCardHeight }]
+    : [styles.card, { height: baseCardHeight }];
 
   return (
-    <View style={[styles.card, { height: baseCardHeight }]}>
+    <View style={cardStyle}>
       {/* Header - Fixed Height */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -399,9 +502,15 @@ export default function PostCard({
             style={styles.avatar}
           />
           <View style={styles.userDetails}>
-            <Text variant="titleMedium" style={styles.userName}>
-              {localPost.userName}
-            </Text>
+            <UserName
+              name={localPost.userName}
+              subscription={localPost.userSubscription}
+              isPremium={localPost.userIsPremium}
+              variant="titleMedium"
+              style={styles.userName}
+              badgeSize={16}
+              numberOfLines={1}
+            />
             <Text variant="bodySmall" style={styles.timestamp}>
               {formatTimeAgo(localPost.createdAt)}
             </Text>
@@ -437,35 +546,25 @@ export default function PostCard({
         )}
       </View>
 
-      {/* Content Text - Fixed Height with Ellipsis */}
-      <View style={styles.contentSection}>
-        <Text variant="bodyLarge" style={styles.contentText} numberOfLines={3}>
-          {localPost.content}
-        </Text>
-      </View>
-
-      {/* Images - Fixed Height */}
-      <View style={styles.imageSection}>
-        {renderImages()}
-      </View>
-
-      {/* Linked Recipe (if any) - Fixed Height */}
-      {hasLinkedRecipe && (
-        <TouchableOpacity
-          style={styles.linkedRecipe}
-          onPress={() =>
-            navigation.navigate(
-              'RecipeDetail' as never,
-              { recipeId: localPost.recipeId } as never,
-            )
-          }
-        >
-          <Icon name="book-open-variant" size={16} color={COLORS.primary} />
-          <Text style={styles.linkedRecipeText} numberOfLines={1}>
-            {localPost.recipeTitle}
+      {/* Content Text - only when NO linked recipe (content moves to overlay when linked) */}
+      {!hasLinkedRecipe && (
+        <View style={styles.contentSection}>
+          <Text variant="bodyLarge" style={styles.contentText} numberOfLines={3}>
+            {localPost.content}
           </Text>
-          <Icon name="chevron-right" size={18} color={COLORS.textSecondary} style={{ marginLeft: 8 }} />
-        </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Image Section: featured recipe background or regular images */}
+      {shouldShowImageSection && (
+        <View
+          style={[
+            styles.imageSection,
+            hasLinkedRecipe && { height: FEATURED_IMAGE_HEIGHT },
+          ]}
+        >
+          {hasLinkedRecipe ? renderLinkedRecipeFeatured() : renderImages()}
+        </View>
       )}
 
       {/* Actions - Fixed Height */}
@@ -643,11 +742,63 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
 
-  // Image Section - Fixed 280px
+  // Image Section - Fixed 280px (or FEATURED_IMAGE_HEIGHT when linked recipe)
   imageSection: {
     height: IMAGE_SECTION_HEIGHT,
     backgroundColor: COLORS.border,
     width: '100%',
+  },
+
+  // Linked recipe featured layout
+  featuredImageTouchable: {
+    width: '100%',
+    height: '100%',
+  },
+  recipeImageBackground: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'flex-end',
+  },
+  recipeImageStyle: {
+    borderRadius: 0,
+  },
+  recipeGradientOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '70%',
+  },
+  recipeContentOverlay: {
+    padding: 20,
+    paddingBottom: 16,
+  },
+  recipeContentText: {
+    ...(TYPOGRAPHY.body as object),
+    color: '#fff',
+    lineHeight: 22,
+    marginBottom: 12,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  recipeBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  recipeBadgeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  recipeBadgeText: {
+    flex: 1,
+    ...(TYPOGRAPHY.label as object),
+    color: COLORS.text,
+    fontSize: 15,
+    marginLeft: 8,
   },
 
   // No images placeholder
@@ -785,7 +936,7 @@ const styles = StyleSheet.create({
   commentsSection: {
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 8,
+    paddingBottom: 4,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
   },
@@ -816,7 +967,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingTop: 4,
+    paddingBottom: 8,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
   },

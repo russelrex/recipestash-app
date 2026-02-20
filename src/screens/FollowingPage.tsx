@@ -63,6 +63,7 @@ export default function FollowingPage() {
               <UserCard
                 userId={item.followingId}
                 userName={item.followingName}
+                isPremium={item.followingIsPremium}
                 showFollowButton={true}
                 onFollowChange={() => loadFollowing()}
               />

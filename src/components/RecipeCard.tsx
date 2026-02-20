@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { UserName } from './UserName';
 import { Recipe } from '../services/api';
 import { COLORS, SHADOWS, SPACING, TYPOGRAPHY } from '../styles/modernStyles';
 
@@ -105,9 +106,17 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onPress }) => {
                   <Text style={styles.recipeTitle} numberOfLines={1}>
                     {recipe.title}
                   </Text>
-                  <Text style={styles.authorName} numberOfLines={1}>
-                    by {authorName}
-                  </Text>
+                  <View style={styles.authorRow}>
+                    <Text style={styles.byText}>by </Text>
+                    <UserName
+                      name={authorName}
+                      subscription={recipe.author?.subscription}
+                      isPremium={recipe.author?.isPremium}
+                      style={styles.authorName}
+                      badgeSize={14}
+                      numberOfLines={1}
+                    />
+                  </View>
                   <View style={styles.metaRow}>
                     <Icon name="clock-outline" size={12} color={COLORS.text} />
                     <Text style={styles.metaText}>
@@ -272,12 +281,24 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
 
+  authorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+
+  byText: {
+    ...(TYPOGRAPHY.bodySmall as object),
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#374151',
+  },
+
   authorName: {
     ...(TYPOGRAPHY.bodySmall as object),
     fontSize: 12,
     fontWeight: '500',
     color: '#374151', // Dark gray for secondary text
-    marginBottom: 4,
   },
 
   metaRow: {
