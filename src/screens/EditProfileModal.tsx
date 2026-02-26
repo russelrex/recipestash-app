@@ -1,15 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View, StyleSheet, TouchableOpacity, Alert,
+  Alert,
   KeyboardAvoidingView, Platform,
+  StyleSheet, TouchableOpacity,
+  View,
 } from 'react-native';
 import {
-  Modal, Text, TextInput, Button, Avatar,
-  ActivityIndicator, IconButton, Surface, Divider,
+  ActivityIndicator,
+  Avatar,
+  Button,
+  Divider,
+  IconButton,
+  Modal,
+  Surface,
+  Text, TextInput,
 } from 'react-native-paper';
-import { authApi, UserProfile } from '../services/api';
 import { useImagePicker } from '../hooks/useImagePicker';
-import { imageUploadService } from '../services/imageUploadService';
+import { authApi, UserProfile } from '../services/api';
 
 const Colors = {
   primary: '#B15912',
@@ -110,29 +117,17 @@ export default function EditProfileModal({
         bio: bio.trim(),
       };
 
-      // Upload image if a new one was selected
+      // If a new image was selected, send its URI directly in the profile update.
+      // The backend /users/profile endpoint is responsible for handling the image.
       if (avatarUri) {
-        setUploading(true);
-        try {
-          console.log('Uploading profile picture...');
-          const uploadResult = await imageUploadService.uploadProfilePicture(avatarUri);
-          console.log('Upload result:', uploadResult);
-          payload.avatarUrl = uploadResult.url;
-        } catch (uploadError: any) {
-          console.error('Upload error:', uploadError);
-          Alert.alert('Upload Failed', uploadError.message || 'Failed to upload image. Please try again.');
-          setUploading(false);
-          setSaving(false);
-          return;
-        } finally {
-          setUploading(false);
-        }
+        payload.avatarUrl = avatarUri;
       } else if (avatarPreview === null && currentProfile?.avatarUrl) {
         // User removed avatar - send empty string to clear it
         payload.avatarUrl = '';
       }
 
       const updated = await authApi.updateProfile(payload);
+      console.log('Updated profile:', updated);
       onSave(updated);
       onClose();
     } catch (e: any) {

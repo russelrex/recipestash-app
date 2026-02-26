@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Subscription } from '../../types/subscription';
 import cacheService from '../cache/cacheService';
 import offlineAuth from '../cache/offlineAuth';
 import apiClient from './config';
-import { Subscription } from '../../types/subscription';
 
 export interface AuthResponse {
   success: boolean;

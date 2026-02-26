@@ -19,6 +19,8 @@ import {
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ImageUploadSection from '../components/ImageUploadSection';
+import IngredientInput from '../components/IngredientInput';
+import RecipeStepInput, { EditableRecipeStep } from '../components/RecipeStepInput';
 import { authApi, CreateRecipeData, recipesApi, UpdateRecipeData } from '../services/api';
 import type { ImageData } from '../services/imagePicker';
 import { imageUploadService } from '../services/imageUploadService';
@@ -61,11 +63,9 @@ export default function AddRecipePage() {
 
   // Ingredients state
   const [ingredients, setIngredients] = useState<string[]>(['']);
-  const [currentIngredient, setCurrentIngredient] = useState('');
 
-  // Instructions state
-  const [instructions, setInstructions] = useState<string[]>(['']);
-  const [currentInstruction, setCurrentInstruction] = useState('');
+  // Structured steps state (with optional images)
+  const [steps, setSteps] = useState<EditableRecipeStep[]>([]);
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -96,7 +96,26 @@ export default function AddRecipePage() {
       setServings(recipe.servings.toString());
       setFeatured(recipe.featured || false);
       setIngredients(recipe.ingredients.length > 0 ? recipe.ingredients : ['']);
-      setInstructions(recipe.instructions.length > 0 ? recipe.instructions : ['']);
+
+      // Prefer structured steps when available; otherwise fall back to legacy instructions
+      if (Array.isArray((recipe as any).steps) && (recipe as any).steps.length > 0) {
+        const mappedSteps: EditableRecipeStep[] = (recipe as any).steps.map((step: any, index: number) => ({
+          id: step._id || `${index}`,
+          description: step.description || '',
+          image: undefined,
+          existingImageUrl: step.imageUrl || undefined,
+        }));
+        setSteps(mappedSteps);
+      } else {
+        const legacyInstructions = recipe.instructions.length > 0 ? recipe.instructions : [''];
+        const mappedSteps: EditableRecipeStep[] = legacyInstructions.map((text, index) => ({
+          id: `${index}`,
+          description: text,
+          image: undefined,
+          existingImageUrl: undefined,
+        }));
+        setSteps(mappedSteps);
+      }
 
       if (recipe.featuredImage) {
         setExistingFeaturedUrl(recipe.featuredImage);
@@ -145,10 +164,10 @@ export default function AddRecipePage() {
     if (validIngredients.length === 0) {
       newErrors.ingredients = 'At least one ingredient required';
     }
-    
-    const validInstructions = instructions.filter(i => i.trim());
-    if (validInstructions.length === 0) {
-      newErrors.instructions = 'At least one instruction required';
+
+    const validSteps = steps.filter(step => step.description.trim());
+    if (validSteps.length === 0) {
+      newErrors.instructions = 'At least one instruction step is required';
     }
 
     setErrors(newErrors);
@@ -172,25 +191,35 @@ export default function AddRecipePage() {
   };
 
   const handleAddIngredient = () => {
-    if (currentIngredient.trim()) {
-      setIngredients([...ingredients, currentIngredient.trim()]);
-      setCurrentIngredient('');
-    }
+    setIngredients(prev => [...prev, '']);
+  };
+
+  const handleIngredientChange = (index: number, value: string) => {
+    setIngredients(prev => prev.map((ing, i) => (i === index ? value : ing)));
   };
 
   const handleRemoveIngredient = (index: number) => {
-    setIngredients(ingredients.filter((_, i) => i !== index));
+    setIngredients(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleAddInstruction = () => {
-    if (currentInstruction.trim()) {
-      setInstructions([...instructions, currentInstruction.trim()]);
-      setCurrentInstruction('');
-    }
+  const handleAddStep = () => {
+    setSteps(prev => [
+      ...prev,
+      {
+        id: `${Date.now()}-${prev.length}`,
+        description: '',
+        image: undefined,
+        existingImageUrl: undefined,
+      },
+    ]);
   };
 
-  const handleRemoveInstruction = (index: number) => {
-    setInstructions(instructions.filter((_, i) => i !== index));
+  const handleUpdateStep = (index: number, updated: EditableRecipeStep) => {
+    setSteps(prev => prev.map((step, i) => (i === index ? updated : step)));
+  };
+
+  const handleRemoveStep = (index: number) => {
+    setSteps(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
@@ -211,7 +240,9 @@ export default function AddRecipePage() {
 
     try {
       const validIngredients = ingredients.filter(i => i.trim());
-      const validInstructions = instructions.filter(i => i.trim());
+
+      // Prepare structured steps (with uploaded image URLs)
+      const rawSteps = steps.filter(step => step.description.trim());
 
       // Get auth token for image uploads
       const authToken = await authApi.getAuthToken();
@@ -245,12 +276,36 @@ export default function AddRecipePage() {
         ...uploadedAdditionalImages,
       ].slice(0, 5); // Max 5 images
 
+      // Upload step images and build structured payload
+      const preparedSteps = [];
+      for (let i = 0; i < rawSteps.length; i++) {
+        const step = rawSteps[i];
+
+        let imageUrl: string | undefined = step.existingImageUrl;
+        if (step.image) {
+          console.log('Uploading step image...');
+          const uploadResult = await imageUploadService.uploadRecipeImage(step.image.uri, authToken);
+          imageUrl = uploadResult.url;
+          console.log('Step image uploaded:', uploadResult.url);
+        }
+
+        preparedSteps.push({
+          stepNumber: i + 1,
+          description: step.description.trim(),
+          imageUrl,
+        });
+      }
+
+      // Legacy instructions array for backwards compatibility (description only)
+      const validInstructions = preparedSteps.map(step => step.description);
+
       if (isEditMode) {
         const recipeData: UpdateRecipeData = {
           title: title.trim(),
           description: description.trim(),
           ingredients: validIngredients,
           instructions: validInstructions,
+          steps: preparedSteps,
           category,
           prepTime: parseInt(prepTime),
           cookTime: parseInt(cookTime),
@@ -298,6 +353,7 @@ export default function AddRecipePage() {
           servings: parseInt(servings),
           ingredients: validIngredients,
           instructions: validInstructions,
+          steps: preparedSteps,
           ownerId: userId,
           ownerName: userName,
           featured,
@@ -621,94 +677,44 @@ export default function AddRecipePage() {
             </View>
             <Divider style={styles.divider} />
 
-            <Surface style={styles.addItemSurface} elevation={1}>
-              <View style={styles.addItemRow}>
-                <TextInput
-                  label="Add Ingredient"
-                  value={currentIngredient}
-                  onChangeText={setCurrentIngredient}
-                  mode="outlined"
-                  style={styles.addItemInput}
-                  placeholder="e.g., 2 cups flour"
-                  onSubmitEditing={handleAddIngredient}
-                  left={<TextInput.Icon icon="plus-circle-outline" />}
-                  contentStyle={styles.inputContent}
-                />
-                <IconButton
-                  icon="plus-circle"
-                  size={36}
-                  iconColor={theme.colors.primary}
-                  onPress={handleAddIngredient}
-                  style={styles.addButton}
-                />
-              </View>
-            </Surface>
-
             {errors.ingredients ? (
               <HelperText type="error" visible={true} style={styles.helperText}>
                 {errors.ingredients}
               </HelperText>
             ) : null}
 
-            <View style={styles.listContainer}>
-              {ingredients.map((ingredient, index) => 
-                ingredient.trim() ? (
-                  <Surface key={index} style={styles.listItemSurface} elevation={1}>
-                    <View style={styles.listItem}>
-                      <Avatar.Text 
-                        size={28} 
-                        label={(index + 1).toString()} 
-                        style={[styles.listNumberAvatar, { backgroundColor: theme.colors.primary }]}
-                        labelStyle={styles.listNumberText}
-                      />
-                      <Text style={styles.listText}>{ingredient}</Text>
-                      <IconButton
-                        icon="close-circle"
-                        size={24}
-                        iconColor={theme.colors.error}
-                        onPress={() => handleRemoveIngredient(index)}
-                        style={styles.removeButton}
-                      />
-                    </View>
-                  </Surface>
-                ) : null
-              )}
+            <View style={styles.stepsContainer}>
+              {ingredients.map((ingredient, index) => (
+                <IngredientInput
+                  key={index}
+                  index={index}
+                  value={ingredient}
+                  onChange={(text) => handleIngredientChange(index, text)}
+                  onRemove={() => handleRemoveIngredient(index)}
+                />
+              ))}
+
+              <Button
+                mode="outlined"
+                icon="plus-circle"
+                onPress={handleAddIngredient}
+                style={styles.addStepButton}
+                contentStyle={styles.addStepButtonContent}
+              >
+                Add Ingredient
+              </Button>
             </View>
           </Surface>
 
-          {/* Instructions Section */}
+          {/* Instructions / Steps Section */}
           <Surface style={styles.surface} elevation={2}>
             <View style={styles.sectionHeader}>
               <Avatar.Icon icon="format-list-numbered" size={32} style={styles.sectionIcon} />
               <Text variant="titleLarge" style={styles.sectionTitle}>
-                Instructions *
+                Step-by-step instructions *
               </Text>
             </View>
             <Divider style={styles.divider} />
-
-            <Surface style={styles.addItemSurface} elevation={1}>
-              <View style={styles.addItemRow}>
-                <TextInput
-                  label="Add Step"
-                  value={currentInstruction}
-                  onChangeText={setCurrentInstruction}
-                  mode="outlined"
-                  style={styles.addItemInput}
-                  placeholder="e.g., Preheat oven to 350°F"
-                  multiline
-                  onSubmitEditing={handleAddInstruction}
-                  left={<TextInput.Icon icon="plus-circle-outline" />}
-                  contentStyle={styles.inputContent}
-                />
-                <IconButton
-                  icon="plus-circle"
-                  size={36}
-                  iconColor={theme.colors.primary}
-                  onPress={handleAddInstruction}
-                  style={styles.addButton}
-                />
-              </View>
-            </Surface>
 
             {errors.instructions ? (
               <HelperText type="error" visible={true} style={styles.helperText}>
@@ -716,29 +722,26 @@ export default function AddRecipePage() {
               </HelperText>
             ) : null}
 
-            <View style={styles.listContainer}>
-              {instructions.map((instruction, index) => 
-                instruction.trim() ? (
-                  <Surface key={index} style={styles.listItemSurface} elevation={1}>
-                    <View style={styles.listItem}>
-                      <Avatar.Text 
-                        size={28} 
-                        label={(index + 1).toString()} 
-                        style={[styles.listNumberAvatar, { backgroundColor: theme.colors.secondary }]}
-                        labelStyle={styles.listNumberText}
-                      />
-                      <Text style={styles.listText}>{instruction}</Text>
-                      <IconButton
-                        icon="close-circle"
-                        size={24}
-                        iconColor={theme.colors.error}
-                        onPress={() => handleRemoveInstruction(index)}
-                        style={styles.removeButton}
-                      />
-                    </View>
-                  </Surface>
-                ) : null
-              )}
+            <View style={styles.stepsContainer}>
+              {steps.map((step, index) => (
+                <RecipeStepInput
+                  key={step.id}
+                  step={step}
+                  index={index}
+                  onChange={(updated) => handleUpdateStep(index, updated)}
+                  onRemove={() => handleRemoveStep(index)}
+                />
+              ))}
+
+              <Button
+                mode="outlined"
+                icon="plus-circle"
+                onPress={handleAddStep}
+                style={styles.addStepButton}
+                contentStyle={styles.addStepButtonContent}
+              >
+                Add Step
+              </Button>
             </View>
           </Surface>
 

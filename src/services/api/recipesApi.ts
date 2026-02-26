@@ -2,13 +2,24 @@ import cacheService from '../cache/cacheService';
 import apiClient from './config';
 import { Subscription } from '../../types/subscription';
 
+// Simplified cooking step: just a numbered step with description and optional image.
+export interface RecipeStep {
+  _id?: string;
+  stepNumber: number;
+  description: string;
+  imageUrl?: string;
+}
+
 export interface Recipe {
   _id: string;
   userId: string;
   title: string;
   description: string;
   ingredients: string[];
+  // Legacy plain-text instructions (kept for backwards compatibility / export).
   instructions: string[];
+  // New structured steps with optional images and metadata.
+  steps?: RecipeStep[];
   category: string;
   prepTime: number;
   cookTime: number;
@@ -32,11 +43,22 @@ export interface Recipe {
   };
 }
 
+// Payload shape for creating/updating steps from the client.
+// Mirrors RecipeStep but without any backend-generated identifiers.
+export interface RecipeStepInput {
+  stepNumber: number;
+  description: string;
+  imageUrl?: string;
+}
+
 export interface CreateRecipeData {
   title: string;
   description: string;
   ingredients: string[];
+  // Keep simple instructions for backwards compatibility and export.
   instructions: string[];
+  // New structured steps; backend can prioritize this when present.
+  steps?: RecipeStepInput[];
   category: string;
   prepTime: number;
   cookTime: number;
@@ -53,7 +75,10 @@ export interface UpdateRecipeData {
   title?: string;
   description?: string;
   ingredients?: string[];
+  // Keep simple instructions for backwards compatibility and export.
   instructions?: string[];
+  // New structured steps; backend can prioritize this when present.
+  steps?: RecipeStepInput[];
   category?: string;
   prepTime?: number;
   cookTime?: number;

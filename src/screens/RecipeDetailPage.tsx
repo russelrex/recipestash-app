@@ -12,7 +12,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Divider,
@@ -20,8 +19,10 @@ import {
   Snackbar,
   Text,
 } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { authApi, postsApi, recipesApi, type Post, type Recipe } from '../services/api';
+import type { RecipeStep } from '../services/api/recipesApi';
 import { Colors } from '../theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -377,7 +378,7 @@ export default function RecipeDetailPage() {
           {recipe.description ? <Text style={styles.description}>{recipe.description}</Text> : null}
 
           {/* related posts */}
-          {relatedPosts.length > 0 && (
+          {/* {relatedPosts.length > 0 && (
             <View style={styles.postsSection}>
               <Text style={styles.postsSectionTitle}>Posted by</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.postsScroll}>
@@ -404,7 +405,7 @@ export default function RecipeDetailPage() {
                 </View>
               </ScrollView>
             </View>
-          )}
+          )} */}
         </View>
 
         {/* ─── Tabs ──────────────────────────────────── */}
@@ -433,14 +434,42 @@ export default function RecipeDetailPage() {
                   <Text style={styles.ingredientText}>{item}</Text>
                 </View>
               ))
-            : recipe.instructions.map((item, i) => (
-                <View key={i} style={styles.instructionRow}>
-                  <View style={styles.stepBadge}>
-                    <Text style={styles.stepBadgeNum}>{i + 1}</Text>
-                  </View>
-                  <Text style={styles.instructionText}>{item}</Text>
-                </View>
-              ))}
+            : (
+              <View>
+                {Array.isArray((recipe as any).steps) && (recipe as any).steps.length > 0
+                  ? ((recipe as any).steps as RecipeStep[]).map((step, index) => {
+                      const stepNumber = (step as any).stepNumber || index + 1;
+                      return (
+                        <View key={step._id || index} style={styles.stepCard}>
+                          <View style={styles.stepCardHeader}>
+                            <View style={styles.stepBadge}>
+                              <Text style={styles.stepBadgeNum}>{stepNumber}</Text>
+                            </View>
+                            <Text style={styles.stepTitle}>Step {stepNumber}</Text>
+                          </View>
+
+                          {step.imageUrl ? (
+                            <View style={styles.stepImageWrapper}>
+                              <Image source={{ uri: step.imageUrl }} style={styles.stepImage} />
+                            </View>
+                          ) : null}
+
+                          <Text style={styles.stepDescription}>
+                            {step.description}
+                          </Text>
+                        </View>
+                      );
+                    })
+                  : recipe.instructions.map((item, i) => (
+                      <View key={i} style={styles.instructionRow}>
+                        <View style={styles.stepBadge}>
+                          <Text style={styles.stepBadgeNum}>{i + 1}</Text>
+                        </View>
+                        <Text style={styles.instructionText}>{item}</Text>
+                      </View>
+                    ))}
+              </View>
+            )}
         </View>
 
         {/* ─── Time breakdown ────────────────────────── */}
@@ -734,16 +763,68 @@ const styles = StyleSheet.create({
     marginTop: 9, marginRight: 12,
   },
   ingredientText: { flex: 1, fontSize: 16, lineHeight: 24, color: Colors.text.primary },
-
+  // Legacy simple instruction rows (fallback when no structured steps)
   instructionRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20 },
   stepBadge: {
-    width: 32, height: 32, borderRadius: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: Colors.primary.main,
-    justifyContent: 'center', alignItems: 'center',
-    marginRight: 12, flexShrink: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    flexShrink: 0,
   },
   stepBadgeNum: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
-  instructionText: { flex: 1, fontSize: 16, lineHeight: 24, color: Colors.text.primary, paddingTop: 4 },
+  instructionText: {
+    flex: 1,
+    fontSize: 16,
+    lineHeight: 24,
+    color: Colors.text.primary,
+    paddingTop: 4,
+  },
+
+  // New step cards with optional images and metadata
+  stepCard: {
+    borderRadius: 16,
+    backgroundColor: Colors.background.paper,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+    padding: 14,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  stepCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  stepTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  stepImageWrapper: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  stepImage: {
+    width: '100%',
+    height: 200,
+    backgroundColor: Colors.border.light,
+  },
+  stepDescription: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: Colors.text.primary,
+    marginTop: 4,
+  },
 
   // ─── time bar ──────────────────────────────────────────────
   timeBar: {

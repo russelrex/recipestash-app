@@ -1,5 +1,5 @@
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 import { API_BASE_URL } from './api/config';
 
 export interface UploadResponse {
@@ -36,12 +36,17 @@ class ImageUploadService {
       console.log('Upload endpoint:', `${API_BASE_URL}${endpoint}`);
 
       // Get auth token if not provided
-      let authToken = token;
+      let authToken: string | undefined = token;
       if (!authToken) {
-        authToken = await AsyncStorage.getItem('authToken');
-        if (authToken === 'null' || authToken === 'offline' || !authToken) {
+        const storedToken = await AsyncStorage.getItem('authToken');
+        if (
+          !storedToken ||
+          storedToken === 'null' ||
+          storedToken === 'offline'
+        ) {
           throw new Error('Authentication required for image upload');
         }
+        authToken = storedToken;
       }
 
       // Create FormData
@@ -61,10 +66,13 @@ class ImageUploadService {
       } as any);
 
       // Prepare headers
+      // NOTE: Do NOT set the Content-Type manually here.
+      // Axios will set the correct multipart/form-data boundary automatically
+      // when sending FormData. Manually setting it can cause the backend
+      // to see an empty payload.
       const headers: any = {
-        'Content-Type': 'multipart/form-data',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
+        Accept: 'application/json',
+        Authorization: `Bearer ${authToken}`,
       };
 
       console.log('Uploading to:', `${API_BASE_URL}${endpoint}`);
