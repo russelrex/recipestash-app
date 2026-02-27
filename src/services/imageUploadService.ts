@@ -122,6 +122,9 @@ class ImageUploadService {
     imageUri: string,
     token?: string
   ): Promise<UploadResponse> {
+    // Use the dedicated profile-picture endpoint on the recipes controller.
+    // This matches the backend signature:
+    // POST /api/recipes/profile-picture with field name "file".
     return this.uploadImage(imageUri, '/users/profile-picture', token);
   }
 

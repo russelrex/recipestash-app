@@ -1,6 +1,7 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  Alert,
   ImageBackground,
   RefreshControl,
   ScrollView,
@@ -15,6 +16,7 @@ import {
   Text
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
   PostListSkeleton,
   ProfileCardSkeleton,
@@ -33,7 +35,6 @@ import {
   type UserProfile,
 } from '../services/api';
 import { isOfflineMode } from '../services/cache/offlineUtils';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { CARD_STYLES, COLORS, SPACING, TYPOGRAPHY } from '../styles/modernStyles';
 import { Colors } from '../theme';
 import EditProfileModal from './EditProfileModal';
@@ -138,9 +139,66 @@ export default function ProfilePage() {
     return icons[category.toLowerCase()] || 'food';
   };
 
+  // All recipes loaded for this user; keep a derived list for clarity
+  const myRecipes: Recipe[] = recipes.filter(
+    (recipe: Recipe) => recipe.userId === userId || (recipe as any).ownerId === userId,
+  );
+
+  const handleEditRecipe = (recipe: Recipe) => {
+    (navigation as any).navigate('AddRecipe', {
+      recipeId: recipe._id,
+      mode: 'edit',
+    });
+  };
+
+  const handleToggleFeatured = async (recipe: Recipe) => {
+    try {
+      const updated = await recipesApi.updateRecipe(recipe._id, { featured: !recipe.featured });
+      setRecipes(prev =>
+        prev.map(r => (r._id === recipe._id ? updated : r)),
+      );
+      setSnackbarMessage(
+        updated.featured
+          ? 'Recipe set as featured ⭐'
+          : 'Recipe removed from featured',
+      );
+      setSnackbarVisible(true);
+    } catch (error: any) {
+      console.error('Error toggling featured recipe:', error);
+      setSnackbarMessage(error.message || 'Failed to update recipe');
+      setSnackbarVisible(true);
+    }
+  };
+
+  const handleDeleteRecipe = (recipe: Recipe) => {
+    Alert.alert(
+      'Delete Recipe',
+      `Are you sure you want to delete "${recipe.title}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await recipesApi.deleteRecipe(recipe._id);
+              setRecipes(prev => prev.filter(r => r._id !== recipe._id));
+              setSnackbarMessage('Recipe deleted successfully');
+              setSnackbarVisible(true);
+            } catch (error: any) {
+              console.error('Error deleting recipe:', error);
+              setSnackbarMessage(error.message || 'Failed to delete recipe');
+              setSnackbarVisible(true);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   if (loading && !refreshing) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <SafeAreaView style={styles.background} edges={['top']}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.loadingScrollContent}
@@ -199,7 +257,7 @@ export default function ProfilePage() {
                 containerStyle={styles.nameRow}
               />
 
-              {(profile?.subscription?.isPremium || profile?.isPremium) && (
+              {/* {(profile?.subscription?.isPremium || profile?.isPremium) && (
                 <View style={styles.premiumBanner}>
                   <Icon
                     name={profile?.subscription?.tier === 'pro' ? 'crown' : 'star'}
@@ -215,7 +273,7 @@ export default function ProfilePage() {
                     Member
                   </Text>
                 </View>
-              )}
+              )} */}
 
               {profile?.bio
                 ? <Text variant="bodyMedium" style={styles.bio}>{profile.bio}</Text>
@@ -254,7 +312,7 @@ export default function ProfilePage() {
                 <TouchableOpacity
                   style={styles.statItem}
                   onPress={() =>
-                    navigation.navigate('Followers' as never, { userId } as never)
+                    (navigation as any).navigate('Followers', { userId })
                   }
                 >
                   <Text variant="titleLarge" style={styles.statNumber}>
@@ -270,7 +328,7 @@ export default function ProfilePage() {
                 <TouchableOpacity
                   style={styles.statItem}
                   onPress={() =>
-                    navigation.navigate('Following' as never, { userId } as never)
+                    (navigation as any).navigate('Following', { userId })
                   }
                 >
                   <Text variant="titleLarge" style={styles.statNumber}>
@@ -314,8 +372,11 @@ export default function ProfilePage() {
                     <TouchableOpacity
                       key={recipe._id}
                       style={styles.recipeGridItem}
-                      onPress={() => navigation.navigate('RecipeDetail' as never,
-                        { recipeId: recipe._id } as never)}
+                      onPress={() =>
+                        (navigation as any).navigate('RecipeDetail', {
+                          recipeId: recipe._id,
+                        })
+                      }
                     >
                       {recipe.featuredImage
                         ? <View style={styles.recipeThumbWrapper}>
@@ -335,6 +396,118 @@ export default function ProfilePage() {
                   </View>
                 );
             })()}
+          </View>
+
+          {/* My Recipes Card */}
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <Text variant="titleLarge" style={styles.sectionTitle}>
+                My Recipes ({myRecipes.length})
+              </Text>
+            </View>
+
+            {myRecipes.length === 0 ? (
+              <View style={styles.myRecipesEmpty}>
+                <Icon name="chef-hat" size={48} color={COLORS.textSecondary} />
+                <Text variant="titleMedium" style={styles.myRecipesEmptyTitle}>
+                  No recipes yet
+                </Text>
+                <Text variant="bodyMedium" style={styles.myRecipesEmptyText}>
+                  Start creating and sharing your favorite recipes.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.myRecipesGrid}>
+                {myRecipes.map((recipe: Recipe) => (
+                  <View key={recipe._id} style={styles.myRecipeCard}>
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      onPress={() =>
+                        (navigation as any).navigate('RecipeDetail', { recipeId: recipe._id })
+                      }
+                    >
+                      <View style={styles.myRecipeImageWrapper}>
+                        {recipe.featuredImage ? (
+                          <Card.Cover
+                            source={{ uri: recipe.featuredImage }}
+                            style={styles.myRecipeImage}
+                          />
+                        ) : (
+                          <View style={[styles.myRecipeImage, styles.recipeThumbPlaceholder]}>
+                            <Text style={styles.recipeThumbIcon}>
+                              {getRecipeIcon(recipe.category) === 'coffee' ? '☕' : '🍽'}
+                            </Text>
+                          </View>
+                        )}
+                        {recipe.featured && (
+                          <View style={styles.myRecipeFeaturedBadge}>
+                            <Icon name="star" size={14} color="#FFD700" />
+                            <Text style={styles.myRecipeFeaturedText}>Featured</Text>
+                          </View>
+                        )}
+                      </View>
+                      <View style={styles.myRecipeInfo}>
+                        <Text
+                          variant="bodyMedium"
+                          style={styles.myRecipeTitle}
+                          numberOfLines={2}
+                        >
+                          {recipe.title}
+                        </Text>
+                        <View style={styles.myRecipeMetaRow}>
+                          <Icon
+                            name="clock-outline"
+                            size={14}
+                            color={COLORS.textSecondary}
+                          />
+                          <Text style={styles.myRecipeMetaText}>
+                            {recipe.prepTime + recipe.cookTime} min
+                          </Text>
+                          <Icon
+                            name="account-group"
+                            size={14}
+                            color={COLORS.textSecondary}
+                            style={styles.myRecipeMetaIcon}
+                          />
+                          <Text style={styles.myRecipeMetaText}>
+                            {recipe.servings} servings
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+
+                    <View style={styles.myRecipeActions}>
+                      <TouchableOpacity
+                        style={styles.myRecipeActionButton}
+                        onPress={() => handleEditRecipe(recipe)}
+                      >
+                        <Icon name="pencil" size={18} color={COLORS.primary} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.myRecipeActionButton}
+                        onPress={() => handleToggleFeatured(recipe)}
+                      >
+                        <Icon
+                          name={recipe.featured ? 'star' : 'star-outline'}
+                          size={18}
+                          color={recipe.featured ? '#FFD700' : COLORS.textSecondary}
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.myRecipeActionButton}
+                        onPress={() => handleDeleteRecipe(recipe)}
+                      >
+                        <Icon
+                          name="delete-outline"
+                          size={18}
+                          color={Colors.status?.error || '#C62828'}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
 
           {/* Recent Posts Card */}
@@ -607,6 +780,91 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textAlign: 'center',
     color: COLORS.text,
+  },
+  // My Recipes section
+  myRecipesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: SPACING.md,
+  },
+  myRecipeCard: {
+    width: '48%',
+    borderRadius: 16,
+    backgroundColor: Colors.background.paper,
+    overflow: 'hidden',
+  },
+  myRecipeImageWrapper: {
+    position: 'relative',
+  },
+  myRecipeImage: {
+    width: '100%',
+    height: 120,
+  },
+  myRecipeFeaturedBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  myRecipeFeaturedText: {
+    marginLeft: 4,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFD700',
+  },
+  myRecipeInfo: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  myRecipeTitle: {
+    ...(TYPOGRAPHY.body as object),
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  myRecipeMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  myRecipeMetaIcon: {
+    marginLeft: 8,
+  },
+  myRecipeMetaText: {
+    ...(TYPOGRAPHY.caption as object),
+    color: COLORS.textSecondary,
+    marginLeft: 4,
+  },
+  myRecipeActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingBottom: 8,
+    paddingTop: 4,
+  },
+  myRecipeActionButton: {
+    padding: 4,
+  },
+  myRecipesEmpty: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+  },
+  myRecipesEmptyTitle: {
+    ...(TYPOGRAPHY.h3 as object),
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  myRecipesEmptyText: {
+    ...(TYPOGRAPHY.bodySmall as object),
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: 16,
   },
   viewAllButton: {
     paddingVertical: 12,

@@ -39,6 +39,28 @@ export interface UpdateProfileData {
 }
 
 class AuthApi {
+  // Normalize backend user payloads into the UserProfile shape used by the app.
+  // The backend may return fields like _id and profilePicture.
+  private normalizeUserProfile(data: any): UserProfile {
+    if (!data) {
+      throw new Error('Invalid user profile data');
+    }
+
+    return {
+      id: data.id || data._id || '',
+      name: data.name,
+      email: data.email,
+      bio: data.bio,
+      // Prefer avatarUrl for backwards compatibility, but fall back to profilePicture
+      avatarUrl: data.avatarUrl || data.profilePicture,
+      isPremium: data.isPremium,
+      subscriptionTier: data.subscriptionTier,
+      subscription: data.subscription,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+    };
+  }
+
   async register(data: { name: string; email: string; password: string }): Promise<AuthResponse> {
     try {
       const response = await apiClient.post<AuthResponse>('/auth/register', {
@@ -127,7 +149,9 @@ class AuthApi {
   async getProfile(): Promise<UserProfile> {
     try {
       const response = await apiClient.get('/users/profile');
-      if (response.data.success) return response.data.data;
+      if (response.data.success) {
+        return this.normalizeUserProfile(response.data.data);
+      }
       throw new Error(response.data.message || 'Failed to fetch profile');
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch profile');
@@ -137,7 +161,9 @@ class AuthApi {
   async getUserProfile(userId: string): Promise<UserProfile> {
     try {
       const response = await apiClient.get(`/users/${userId}`);
-      if (response.data.success) return response.data.data;
+      if (response.data.success) {
+        return this.normalizeUserProfile(response.data.data);
+      }
       throw new Error(response.data.message || 'Failed to fetch user profile');
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch user profile');
@@ -148,7 +174,7 @@ class AuthApi {
     try {
       const response = await apiClient.put('/users/profile', data);
       if (response.data.success) {
-        const updated: UserProfile = response.data.data;
+        const updated: UserProfile = this.normalizeUserProfile(response.data.data);
         if (updated.name) await AsyncStorage.setItem('userName', updated.name);
         return updated;
       }

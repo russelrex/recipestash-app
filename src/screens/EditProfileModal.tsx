@@ -17,6 +17,7 @@ import {
 } from 'react-native-paper';
 import { useImagePicker } from '../hooks/useImagePicker';
 import { authApi, UserProfile } from '../services/api';
+import { imageUploadService } from '../services/imageUploadService';
 
 const Colors = {
   primary: '#B15912',
@@ -117,10 +118,23 @@ export default function EditProfileModal({
         bio: bio.trim(),
       };
 
-      // If a new image was selected, send its URI directly in the profile update.
-      // The backend /users/profile endpoint is responsible for handling the image.
+      // Deferred upload flow:
+      // 1) Upload the selected image to the profile-picture endpoint to get a URL
+      // 2) Send that URL in the profile update payload
       if (avatarUri) {
-        payload.avatarUrl = avatarUri;
+        setUploading(true);
+        try {
+          const token = await authApi.getAuthToken();
+          if (!token || token === 'null' || token === 'offline') {
+            throw new Error('Authentication required. Please log in again.');
+          }
+
+          const uploadResult = await imageUploadService.uploadProfilePicture(avatarUri, token);
+          console.log('====123123123', uploadResult);
+          payload.avatarUrl = uploadResult.url;
+        } finally {
+          setUploading(false);
+        }
       } else if (avatarPreview === null && currentProfile?.avatarUrl) {
         // User removed avatar - send empty string to clear it
         payload.avatarUrl = '';
@@ -152,7 +166,6 @@ export default function EditProfileModal({
       visible={imagePickerVisible}
       onDismiss={() => setImagePickerVisible(false)}
       contentContainerStyle={styles.actionSheetContainer}
-      animationType="slide"
     >
       <View style={styles.actionSheetHandle} />
       <Text style={styles.actionSheetTitle}>Choose Avatar</Text>
@@ -187,7 +200,6 @@ export default function EditProfileModal({
         visible={visible}
         onDismiss={onClose}
         contentContainerStyle={styles.modalContainer}
-        animationType="slide"
       >
         <KeyboardAvoidingView
           style={styles.kvFlex}

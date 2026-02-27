@@ -1,5 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
 import {
   Dimensions,
   Image,
@@ -10,7 +11,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { UserName } from './UserName';
-import { Recipe } from '../services/api';
+import { Recipe, authApi } from '../services/api';
 import { COLORS, SHADOWS, SPACING, TYPOGRAPHY } from '../styles/modernStyles';
 
 const { width } = Dimensions.get('window');
@@ -20,10 +21,12 @@ const CARD_WIDTH = (width - (CARD_PADDING * 2) - CARD_GAP) / 2; // Two columns w
 
 interface RecipeCardProps {
   recipe: Recipe;
-  onPress: () => void;
+  onPress?: () => void;
 }
 
 export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onPress }) => {
+  const navigation = useNavigation();
+
   const imageUri = recipe.featuredImage || recipe.imageUrl;
   const placeholderImage = require('../../assets/images/recipe_placeholder.webp');
 
@@ -49,12 +52,56 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onPress }) => {
   };
 
   const authorName = recipe.author?.name || 'Unknown';
-  const authorPicture = recipe.author?.profilePicture;
+
+  // Local avatar state so we can hydrate from the profile API when needed
+  const [authorAvatarUrl, setAuthorAvatarUrl] = useState<string | null>(
+    recipe.author?.profilePicture || (recipe.author as any)?.avatarUrl,
+  );
+
+  // If the recipe doesn't include an author avatar, fetch it like the Newsfeed does
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadAuthorAvatar = async () => {
+      if (authorAvatarUrl) return;
+      const authorId = (recipe.author as any)?._id || (recipe as any).userId;
+      if (!authorId) return;
+
+      try {
+        const profile = await authApi.getUserProfile(authorId);
+        if (!cancelled && profile.avatarUrl) {
+          setAuthorAvatarUrl(profile.avatarUrl);
+        }
+      } catch (error) {
+        console.warn('Failed to load recipe author avatar:', error);
+      }
+    };
+
+    loadAuthorAvatar();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recipe._id, authorAvatarUrl]);
+
+  const handleRecipePress = () => {
+    if (onPress) {
+      onPress();
+    } else {
+      (navigation as any).navigate('RecipeDetail', { recipeId: recipe._id });
+    }
+  };
+
+  const handleProfilePress = () => {
+    const authorId = (recipe.author as any)?._id || (recipe as any).userId;
+    if (!authorId) return;
+    (navigation as any).navigate('UserProfile', { userId: authorId });
+  };
 
   return (
     <TouchableOpacity 
       style={styles.card} 
-      onPress={onPress}
+      onPress={handleRecipePress}
       activeOpacity={0.9}
     >
       {/* Featured Image - Full Height and Width */}
@@ -87,35 +134,51 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onPress }) => {
             {/* Glass content container */}
             <View style={styles.glassContent}>
               <View style={styles.profileRow}>
-                {/* Profile Picture */}
-                {authorPicture ? (
-                  <Image
-                    source={{ uri: authorPicture }}
-                    style={styles.avatar}
-                  />
-                ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <Text style={styles.avatarText}>
-                      {getInitials(authorName)}
-                    </Text>
-                  </View>
-                )}
+                {/* Profile Picture – navigates to user profile */}
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={handleProfilePress}
+                >
+                  {authorAvatarUrl ? (
+                    <Image
+                      source={{ uri: authorAvatarUrl }}
+                      style={styles.avatar}
+                    />
+                  ) : (
+                    <View style={styles.avatarPlaceholder}>
+                      <Text style={styles.avatarText}>
+                        {getInitials(authorName)}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
 
                 {/* Recipe Info */}
                 <View style={styles.textContainer}>
-                  <Text style={styles.recipeTitle} numberOfLines={1}>
-                    {recipe.title}
-                  </Text>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={handleRecipePress}
+                  >
+                    <Text style={styles.recipeTitle} numberOfLines={1}>
+                      {recipe.title}
+                    </Text>
+                  </TouchableOpacity>
                   <View style={styles.authorRow}>
-                    <Text style={styles.byText}>by </Text>
-                    <UserName
-                      name={authorName}
-                      subscription={recipe.author?.subscription}
-                      isPremium={recipe.author?.isPremium}
-                      style={styles.authorName}
-                      badgeSize={14}
-                      numberOfLines={1}
-                    />
+                    <Text style={styles.byText}>by</Text>
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={handleProfilePress}
+                      style={styles.authorNameWrapper}
+                    >
+                      <UserName
+                        name={authorName}
+                        subscription={recipe.author?.subscription}
+                        isPremium={recipe.author?.isPremium}
+                        style={styles.authorName}
+                        badgeSize={14}
+                        numberOfLines={1}
+                      />
+                    </TouchableOpacity>
                   </View>
                   <View style={styles.metaRow}>
                     <Icon name="clock-outline" size={12} color={COLORS.text} />
@@ -292,6 +355,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#374151',
+    flexShrink: 0,
+  },
+
+  authorNameWrapper: {
+    marginLeft: 4,
+    flex: 1,
   },
 
   authorName: {
@@ -299,6 +368,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#374151', // Dark gray for secondary text
+    flexShrink: 1,
   },
 
   metaRow: {
