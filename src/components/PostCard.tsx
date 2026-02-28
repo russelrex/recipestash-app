@@ -1,35 +1,36 @@
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Dimensions,
   Image,
   ImageBackground,
+  Modal,
+  Pressable,
   StyleSheet,
   TouchableOpacity,
   View,
 } from 'react-native';
 import {
   Avatar,
-  Divider,
   IconButton,
-  Menu,
   Text,
   TextInput
 } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { authApi, postsApi, recipesApi, type Comment, type Post } from '../services/api';
-import { COLORS, SHADOWS, SPACING, TYPOGRAPHY } from '../styles/modernStyles';
-import { Colors } from '../theme';
+import { COLORS, SHADOWS, TYPOGRAPHY } from '../styles/modernStyles';
 import CommentItem from './CommentItem';
 import ProfileAvatar from './ProfileAvatar';
 import { UserName } from './UserName';
 
 const placeholderImage = require('../../assets/images/recipe_placeholder.webp');
 
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = width - 32; // Account for padding
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_WIDTH = SCREEN_WIDTH - 32; // Account for padding
+const MENU_DROPDOWN_WIDTH = 200;
+const MENU_ANCHOR_GAP = 4;
 const CARD_HEIGHT = 480; // Fixed height for all cards
 const IMAGE_SECTION_HEIGHT = 280; // Fixed height for image section
 const FEATURED_IMAGE_HEIGHT = 320; // Taller when linked recipe is featured
@@ -44,6 +45,8 @@ interface PostCardProps {
   onUpdate?: (post: Post) => void;
   showComments?: boolean;
   maxCommentsPreview?: number;
+  /** Pass from parent so Edit/Delete menu is visible on first render for own posts */
+  currentUserIdFromParent?: string | null;
 }
 
 export default function PostCard({
@@ -53,10 +56,14 @@ export default function PostCard({
   onUpdate,
   showComments = true,
   maxCommentsPreview = 2,
+  currentUserIdFromParent,
 }: PostCardProps) {
   const navigation = useNavigation();
   const [menuVisible, setMenuVisible] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [menuAnchorLayout, setMenuAnchorLayout] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const menuAnchorRef = useRef<View>(null);
+  const [currentUserIdLocal, setCurrentUserIdLocal] = useState<string | null>(null);
+  const currentUserId = currentUserIdFromParent ?? currentUserIdLocal;
   const [showCommentInput, setShowCommentInput] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -66,12 +73,17 @@ export default function PostCard({
   const [commentsLoaded, setCommentsLoaded] = useState(false);
   const [localPost, setLocalPost] = useState(post);
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
+  const prevUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     loadCurrentUserId();
   }, []);
 
   useEffect(() => {
+    const authorChanged =
+      prevUserIdRef.current != null && prevUserIdRef.current !== post.userId;
+    prevUserIdRef.current = post.userId ?? null;
+
     setLocalPost(prev => {
       const next = { ...post };
       // Preserve recipe fields if API (e.g. toggleLike) returns a partial post without them
@@ -81,10 +93,23 @@ export default function PostCard({
         if ((!next.recipeImages?.length) && prev.recipeImages?.length) next.recipeImages = prev.recipeImages;
         if (next.userIsPremium == null && prev.userIsPremium != null) next.userIsPremium = prev.userIsPremium;
         if (!next.userSubscription && prev.userSubscription) next.userSubscription = prev.userSubscription;
+        // Preserve likes/likesCount when incoming has stale/empty like data, but trust server when it says unliked and zero
+        const incomingLikes = Array.isArray(next.likes) ? next.likes : [];
+        const prevLikes = Array.isArray(prev.likes) ? prev.likes : [];
+        const serverSaysUnlikedZero = next.isLiked === false && next.likesCount === 0;
+        const looksStale = incomingLikes.length < prevLikes.length || (incomingLikes.length === 0 && prevLikes.length > 0);
+        if (looksStale && !serverSaysUnlikedZero) {
+          next.likes = prev.likes;
+          next.likesCount = typeof prev.likesCount === 'number' ? prev.likesCount : prev.likes?.length ?? 0;
+        }
       }
       return next;
     });
-    setUserAvatarUrl(null);
+
+    // Only clear avatar when post author changed so profile picture doesn't disappear on like
+    if (authorChanged) {
+      setUserAvatarUrl(null);
+    }
   }, [post]);
 
   // Fetch user avatar for post author
@@ -145,7 +170,8 @@ export default function PostCard({
 
   const loadCurrentUserId = async () => {
     const userId = await authApi.getCurrentUserId();
-    setCurrentUserId(userId);
+    console.log('====userId', userId);
+    setCurrentUserIdLocal(userId);
   };
 
   const loadComments = async () => {
@@ -164,18 +190,20 @@ export default function PostCard({
   };
 
   const handleLikePress = () => {
-    const isLiked = currentUserId
-      ? localPost.likes.includes(currentUserId)
-      : false;
+    // Match display logic: backend isLiked or current user in likes array (so unlike works after refresh)
+    const isLiked =
+      localPost.isLiked === true ||
+      (!!currentUserId && (localPost.likes ?? []).includes(currentUserId));
 
     const newLikes = isLiked
-      ? localPost.likes.filter(id => id !== currentUserId)
-      : [...localPost.likes, currentUserId!];
+      ? (localPost.likes ?? []).filter(id => id !== currentUserId)
+      : [...(localPost.likes ?? []), currentUserId!];
 
     setLocalPost({
       ...localPost,
       likes: newLikes,
-      likesCount: newLikes.length,
+      likesCount: Math.max(0, newLikes.length),
+      isLiked: !isLiked,
     });
 
     onLike(localPost.id);
@@ -228,14 +256,7 @@ export default function PostCard({
 
   const handleDelete = () => {
     setMenuVisible(false);
-    Alert.alert('Delete Post', 'Are you sure you want to delete this post?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => onDelete?.(localPost.id),
-      },
-    ]);
+    onDelete?.(localPost.id);
   };
 
   const formatTimeAgo = (date: string) => {
@@ -452,10 +473,24 @@ export default function PostCard({
     );
   };
 
-  const isOwnPost = currentUserId === localPost.userId;
-  const isLiked = currentUserId
-    ? localPost.likes.includes(currentUserId)
-    : false;
+  console.log('currentUserId', currentUserId);
+  console.log('localPost', localPost);
+
+  const postOwnerId =
+    localPost.userId ??
+    (localPost as any).author?._id ??
+    (localPost as any).author?.id;
+  const isOwnPost = Boolean(
+    currentUserId &&
+    postOwnerId &&
+    String(currentUserId).trim() === String(postOwnerId).trim(),
+  );
+
+  // Use backend isLiked when set (persists after refresh); else derive from likes array
+  const isLiked =
+    localPost.isLiked === true ||
+    (!!currentUserId && (localPost.likes ?? []).includes(currentUserId));
+  console.log('currentUserId', currentUserId);
 
   const visibleComments = showComments && commentsLoaded && commentsVisible
     ? comments.slice(0, maxCommentsPreview)
@@ -518,31 +553,76 @@ export default function PostCard({
         </TouchableOpacity>
 
         {isOwnPost && (
-          <Menu
-            visible={menuVisible}
-            onDismiss={() => setMenuVisible(false)}
-            anchor={
-              <IconButton
-                icon="dots-vertical"
-                size={20}
-                onPress={() => setMenuVisible(true)}
-              />
-            }
+          <View
+            ref={menuAnchorRef}
+            style={styles.menuAnchorWrapper}
+            onLayout={() => {
+              menuAnchorRef.current?.measureInWindow((x, y, width, height) => {
+                setMenuAnchorLayout({ x, y, width, height });
+              });
+            }}
           >
-            <Menu.Item
+            <TouchableOpacity
               onPress={() => {
-                setMenuVisible(false);
-                onUpdate?.(localPost);
+                menuAnchorRef.current?.measureInWindow((x, y, w, h) => {
+                  setMenuAnchorLayout({ x, y, width: w, height: h });
+                  setMenuVisible(true);
+                });
               }}
-              title="Edit"
-              leadingIcon="pencil"
-            />
-            <Menu.Item
-              onPress={handleDelete}
-              title="Delete"
-              leadingIcon="delete"
-            />
-          </Menu>
+              style={styles.menuButton}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Icon
+                name="dots-vertical"
+                size={24}
+                color={COLORS.textSecondary}
+              />
+            </TouchableOpacity>
+            <Modal
+              visible={menuVisible}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setMenuVisible(false)}
+            >
+              <Pressable
+                style={styles.menuBackdrop}
+                onPress={() => setMenuVisible(false)}
+              >
+                {menuAnchorLayout && (
+                  <View
+                    style={[
+                      styles.menuDropdown,
+                      {
+                        position: 'absolute',
+                        top: menuAnchorLayout.y + menuAnchorLayout.height + MENU_ANCHOR_GAP,
+                        right: SCREEN_WIDTH - (menuAnchorLayout.x + menuAnchorLayout.width),
+                      },
+                    ]}
+                    onStartShouldSetResponder={() => true}
+                  >
+                    <TouchableOpacity
+                      style={styles.menuOption}
+                      onPress={() => {
+                        setMenuVisible(false);
+                        onUpdate?.(localPost);
+                      }}
+                    >
+                      <Icon name="pencil" size={20} color={COLORS.primary} />
+                      <Text style={styles.menuOptionText}>Edit</Text>
+                    </TouchableOpacity>
+                    <View style={styles.menuDivider} />
+                    <TouchableOpacity
+                      style={styles.menuOption}
+                      onPress={handleDelete}
+                    >
+                      <Icon name="delete-outline" size={20} color={COLORS.error} />
+                      <Text style={[styles.menuOptionText, styles.menuOptionDelete]}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </Pressable>
+            </Modal>
+          </View>
         )}
       </View>
 
@@ -706,6 +786,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    minWidth: 0,
+  },
+
+  menuAnchorWrapper: {
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
+  menuButton: {
+    padding: 10,
+  },
+  menuAnchor: {
+    margin: 0,
+  },
+  menuBackdrop: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  menuDropdown: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 12,
+    width: MENU_DROPDOWN_WIDTH,
+    ...SHADOWS.large,
+  },
+  menuOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  menuOptionText: {
+    ...TYPOGRAPHY.label,
+    fontSize: 15,
+    color: COLORS.text,
+  },
+  menuOptionDelete: {
+    color: COLORS.error,
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginHorizontal: 12,
   },
 
   avatar: {

@@ -12,6 +12,7 @@ import {
 import {
   Button,
   Card,
+  IconButton,
   Snackbar,
   Text
 } from 'react-native-paper';
@@ -22,6 +23,7 @@ import {
   ProfileCardSkeleton,
   RecipeListSkeleton,
 } from '../components/Loading/LoadingComponents';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 import ProfileAvatar from '../components/ProfileAvatar';
 import { UserName } from '../components/UserName';
 import {
@@ -53,6 +55,9 @@ export default function ProfilePage() {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [offline, setOffline] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [recipeToDelete, setRecipeToDelete] = useState<Recipe | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -173,29 +178,32 @@ export default function ProfilePage() {
   };
 
   const handleDeleteRecipe = (recipe: Recipe) => {
-    Alert.alert(
-      'Delete Recipe',
-      `Are you sure you want to delete "${recipe.title}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await recipesApi.deleteRecipe(recipe._id);
-              setRecipes(prev => prev.filter(r => r._id !== recipe._id));
-              setSnackbarMessage('Recipe deleted successfully');
-              setSnackbarVisible(true);
-            } catch (error: any) {
-              console.error('Error deleting recipe:', error);
-              setSnackbarMessage(error.message || 'Failed to delete recipe');
-              setSnackbarVisible(true);
-            }
-          },
-        },
-      ],
-    );
+    setRecipeToDelete(recipe);
+    setShowDeleteModal(true);
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setRecipeToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!recipeToDelete) return;
+    try {
+      setDeleting(true);
+      await recipesApi.deleteRecipe(recipeToDelete._id);
+      setRecipes(prev => prev.filter(r => r._id !== recipeToDelete._id));
+      setShowDeleteModal(false);
+      setRecipeToDelete(null);
+      setSnackbarMessage(`"${recipeToDelete.title}" has been deleted successfully.`);
+      setSnackbarVisible(true);
+    } catch (error: any) {
+      console.error('Error deleting recipe:', error);
+      setSnackbarMessage(error?.message || 'Failed to delete recipe. Please try again.');
+      setSnackbarVisible(true);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (loading && !refreshing) {
@@ -432,32 +440,27 @@ export default function ProfilePage() {
                           </TouchableOpacity>
                         </View>
                         <View style={styles.myRecipeActions}>
-                          <TouchableOpacity
-                            style={styles.myRecipeActionButton}
+                          <IconButton
+                            icon="pencil"
+                            size={20}
+                            iconColor={COLORS.primary}
                             onPress={() => handleEditRecipe(recipe)}
-                          >
-                            <Icon name="pencil" size={18} color={COLORS.primary} />
-                          </TouchableOpacity>
-                          <TouchableOpacity
                             style={styles.myRecipeActionButton}
+                          />
+                          <IconButton
+                            icon={recipe.featured ? 'star' : 'star-outline'}
+                            size={20}
+                            iconColor={recipe.featured ? '#FFD700' : COLORS.textSecondary}
                             onPress={() => handleToggleFeatured(recipe)}
-                          >
-                            <Icon
-                              name={recipe.featured ? 'star' : 'star-outline'}
-                              size={18}
-                              color={recipe.featured ? '#FFD700' : COLORS.textSecondary}
-                            />
-                          </TouchableOpacity>
-                          <TouchableOpacity
                             style={styles.myRecipeActionButton}
+                          />
+                          <IconButton
+                            icon="delete-outline"
+                            size={20}
+                            iconColor={Colors.status?.error || '#C62828'}
                             onPress={() => handleDeleteRecipe(recipe)}
-                          >
-                            <Icon
-                              name="delete-outline"
-                              size={18}
-                              color={Colors.status?.error || '#C62828'}
-                            />
-                          </TouchableOpacity>
+                            style={styles.myRecipeActionButton}
+                          />
                         </View>
                       </View>
                     ))}
@@ -549,32 +552,27 @@ export default function ProfilePage() {
                     </View>
 
                     <View style={styles.myRecipeActions}>
-                      <TouchableOpacity
-                        style={styles.myRecipeActionButton}
+                      <IconButton
+                        icon="pencil"
+                        size={20}
+                        iconColor={COLORS.primary}
                         onPress={() => handleEditRecipe(recipe)}
-                      >
-                        <Icon name="pencil" size={18} color={COLORS.primary} />
-                      </TouchableOpacity>
-                      <TouchableOpacity
                         style={styles.myRecipeActionButton}
+                      />
+                      <IconButton
+                        icon={recipe.featured ? 'star' : 'star-outline'}
+                        size={20}
+                        iconColor={recipe.featured ? '#FFD700' : COLORS.textSecondary}
                         onPress={() => handleToggleFeatured(recipe)}
-                      >
-                        <Icon
-                          name={recipe.featured ? 'star' : 'star-outline'}
-                          size={18}
-                          color={recipe.featured ? '#FFD700' : COLORS.textSecondary}
-                        />
-                      </TouchableOpacity>
-                      <TouchableOpacity
                         style={styles.myRecipeActionButton}
+                      />
+                      <IconButton
+                        icon="delete-outline"
+                        size={20}
+                        iconColor={Colors.status?.error || '#C62828'}
                         onPress={() => handleDeleteRecipe(recipe)}
-                      >
-                        <Icon
-                          name="delete-outline"
-                          size={18}
-                          color={Colors.status?.error || '#C62828'}
-                        />
-                      </TouchableOpacity>
+                        style={styles.myRecipeActionButton}
+                      />
                     </View>
                   </View>
                 ))}
@@ -616,6 +614,23 @@ export default function ProfilePage() {
         >
           {snackbarMessage}
         </Snackbar>
+
+        <ConfirmationModal
+          visible={showDeleteModal}
+          title="Delete Recipe"
+          message={
+            recipeToDelete
+              ? `Are you sure you want to delete "${recipeToDelete.title}"? This action cannot be undone.`
+              : ''
+          }
+          confirmText="Delete"
+          cancelText="Cancel"
+          confirmButtonColor={COLORS.error}
+          loading={deleting}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          type="danger"
+        />
       </View>
     </ImageBackground>
   );

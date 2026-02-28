@@ -89,7 +89,10 @@ export default function AddRecipePage() {
 
       setTitle(recipe.title);
       setDescription(recipe.description);
-      setCategory(recipe.category);
+      // Normalize category to lowercase so it matches CATEGORIES[].value (e.g. "Dessert" -> "dessert")
+      const rawCategory = (recipe.category || 'breakfast').toString().toLowerCase();
+      const matchedCategory = CATEGORIES.some(c => c.value === rawCategory) ? rawCategory : 'breakfast';
+      setCategory(matchedCategory);
       setDifficulty(recipe.difficulty);
       setPrepTime(recipe.prepTime.toString());
       setCookTime(recipe.cookTime.toString());

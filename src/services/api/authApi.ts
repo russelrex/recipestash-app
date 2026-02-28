@@ -94,11 +94,14 @@ class AuthApi {
       });
       console.log('Login response:', response.data);
       if (response.data.success) {
-        await this.storeAuthData(
-          response.data.data.token,
-          response.data.data.user._id,
-          response.data.data.user.name,
-        );
+        const resData = response.data.data;
+        const user = resData?.user ?? resData;
+        const token = resData?.token ?? resData?.accessToken;
+        const userId = user?._id ?? user?.id ?? resData?._id ?? resData?.userId;
+        const userName = user?.name ?? resData?.name ?? '';
+        if (token && userId) {
+          await this.storeAuthData(token, String(userId), userName);
+        }
         // Store password hash for offline login
         await offlineAuth.storeOfflineCredentials(data.email, data.password);
       }
@@ -150,7 +153,9 @@ class AuthApi {
     try {
       const response = await apiClient.get('/users/profile');
       if (response.data.success) {
-        return this.normalizeUserProfile(response.data.data);
+        const raw = response.data.data;
+        const data = raw?.user ?? raw;
+        return this.normalizeUserProfile(data);
       }
       throw new Error(response.data.message || 'Failed to fetch profile');
     } catch (error: any) {

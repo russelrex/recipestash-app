@@ -13,6 +13,8 @@ export interface Post {
   likes: string[];
   likesCount: number;
   commentsCount: number;
+  /** When true, backend indicates current user liked this post (used when likes array not populated on list). */
+  isLiked?: boolean;
   userIsPremium?: boolean; // Legacy support
   userSubscription?: Subscription; // New subscription-based
   createdAt: string;
@@ -43,11 +45,26 @@ export interface CreateCommentData {
 
 export interface PostsResponse {
   posts: Post[];
-  total: number;
+  total?: number;
   hasMore: boolean;
+  page?: number;
+  totalCount?: number;
 }
 
 class PostsApi {
+  /** Normalize likes to string[] whether backend sends IDs or objects; ensures likes survive refresh. */
+  private normalizeLikes(raw: any): string[] {
+    const arr = raw?.likes ?? raw?.likedBy ?? raw?.likeIds;
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .map((item: any) => {
+        if (item == null) return null;
+        if (typeof item === 'string') return item;
+        return item._id ?? item.id ?? item.userId ?? null;
+      })
+      .filter((id): id is string => typeof id === 'string' && id.length > 0);
+  }
+
   private normalizePost(raw: any): Post {
     const id = raw?.id ?? raw?._id;
     const userId = raw?.userId ?? raw?.user?._id ?? raw?.user?.id ?? raw?.author?._id ?? raw?.author?.id;
@@ -65,6 +82,10 @@ class PostsApi {
       (raw?.userIsPremium || raw?.isPremium || raw?.user?.isPremium || raw?.author?.isPremium
         ? { isPremium: true, tier: 'premium' as const }
         : undefined);
+    const likes = this.normalizeLikes(raw);
+    const likesCount =
+      typeof raw?.likesCount === 'number' ? raw.likesCount : likes.length;
+    const isLiked = raw?.isLiked === true;
     return {
       ...raw,
       id,
@@ -72,13 +93,9 @@ class PostsApi {
       userName,
       userIsPremium: userIsPremium || undefined,
       userSubscription: userSubscription,
-      likes: Array.isArray(raw?.likes) ? raw.likes : [],
-      likesCount:
-        typeof raw?.likesCount === 'number'
-          ? raw.likesCount
-          : Array.isArray(raw?.likes)
-            ? raw.likes.length
-            : 0,
+      likes,
+      likesCount,
+      isLiked,
       commentsCount: typeof raw?.commentsCount === 'number' ? raw.commentsCount : 0,
     } as Post;
   }
@@ -125,10 +142,16 @@ class PostsApi {
       const response = await apiClient.get('/posts', {
         params: { page, limit },
       });
-      const data = response.data.data;
+      // Backend may return { posts, hasMore, page, totalCount } at top level or under .data
+      const payload = response.data?.data ?? response.data;
+      const rawPosts = Array.isArray(payload?.posts) ? payload.posts : [];
+      const posts = rawPosts.map((p: any) => this.normalizePost(p));
       return {
-        ...data,
-        posts: Array.isArray(data?.posts) ? data.posts.map((p: any) => this.normalizePost(p)) : [],
+        posts,
+        hasMore: typeof payload?.hasMore === 'boolean' ? payload.hasMore : false,
+        total: payload?.totalCount ?? payload?.total,
+        page: payload?.page ?? page,
+        totalCount: payload?.totalCount ?? payload?.total,
       } as PostsResponse;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch posts');
@@ -180,7 +203,8 @@ class PostsApi {
   async updatePost(id: string, data: Partial<CreatePostData>): Promise<Post> {
     try {
       const response = await apiClient.patch(`/posts/${id}`, data);
-      return this.normalizePost(response.data.data);
+      const raw = response.data?.data ?? response.data;
+      return this.normalizePost(raw);
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to update post');
     }
@@ -198,7 +222,11 @@ class PostsApi {
     try {
       this.assertId(postId, 'postId');
       const response = await apiClient.patch(`/posts/${postId}/like`);
-      return this.normalizePost(response.data.data);
+      const data = response.data?.data ?? response.data;
+      if (data && typeof data === 'object') {
+        return this.normalizePost(data);
+      }
+      throw new Error('Invalid response from like toggle');
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to toggle like');
     }

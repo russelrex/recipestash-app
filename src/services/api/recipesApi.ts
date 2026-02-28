@@ -257,11 +257,16 @@ class RecipesApi {
 
   async deleteRecipe(id: string): Promise<void> {
     try {
-      const response = await apiClient.delete(`/recipes/${id}`);
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Failed to delete recipe');
-      }
+      await apiClient.delete(`/recipes/${id}`);
+      // 2xx response = success; backend may return { message, recipeId } without a success field
     } catch (error: any) {
+      const status = error.response?.status;
+      if (status === 403) {
+        throw new Error('You are not authorized to delete this recipe');
+      }
+      if (status === 404) {
+        throw new Error('Recipe not found');
+      }
       throw new Error(error.response?.data?.message || 'Failed to delete recipe');
     }
   }
