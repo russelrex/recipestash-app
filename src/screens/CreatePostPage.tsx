@@ -8,7 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import {
   ActivityIndicator,
@@ -25,7 +25,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Post, postsApi, Recipe, recipesApi } from '../services/api';
-import { CARD_STYLES, COLORS, SHADOWS } from '../styles/modernStyles';
 import { Colors } from '../theme';
 
 const MAX_POST_LENGTH = 500;
@@ -223,6 +222,13 @@ export default function CreatePostPage() {
     return icons[category.toLowerCase()] || 'food';
   };
 
+  const getCharCountStyle = () => {
+    const remaining = MAX_POST_LENGTH - content.length;
+    if (remaining < 0) return styles.charCountError;
+    if (remaining < 50) return styles.charCountWarning;
+    return styles.charCountNormal;
+  };
+
   return (
     <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
         <ScrollView 
@@ -263,17 +269,11 @@ export default function CreatePostPage() {
             </View>
             
             <View style={styles.characterCounter}>
-              <Text 
-                variant="bodySmall" 
-                style={[
-                  styles.characterCounterText,
-                  content.length > MAX_POST_LENGTH * 0.9 && styles.characterCounterWarning
-                ]}
-              >
+              <Text variant="bodySmall" style={[styles.characterCounterText, getCharCountStyle()]}>
                 {content.length} / {MAX_POST_LENGTH} characters
               </Text>
             </View>
-            
+
             <Text variant="titleMedium" style={styles.label}>
               Link a Recipe (Optional)
             </Text>
@@ -485,6 +485,7 @@ export default function CreatePostPage() {
 }
 
 const styles = StyleSheet.create({
+  // Container & layout
   background: {
     flex: 1,
     paddingTop: 24,
@@ -495,16 +496,25 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
+    paddingBottom: 100,
   },
-  // SINGLE CARD - NO DOUBLE CONTAINER
+  // Main card – elevated, clean
   card: {
-    ...(CARD_STYLES.standard as object),
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   sectionTitle: {
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 16,
-    color: Colors.text.primary,
+    color: '#1F2937',
+    fontSize: 18,
   },
   inputContainer: {
     marginBottom: 4,
@@ -513,8 +523,11 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   input: {
-    backgroundColor: Colors.background.paper,
-    paddingRight: 50, // Make room for emoji button
+    backgroundColor: '#FFFFFF',
+    paddingRight: 50,
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#1F2937',
   },
   emojiButton: {
     position: 'absolute',
@@ -522,32 +535,48 @@ const styles = StyleSheet.create({
     top: 12,
     zIndex: 1,
     padding: 4,
+    opacity: 0.7,
   },
+  // Character counter – color-coded, prominent
   characterCounter: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginTop: 12,
     marginBottom: 16,
+    paddingTop: 12,
     paddingHorizontal: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
   },
   characterCounterText: {
-    color: Colors.text.secondary,
-    fontSize: 12,
-  },
-  characterCounterWarning: {
-    color: Colors.status.error,
+    fontSize: 13,
     fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  charCountNormal: {
+    color: '#6B7280',
+  },
+  charCountWarning: {
+    color: '#F59E0B',
+  },
+  charCountError: {
+    color: '#EF4444',
   },
   label: {
     marginBottom: 12,
+    fontSize: 13,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   selectedRecipeCard: {
     marginBottom: 16,
-    elevation: 1,
-    backgroundColor: COLORS.cardBackgroundAlt,
+    elevation: 2,
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#E5E7EB',
   },
   selectedRecipeContent: {
     flexDirection: 'row',
@@ -557,14 +586,14 @@ const styles = StyleSheet.create({
   selectedRecipeImage: {
     width: 60,
     height: 60,
-    borderRadius: 8,
+    borderRadius: 12,
     marginRight: 12,
   },
   selectedRecipePlaceholder: {
     width: 60,
     height: 60,
-    borderRadius: 8,
-    backgroundColor: Colors.primary.light + '20',
+    borderRadius: 12,
+    backgroundColor: 'rgba(177, 89, 18, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -573,78 +602,93 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   selectedRecipeTitle: {
-    fontWeight: 'bold',
+    fontWeight: '600',
     marginBottom: 4,
-    color: Colors.text.primary,
+    color: '#1F2937',
+    fontSize: 16,
   },
   selectedRecipeCategory: {
-    color: Colors.text.secondary,
+    color: '#6B7280',
+    fontSize: 14,
   },
   selectButton: {
     marginTop: 8,
-    borderColor: Colors.primary.main,
+    borderWidth: 2,
+    borderColor: '#B15912',
+    borderRadius: 12,
+    shadowColor: '#B15912',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   selectedRecipeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.cardBackgroundAlt,
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#E5E7EB',
     borderRadius: 12,
     padding: 12,
     marginTop: 8,
   },
+  // Primary post button – clear hierarchy
   postButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.primary.main,
+    backgroundColor: '#B15912',
     borderRadius: 12,
-    padding: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     marginBottom: 12,
     gap: 8,
-    shadowColor: Colors.primary.main,
+    shadowColor: '#B15912',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
   postButtonDisabled: {
-    backgroundColor: 'rgba(177, 89, 18, 0.4)',
+    backgroundColor: '#D1D5DB',
     shadowOpacity: 0,
     elevation: 0,
   },
   postButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
+  // Secondary cancel button – subtle
   cancelButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: Colors.text.primary,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
     borderRadius: 12,
-    padding: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     gap: 8,
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: '#6B7280',
+    letterSpacing: 0.2,
   },
   snackbar: {
-    backgroundColor: Colors.status.info,
+    backgroundColor: '#3B82F6',
   },
   snackbarSuccess: {
-    backgroundColor: Colors.status.success,
+    backgroundColor: '#10B981',
   },
   snackbarError: {
-    backgroundColor: Colors.status.error,
+    backgroundColor: '#EF4444',
   },
-  // Drawer Styles
+  // Drawer
   drawerOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -659,7 +703,7 @@ const styles = StyleSheet.create({
   },
   drawerContainer: {
     height: '75%',
-    backgroundColor: COLORS.cardBackground,
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: Platform.OS === 'ios' ? 20 : 0,
@@ -672,7 +716,7 @@ const styles = StyleSheet.create({
   drawerHandle: {
     width: 40,
     height: 4,
-    backgroundColor: Colors.border.main,
+    backgroundColor: '#D1D5DB',
     borderRadius: 2,
     alignSelf: 'center',
     marginTop: 12,
@@ -686,8 +730,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   drawerTitle: {
-    fontWeight: 'bold',
-    color: Colors.text.primary,
+    fontWeight: '700',
+    fontSize: 18,
+    color: '#1F2937',
   },
   searchContainer: {
     paddingHorizontal: 16,
@@ -695,7 +740,7 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     elevation: 0,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#F5F7FA',
   },
   searchInput: {
     fontSize: 16,
@@ -709,8 +754,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
-    color: Colors.text.secondary,
+    marginTop: 16,
+    fontSize: 15,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   emptyContainer: {
     paddingVertical: 60,
@@ -719,27 +766,33 @@ const styles = StyleSheet.create({
   emptyTitle: {
     marginTop: 16,
     marginBottom: 8,
-    fontWeight: 'bold',
-    color: Colors.text.primary,
+    fontWeight: '600',
+    color: '#1F2937',
+    fontSize: 16,
   },
   emptyText: {
-    color: Colors.text.secondary,
+    color: '#6B7280',
     textAlign: 'center',
+    fontSize: 14,
   },
   recipeItem: {
     marginBottom: 12,
   },
   recipeCard: {
-    backgroundColor: COLORS.cardBackground,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    ...(SHADOWS.small as object),
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   recipeCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 12,
   },
   recipeImage: {
     width: 70,
@@ -751,7 +804,7 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 12,
-    backgroundColor: Colors.primary.light + '20',
+    backgroundColor: 'rgba(177, 89, 18, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -760,13 +813,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   recipeTitle: {
-    fontWeight: 'bold',
+    fontWeight: '600',
     marginBottom: 4,
-    color: Colors.text.primary,
+    color: '#1F2937',
+    fontSize: 15,
   },
   recipeCategory: {
-    color: Colors.text.secondary,
+    color: '#6B7280',
     marginBottom: 8,
+    fontSize: 13,
   },
   recipeMeta: {
     flexDirection: 'row',
@@ -774,7 +829,7 @@ const styles = StyleSheet.create({
   },
   recipeChip: {
     height: 28,
-    backgroundColor: COLORS.cardBackgroundAlt,
+    backgroundColor: '#F3F4F6',
   },
   recipeChipText: {
     fontSize: 11,

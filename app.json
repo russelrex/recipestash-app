@@ -5,7 +5,7 @@
     "version": "1.0.6",
     "backgroundColor": "#F5F7FA",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png", 
+    "icon": "./assets/images/final/recipestash-icon.png", 
     "scheme": "recipestashapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -19,9 +19,9 @@
       "versionCode": 6,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/final/recipestash-icon-foreground.png",
+        "backgroundImage": "./assets/images/final/recipestash-icon-background.png",
+        "monochromeImage": "./assets/images/final/recipestash-icon-monochrome.png"
       },
       "package": "food.recipestash.app",
       "permissions": [
@@ -47,7 +47,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/final/recipestash-icon.png"
     },
     "plugins": [
       "expo-router",

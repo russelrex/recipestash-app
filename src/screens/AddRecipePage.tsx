@@ -61,8 +61,8 @@ export default function AddRecipePage() {
   const [existingFeaturedUrl, setExistingFeaturedUrl] = useState<string>('');
   const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
 
-  // Ingredients state
-  const [ingredients, setIngredients] = useState<string[]>(['']);
+  // Ingredients state (empty initially, same as steps — user taps "Add Ingredient" to add)
+  const [ingredients, setIngredients] = useState<string[]>([]);
 
   // Structured steps state (with optional images)
   const [steps, setSteps] = useState<EditableRecipeStep[]>([]);
@@ -95,7 +95,7 @@ export default function AddRecipePage() {
       setCookTime(recipe.cookTime.toString());
       setServings(recipe.servings.toString());
       setFeatured(recipe.featured || false);
-      setIngredients(recipe.ingredients.length > 0 ? recipe.ingredients : ['']);
+      setIngredients(recipe.ingredients.length > 0 ? recipe.ingredients : []);
 
       // Prefer structured steps when available; otherwise fall back to legacy instructions
       if (Array.isArray((recipe as any).steps) && (recipe as any).steps.length > 0) {

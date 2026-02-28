@@ -1,6 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useEffect, useState } from 'react';
-import { Alert, ImageBackground, Linking, Platform, Modal as RNModal, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, ImageBackground, Linking, Platform, Modal as RNModal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Button, Divider, List, Snackbar, Switch, Text } from 'react-native-paper';
 import { authApi, followsApi, recipesApi } from '../services/api';
 import cacheService from '../services/cache/cacheService';
@@ -44,10 +45,30 @@ export default function SettingsPage() {
   const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState<{ id: string; name: string; blockedAt: string }[]>([]);
   const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [cacheSize, setCacheSize] = useState<string>('Calculating...');
+  const [clearingCache, setClearingCache] = useState(false);
 
   useEffect(() => {
     checkOfflineMode();
     loadPreferences();
+    calculateCacheSize();
+  }, []);
+
+  const calculateCacheSize = useCallback(async () => {
+    try {
+      let totalBytes = 0;
+      if (FileSystem.cacheDirectory) {
+        const dirInfo = await FileSystem.getInfoAsync(FileSystem.cacheDirectory, { size: true });
+        if (dirInfo.exists && typeof (dirInfo as { size?: number }).size === 'number') {
+          totalBytes += (dirInfo as { size: number }).size;
+        }
+      }
+      const sizeInMB = (totalBytes / (1024 * 1024)).toFixed(2);
+      setCacheSize(`${sizeInMB} MB`);
+    } catch (error) {
+      console.warn('Could not calculate cache size:', error);
+      setCacheSize('Unknown');
+    }
   }, []);
 
   const checkOfflineMode = async () => {
@@ -241,22 +262,48 @@ export default function SettingsPage() {
   const handleClearCache = () => {
     Alert.alert(
       'Clear Cache',
-      'Are you sure you want to clear all cached data? This will free up storage space.',
+      `This will clear ${cacheSize} of cached data including images and temporary files. This action cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Clear',
+          text: 'Clear Cache',
           style: 'destructive',
           onPress: async () => {
             try {
+              setClearingCache(true);
               await cacheService.clearCache();
-              showSnackbar('Cache cleared');
+              if (FileSystem.cacheDirectory) {
+                try {
+                  const files = await FileSystem.readDirectoryAsync(FileSystem.cacheDirectory);
+                  for (const file of files) {
+                    await FileSystem.deleteAsync(`${FileSystem.cacheDirectory}${file}`, { idempotent: true });
+                  }
+                } catch (e) {
+                  console.warn('File cache clear:', e);
+                }
+              }
+              await calculateCacheSize();
+              Alert.alert(
+                'Success',
+                'Cache cleared successfully! The app may take longer to load images next time.',
+                [{ text: 'OK' }],
+              );
             } catch (error: any) {
-              showSnackbar(error.message || 'Failed to clear cache');
+              showSnackbar(error?.message || 'Failed to clear cache');
+            } finally {
+              setClearingCache(false);
             }
           },
         },
       ],
+    );
+  };
+
+  const handleComingSoon = (feature: string) => {
+    Alert.alert(
+      'Coming Soon',
+      `${feature} is currently under development and will be available in a future update.`,
+      [{ text: 'OK' }],
     );
   };
 
@@ -614,42 +661,36 @@ export default function SettingsPage() {
         <List.Section>
           <List.Subheader>Data & Storage</List.Subheader>
           <List.Item
-            title="Export Recipes"
-            description="Backup your recipe collection"
-            left={props => <List.Icon {...props} icon="export" />}
+            title="Clear Cache"
+            description={`Cache size: ${cacheSize}`}
+            left={props => <List.Icon {...props} icon="delete-sweep" color={COLORS.warning || Colors.status?.warning} />}
             right={() =>
-              loading.export ? (
+              clearingCache ? (
                 <ActivityIndicator size="small" color={Colors.primary.main} />
               ) : (
                 <List.Icon icon="chevron-right" />
               )
             }
-            onPress={handleExportRecipes}
-            disabled={offline || loading.export}
+            onPress={handleClearCache}
+            disabled={offline || clearingCache}
+          />
+          <Divider />
+          <List.Item
+            title="Export Recipes"
+            description="Coming soon"
+            left={props => <List.Icon {...props} icon="export" />}
+            right={props => <List.Icon {...props} icon="chevron-right" />}
+            onPress={() => handleComingSoon('Export Recipes')}
+            style={styles.listItemComingSoon}
           />
           <Divider />
           <List.Item
             title="Import Recipes"
-            description="Import from other apps"
+            description="Coming soon"
             left={props => <List.Icon {...props} icon="import" />}
-            right={() =>
-              loading.import ? (
-                <ActivityIndicator size="small" color={Colors.primary.main} />
-              ) : (
-                <List.Icon icon="chevron-right" />
-              )
-            }
-            onPress={handleImportRecipes}
-            disabled={offline || loading.import}
-          />
-          <Divider />
-          <List.Item
-            title="Clear Cache"
-            description="Free up storage space"
-            left={props => <List.Icon {...props} icon="delete-sweep" />}
             right={props => <List.Icon {...props} icon="chevron-right" />}
-            onPress={handleClearCache}
-            disabled={offline}
+            onPress={() => handleComingSoon('Import Recipes')}
+            style={styles.listItemComingSoon}
           />
         </List.Section>
 
@@ -704,7 +745,7 @@ export default function SettingsPage() {
           <Divider />
           <List.Item
             title="About RecipeStash"
-            description="Version 1.0.0"
+            description="Version 1.0.7"
             left={props => <List.Icon {...props} icon="information" />}
           />
         </List.Section>
@@ -1077,5 +1118,8 @@ const styles = StyleSheet.create({
   },
   snackbar: {
     backgroundColor: Colors.primary.main,
+  },
+  listItemComingSoon: {
+    opacity: 0.7,
   },
 });
