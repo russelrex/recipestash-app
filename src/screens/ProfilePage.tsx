@@ -1,13 +1,12 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
   ImageBackground,
   RefreshControl,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import {
   Button,
@@ -18,12 +17,12 @@ import {
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 import {
   PostListSkeleton,
   ProfileCardSkeleton,
   RecipeListSkeleton,
 } from '../components/Loading/LoadingComponents';
-import { ConfirmationModal } from '../components/ConfirmationModal';
 import ProfileAvatar from '../components/ProfileAvatar';
 import { UserName } from '../components/UserName';
 import {
@@ -145,11 +144,7 @@ export default function ProfilePage() {
     return icons[category.toLowerCase()] || 'food';
   };
 
-  // All recipes loaded for this user; keep a derived list for clarity
-  const myRecipes: Recipe[] = recipes.filter(
-    (recipe: Recipe) => recipe.featured === false,
-  );
-  console.log('myRecipes', myRecipes);
+  const myRecipes: Recipe[] = recipes;
 
   const handleEditRecipe = (recipe: Recipe) => {
     (navigation as any).navigate('AddRecipe', {
@@ -469,7 +464,7 @@ export default function ProfilePage() {
             })()}
           </View>
 
-          {/* My Recipes Card */}
+          {/* My Recipes Card (up to 4, with View All) */}
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
               <Text variant="titleLarge" style={styles.sectionTitle}>
@@ -488,95 +483,128 @@ export default function ProfilePage() {
                 </Text>
               </View>
             ) : (
-              <View style={styles.myRecipesGrid}>
-                {myRecipes.map((recipe: Recipe) => (
-                  <View key={recipe._id} style={styles.myRecipeCard}>
-                    <View style={styles.myRecipeCardContent}>
-                      <TouchableOpacity
-                        activeOpacity={0.9}
-                        onPress={() =>
-                          (navigation as any).navigate('RecipeDetail', { recipeId: recipe._id })
-                        }
-                        style={styles.myRecipeTouchable}
-                      >
-                        <View style={styles.myRecipeImageWrapper}>
-                          {recipe.featuredImage ? (
-                            <Card.Cover
-                              source={{ uri: recipe.featuredImage }}
-                              style={styles.myRecipeImage}
-                              resizeMode="cover"
-                            />
-                          ) : (
-                            <View style={[styles.myRecipeImage, styles.recipeThumbPlaceholder]}>
-                              <Text style={styles.recipeThumbIcon}>
-                                {getRecipeIcon(recipe.category) === 'coffee' ? '☕' : '🍽'}
+              <>
+                <View style={styles.myRecipesGrid}>
+                  {myRecipes.slice(0, 4).map((recipe: Recipe) => (
+                    <View key={recipe._id} style={styles.myRecipeCard}>
+                      <View style={styles.myRecipeCardContent}>
+                        <TouchableOpacity
+                          activeOpacity={0.9}
+                          onPress={() =>
+                            (navigation as any).navigate('RecipeDetail', {
+                              recipeId: recipe._id,
+                            })
+                          }
+                          style={styles.myRecipeTouchable}
+                        >
+                          <View style={styles.myRecipeImageWrapper}>
+                            {recipe.featuredImage ? (
+                              <Card.Cover
+                                source={{ uri: recipe.featuredImage }}
+                                style={styles.myRecipeImage}
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <View
+                                style={[
+                                  styles.myRecipeImage,
+                                  styles.recipeThumbPlaceholder,
+                                ]}
+                              >
+                                <Text style={styles.recipeThumbIcon}>
+                                  {getRecipeIcon(recipe.category) === 'coffee'
+                                    ? '☕'
+                                    : '🍽'}
+                                </Text>
+                              </View>
+                            )}
+                            {recipe.featured && (
+                              <View style={styles.myRecipeFeaturedBadge}>
+                                <Icon name="star" size={14} color="#FFD700" />
+                                <Text style={styles.myRecipeFeaturedText}>
+                                  Featured
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                          <View style={styles.myRecipeInfo}>
+                            <Text
+                              variant="bodyMedium"
+                              style={styles.myRecipeTitle}
+                              numberOfLines={2}
+                            >
+                              {recipe.title}
+                            </Text>
+                            <View style={styles.myRecipeMetaRow}>
+                              <Icon
+                                name="clock-outline"
+                                size={14}
+                                color={COLORS.textSecondary}
+                              />
+                              <Text style={styles.myRecipeMetaText}>
+                                {recipe.prepTime + recipe.cookTime} min
+                              </Text>
+                              <Icon
+                                name="account-group"
+                                size={14}
+                                color={COLORS.textSecondary}
+                                style={styles.myRecipeMetaIcon}
+                              />
+                              <Text style={styles.myRecipeMetaText}>
+                                {recipe.servings} servings
                               </Text>
                             </View>
-                          )}
-                          {recipe.featured && (
-                            <View style={styles.myRecipeFeaturedBadge}>
-                              <Icon name="star" size={14} color="#FFD700" />
-                              <Text style={styles.myRecipeFeaturedText}>Featured</Text>
-                            </View>
-                          )}
-                        </View>
-                        <View style={styles.myRecipeInfo}>
-                          <Text
-                            variant="bodyMedium"
-                            style={styles.myRecipeTitle}
-                            numberOfLines={2}
-                          >
-                            {recipe.title}
-                          </Text>
-                          <View style={styles.myRecipeMetaRow}>
-                            <Icon
-                              name="clock-outline"
-                              size={14}
-                              color={COLORS.textSecondary}
-                            />
-                            <Text style={styles.myRecipeMetaText}>
-                              {recipe.prepTime + recipe.cookTime} min
-                            </Text>
-                            <Icon
-                              name="account-group"
-                              size={14}
-                              color={COLORS.textSecondary}
-                              style={styles.myRecipeMetaIcon}
-                            />
-                            <Text style={styles.myRecipeMetaText}>
-                              {recipe.servings} servings
-                            </Text>
                           </View>
-                        </View>
-                      </TouchableOpacity>
-                    </View>
+                        </TouchableOpacity>
+                      </View>
 
-                    <View style={styles.myRecipeActions}>
-                      <IconButton
-                        icon="pencil"
-                        size={20}
-                        iconColor={COLORS.primary}
-                        onPress={() => handleEditRecipe(recipe)}
-                        style={styles.myRecipeActionButton}
-                      />
-                      <IconButton
-                        icon={recipe.featured ? 'star' : 'star-outline'}
-                        size={20}
-                        iconColor={recipe.featured ? '#FFD700' : COLORS.textSecondary}
-                        onPress={() => handleToggleFeatured(recipe)}
-                        style={styles.myRecipeActionButton}
-                      />
-                      <IconButton
-                        icon="delete-outline"
-                        size={20}
-                        iconColor={Colors.status?.error || '#C62828'}
-                        onPress={() => handleDeleteRecipe(recipe)}
-                        style={styles.myRecipeActionButton}
-                      />
+                      <View style={styles.myRecipeActions}>
+                        <IconButton
+                          icon="pencil"
+                          size={20}
+                          iconColor={COLORS.primary}
+                          onPress={() => handleEditRecipe(recipe)}
+                          style={styles.myRecipeActionButton}
+                        />
+                        <IconButton
+                          icon={recipe.featured ? 'star' : 'star-outline'}
+                          size={20}
+                          iconColor={
+                            recipe.featured ? '#FFD700' : COLORS.textSecondary
+                          }
+                          onPress={() => handleToggleFeatured(recipe)}
+                          style={styles.myRecipeActionButton}
+                        />
+                        <IconButton
+                          icon="delete-outline"
+                          size={20}
+                          iconColor={Colors.status?.error || '#C62828'}
+                          onPress={() => handleDeleteRecipe(recipe)}
+                          style={styles.myRecipeActionButton}
+                        />
+                      </View>
                     </View>
-                  </View>
-                ))}
-              </View>
+                  ))}
+                </View>
+
+                {myRecipes.length > 4 && (
+                  <TouchableOpacity
+                    style={styles.showMoreButton}
+                    onPress={() =>
+                      (navigation as any).navigate('AllMyRecipes')
+                    }
+                  >
+                    <Text style={styles.showMoreText}>
+                      View All {myRecipes.length} Recipes
+                    </Text>
+                    <Icon
+                      name="arrow-right"
+                      size={20}
+                      color={COLORS.primary}
+                    />
+                  </TouchableOpacity>
+                )}
+              </>
             )}
           </View>
 
@@ -963,6 +991,37 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: 'center',
     marginBottom: 16,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: COLORS.primaryAlpha10,
+  },
+  viewAllText: {
+    ...TYPOGRAPHY.label,
+    color: COLORS.primary,
+    fontSize: 14,
+    marginRight: 4,
+  },
+  showMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: COLORS.cardBackground,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  showMoreText: {
+    ...TYPOGRAPHY.label,
+    color: COLORS.primary,
+    marginRight: 8,
   },
   viewAllButton: {
     paddingVertical: 12,

@@ -697,6 +697,15 @@ export default function SettingsPage() {
         <List.Section>
           <List.Subheader>Account</List.Subheader>
           <List.Item
+            title="Subscription & Billing"
+            description="Manage your subscription"
+            left={props => <List.Icon {...props} icon="crown" />}
+            right={props => <List.Icon {...props} icon="chevron-right" />}
+            onPress={() => (navigation as any).navigate('Subscription')}
+            disabled={offline}
+          />
+          <Divider />
+          <List.Item
             title="Privacy Settings"
             description="Manage your privacy"
             left={props => <List.Icon {...props} icon="shield-account" />}

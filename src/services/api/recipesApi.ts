@@ -188,6 +188,20 @@ class RecipesApi {
     }
   }
 
+  async getMyRecipes(): Promise<Recipe[]> {
+    try {
+      const response = await apiClient.get('/recipes/mine');
+      if (response.data.success) {
+        return response.data.data;
+      }
+      throw new Error(response.data.message || 'Failed to fetch my recipes');
+    } catch (error: any) {
+      throw new Error(
+        error.response?.data?.message || 'Failed to fetch my recipes',
+      );
+    }
+  }
+
   async getByCategory(category: string): Promise<Recipe[]> {
     try {
       const response = await apiClient.get(`/recipes/category/${category}`);

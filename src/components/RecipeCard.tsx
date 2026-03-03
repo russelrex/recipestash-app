@@ -15,9 +15,12 @@ import { Recipe, authApi } from '../services/api';
 import { COLORS, SHADOWS, SPACING, TYPOGRAPHY } from '../styles/modernStyles';
 
 const { width } = Dimensions.get('window');
-const CARD_PADDING = SPACING.md; // 16px padding on each side
-const CARD_GAP = SPACING.sm; // 8px gap between cards
-const CARD_WIDTH = (width - (CARD_PADDING * 2) - CARD_GAP) / 2; // Two columns with gap
+// Horizontal padding in the list container (Profile / AllMyRecipes)
+const LIST_HORIZONTAL_PADDING = SPACING.md * 2; // left + right
+// Gap between cards in the grid
+const CARD_GAP = SPACING.md;
+// Width so that 2 cards + gap exactly fill the inner width
+const CARD_WIDTH = (width - LIST_HORIZONTAL_PADDING - CARD_GAP) / 2;
 
 interface RecipeCardProps {
   recipe: Recipe;

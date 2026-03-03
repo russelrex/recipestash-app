@@ -8,8 +8,13 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Appbar, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { authApi } from '../services/api';
+import {
+  authApi,
+  recipesApi,
+  type UserProfile,
+} from '../services/api';
 import { Colors } from '../theme';
+import UpgradeModal from '../components/UpgradeModal';
 
 import AddRecipePage from '../screens/AddRecipePage';
 import CreatePostPage from '../screens/CreatePostPage';
@@ -26,11 +31,31 @@ import RecipeDetailPage from '../screens/RecipeDetailPage';
 import RecipesPage from '../screens/RecipesPage';
 import RegistrationPage from '../screens/RegistrationPage';
 import SettingsPage from '../screens/SettingsPage';
+import SubscriptionPage from '../screens/SubscriptionPage';
+import AllMyRecipesPage from '../screens/AllMyRecipesPage';
 import TermsOfServicePage from '../screens/TermsOfServicePage';
 import UserProfilePage from '../screens/UserProfilePage';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+const isPremiumUser = (profile: UserProfile | null): boolean => {
+  if (!profile) return false;
+  const sub = profile.subscription;
+
+  if (sub?.isPremium) return true;
+  if (sub?.tier === 'premium' || sub?.tier === 'pro') return true;
+
+  if (profile.isPremium) return true;
+  if (
+    profile.subscriptionTier &&
+    profile.subscriptionTier.toLowerCase() !== 'free'
+  ) {
+    return true;
+  }
+
+  return false;
+};
 
 // Custom Header Component
 function CustomAppBar({ navigation, route, options, back }: any) {
@@ -46,6 +71,8 @@ function CustomAppBar({ navigation, route, options, back }: any) {
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const [showModal, setShowModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [recipeCount, setRecipeCount] = useState(0);
 
   const handleCenterPress = () => {
     setShowModal(!showModal);
@@ -136,9 +163,29 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
         <View style={[styles.actionModal, { bottom: 80 + insets.bottom }]}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => {
-              setShowModal(false);
-              navigation.navigate('AddRecipe');
+            onPress={async () => {
+              try {
+                const [profile, recipes] = await Promise.all([
+                  authApi.getProfile(),
+                  recipesApi.getAllRecipes(),
+                ]);
+
+                const premium = isPremiumUser(profile);
+
+                if (premium || recipes.length < 10) {
+                  setShowModal(false);
+                  navigation.navigate('AddRecipe');
+                  return;
+                }
+
+                setRecipeCount(recipes.length);
+                setShowUpgradeModal(true);
+              } catch (error) {
+                console.error('Error checking subscription/recipe limit:', error);
+                // On error, allow navigation rather than blocking the user
+                setShowModal(false);
+                navigation.navigate('AddRecipe');
+              }
             }}
           >
             <View style={styles.actionIconContainer}>
@@ -184,6 +231,12 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           activeOpacity={1}
         />
       )}
+
+      <UpgradeModal
+        visible={showUpgradeModal}
+        recipeCount={recipeCount}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </>
   );
 }
@@ -403,6 +456,16 @@ export default function AppNavigator() {
           name="Settings" 
           component={SettingsPage}
           options={{ title: 'Settings' }}
+        />
+        <Stack.Screen 
+          name="AllMyRecipes" 
+          component={AllMyRecipesPage}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="Subscription" 
+          component={SubscriptionPage}
+          options={{ title: 'Subscription' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

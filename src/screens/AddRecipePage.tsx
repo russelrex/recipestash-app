@@ -1,6 +1,15 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
-import { Alert, ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import {
   ActivityIndicator,
   Avatar,
@@ -20,8 +29,17 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ImageUploadSection from '../components/ImageUploadSection';
 import IngredientInput from '../components/IngredientInput';
-import RecipeStepInput, { EditableRecipeStep } from '../components/RecipeStepInput';
-import { authApi, CreateRecipeData, recipesApi, UpdateRecipeData } from '../services/api';
+import RecipeStepInput, {
+  EditableRecipeStep,
+} from '../components/RecipeStepInput';
+import UpgradeModal from '../components/UpgradeModal';
+import {
+  authApi,
+  CreateRecipeData,
+  recipesApi,
+  UpdateRecipeData,
+  subscriptionApi,
+} from '../services/api';
 import type { ImageData } from '../services/imagePicker';
 import { imageUploadService } from '../services/imageUploadService';
 import { Colors } from '../theme';
@@ -72,8 +90,11 @@ export default function AddRecipePage() {
   const [loadingRecipe, setLoadingRecipe] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarType, setSnackbarType] = useState<'success' | 'error' | 'info'>('info');
+  const [snackbarType, setSnackbarType] =
+    useState<'success' | 'error' | 'info'>('info');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [recipeCount, setRecipeCount] = useState(0);
 
   useEffect(() => {
     if (isEditMode) {
@@ -81,6 +102,23 @@ export default function AddRecipePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recipeId]);
+
+  useEffect(() => {
+    if (!isEditMode) {
+      (async () => {
+        try {
+          const result = await subscriptionApi.canCreateRecipe();
+          if (!result.allowed) {
+            const recipes = await recipesApi.getAllRecipes();
+            setRecipeCount(recipes.length);
+            setShowUpgradeModal(true);
+          }
+        } catch (error) {
+          console.error('Error checking recipe limit on mount:', error);
+        }
+      })();
+    }
+  }, [isEditMode]);
 
   const loadRecipe = async () => {
     try {
@@ -242,6 +280,21 @@ export default function AddRecipePage() {
     setLoading(true);
 
     try {
+      if (!isEditMode) {
+        const limitCheck = await subscriptionApi.canCreateRecipe();
+        if (!limitCheck.allowed) {
+          try {
+            const recipes = await recipesApi.getAllRecipes();
+            setRecipeCount(recipes.length);
+          } catch (countError) {
+            console.error('Error fetching recipes for limit modal:', countError);
+          }
+          setShowUpgradeModal(true);
+          setLoading(false);
+          return;
+        }
+      }
+
       const validIngredients = ingredients.filter(i => i.trim());
 
       // Prepare structured steps (with uploaded image URLs)
@@ -784,6 +837,12 @@ export default function AddRecipePage() {
           </ScrollView>
         </View>
         </ImageBackground>
+
+        <UpgradeModal
+          visible={showUpgradeModal}
+          recipeCount={recipeCount}
+          onClose={() => setShowUpgradeModal(false)}
+        />
 
         <Snackbar
           visible={snackbarVisible}
