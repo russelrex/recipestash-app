@@ -130,7 +130,6 @@ export default function EditProfileModal({
           }
 
           const uploadResult = await imageUploadService.uploadProfilePicture(avatarUri, token);
-          console.log('====123123123', uploadResult);
           payload.avatarUrl = uploadResult.url;
         } finally {
           setUploading(false);
@@ -141,7 +140,6 @@ export default function EditProfileModal({
       }
 
       const updated = await authApi.updateProfile(payload);
-      console.log('Updated profile:', updated);
       onSave(updated);
       onClose();
     } catch (e: any) {

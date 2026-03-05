@@ -101,7 +101,6 @@ export default function ProfilePage() {
         postsApi.getUserPosts(userId),
       ]);
 
-      console.log('userRecipes', userRecipes),
       setProfile(profileData);
       setUserName(profileData.name);
       setFollowStats(stats);

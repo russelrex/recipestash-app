@@ -39,7 +39,6 @@ export const useImagePicker = (options: UseImagePickerOptions = {}) => {
         permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       }
 
-      console.log(`${type} permission status:`, permissionResult.status);
 
       if (permissionResult.status !== 'granted') {
         const permissionType = type === 'camera' ? 'camera' : 'photo library';
@@ -85,7 +84,6 @@ export const useImagePicker = (options: UseImagePickerOptions = {}) => {
     }
 
     // Check dimensions (optional - can add max width/height)
-    console.log('Image dimensions:', image.width, 'x', image.height);
 
     return true;
   };
@@ -95,7 +93,6 @@ export const useImagePicker = (options: UseImagePickerOptions = {}) => {
       setIsLoading(true);
       setError(null);
 
-      console.log('Requesting library permission...');
       const hasPermission = await requestPermission('library');
       
       if (!hasPermission) {
@@ -103,7 +100,6 @@ export const useImagePicker = (options: UseImagePickerOptions = {}) => {
         return null;
       }
 
-      console.log('Launching image library...');
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing,
@@ -112,10 +108,8 @@ export const useImagePicker = (options: UseImagePickerOptions = {}) => {
         base64: false, // Don't use base64 for performance
       });
 
-      console.log('Image picker result:', result);
 
       if (result.canceled) {
-        console.log('User cancelled image selection');
         setIsLoading(false);
         return null;
       }
@@ -126,13 +120,6 @@ export const useImagePicker = (options: UseImagePickerOptions = {}) => {
         setIsLoading(false);
         return null;
       }
-
-      console.log('Selected image:', {
-        uri: image.uri,
-        width: image.width,
-        height: image.height,
-        size: image.fileSize,
-      });
 
       setIsLoading(false);
       return {
@@ -157,7 +144,6 @@ export const useImagePicker = (options: UseImagePickerOptions = {}) => {
       setIsLoading(true);
       setError(null);
 
-      console.log('Requesting camera permission...');
       const hasPermission = await requestPermission('camera');
       
       if (!hasPermission) {
@@ -165,7 +151,6 @@ export const useImagePicker = (options: UseImagePickerOptions = {}) => {
         return null;
       }
 
-      console.log('Launching camera...');
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing,
         aspect,
@@ -173,10 +158,8 @@ export const useImagePicker = (options: UseImagePickerOptions = {}) => {
         base64: false,
       });
 
-      console.log('Camera result:', result);
 
       if (result.canceled) {
-        console.log('User cancelled camera');
         setIsLoading(false);
         return null;
       }
@@ -187,13 +170,6 @@ export const useImagePicker = (options: UseImagePickerOptions = {}) => {
         setIsLoading(false);
         return null;
       }
-
-      console.log('Captured photo:', {
-        uri: image.uri,
-        width: image.width,
-        height: image.height,
-        size: image.fileSize,
-      });
 
       setIsLoading(false);
       return {

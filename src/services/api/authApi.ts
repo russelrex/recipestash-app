@@ -92,7 +92,6 @@ class AuthApi {
         email: data.email,
         password: data.password,
       });
-      console.log('Login response:', response.data);
       if (response.data.success) {
         const resData = response.data.data;
         const user = resData?.user ?? resData;

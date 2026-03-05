@@ -139,10 +139,8 @@ class RecipesApi {
     } catch (error: any) {
       // If network error, try to serve from cache
       if (!error.response && error.request) {
-        console.warn('Network error, attempting to load from cache...');
         const cached = await cacheService.getCachedRecipes();
         if (cached) {
-          console.log('Serving recipes from cache');
           return cached;
         }
       }
@@ -158,9 +156,7 @@ class RecipesApi {
     search?: string;
   }): Promise<Recipe[]> {
     try {
-      console.log('🌐 [API] Fetching all public recipes', params);
       const response = await apiClient.get('/recipes/public', { params });
-      console.log('✅ [API] Received', response.data?.data?.length || 0, 'recipes');
       
       if (response.data.success) {
         return response.data.data || [];
@@ -240,19 +236,7 @@ class RecipesApi {
 
   async updateRecipe(id: string, data: UpdateRecipeData): Promise<Recipe> {
     try {
-      console.log(`Updating recipe ${id} with data:`, {
-        ...data,
-        featuredImage: data.featuredImage ? `${data.featuredImage.substring(0, 50)}...` : undefined,
-        images: data.images?.length || 0,
-      });
-      
       const response = await apiClient.patch(`/recipes/${id}`, data);
-      
-      console.log('Update response:', {
-        success: response.data.success,
-        hasData: !!response.data.data,
-        message: response.data.message,
-      });
       
       if (response.data.success) {
         return response.data.data;

@@ -31,9 +31,6 @@ class ImageUploadService {
     token?: string
   ): Promise<UploadResponse> {
     try {
-      console.log('Starting image upload...');
-      console.log('Image URI:', imageUri);
-      console.log('Upload endpoint:', `${API_BASE_URL}${endpoint}`);
 
       // Get auth token if not provided
       let authToken: string | undefined = token;
@@ -56,7 +53,6 @@ class ImageUploadService {
       const fileExtension = this.getFileExtension(imageUri);
       const mimeType = this.getMimeType(fileExtension);
       
-      console.log('File type:', mimeType);
 
       // Append image file
       formData.append('file', {
@@ -75,7 +71,6 @@ class ImageUploadService {
         Authorization: `Bearer ${authToken}`,
       };
 
-      console.log('Uploading to:', `${API_BASE_URL}${endpoint}`);
 
       // Upload
       const response = await axios.post(
@@ -89,13 +84,11 @@ class ImageUploadService {
               const percentCompleted = Math.round(
                 (progressEvent.loaded * 100) / progressEvent.total
               );
-              console.log(`Upload progress: ${percentCompleted}%`);
             }
           },
         }
       );
 
-      console.log('Upload successful:', response.data);
 
       return response.data;
     } catch (error: any) {

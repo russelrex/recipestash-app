@@ -12,7 +12,6 @@ export default function DebugScreen() {
   const addLog = (msg: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setLogs(prev => [`[${timestamp}] ${msg}`, ...prev]);
-    console.log(msg);
   };
 
   const testApiUrl = () => {

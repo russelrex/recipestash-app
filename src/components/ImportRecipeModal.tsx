@@ -48,7 +48,6 @@ export default function ImportRecipeModal({
     setError(null);
 
     try {
-      console.log('📥 Importing recipe from:', url);
       const imported = await recipesApi.importRecipe(url);
 
       const title = imported?.title || 'Recipe';

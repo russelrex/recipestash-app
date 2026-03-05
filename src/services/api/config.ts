@@ -4,10 +4,6 @@ import axios from 'axios';
 const BACKEND_URL =
   process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
 export const API_BASE_URL = `${BACKEND_URL}/api`;
-
-console.log('🌐 API URL:', API_BASE_URL);
-console.log('📱 Build Profile:', process.env.EAS_BUILD_PROFILE);
-
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
@@ -25,7 +21,6 @@ apiClient.interceptors.request.use(
     if (token && token !== 'null' && token.trim() !== '' && token !== 'offline') {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    console.log('API Request:', config.method?.toUpperCase(), config.url);
     return config;
   },
   error => Promise.reject(error),

@@ -63,7 +63,6 @@ export default function ImportRecipeFlow({
     setError(null);
 
     try {
-      console.log('📥 Importing recipe from:', urlInput);
       const response = await recipesApi.scrapeRecipe(urlInput);
       setScrapedData(response);
       setCurrentStep('preview');
@@ -83,8 +82,6 @@ export default function ImportRecipeFlow({
 
   const handleAccept = async (editedData: ScrapedRecipeData) => {
     try {
-      console.log('✅ Creating recipe with edited data');
-
       const userId = await authApi.getCurrentUserId();
       const userName = await authApi.getCurrentUserName();
 

@@ -49,7 +49,6 @@ export default function RecipesPage() {
         setLoadingMore(true);
       }
 
-      console.log('📚 [RecipesPage] Loading recipes - Page:', reset ? 1 : page + 1);
 
       const newRecipes = await recipesApi.getAllPublicRecipes({
         page: reset ? 1 : page + 1,
@@ -58,7 +57,6 @@ export default function RecipesPage() {
         search: searchQuery || undefined,
       });
 
-      console.log('✅ [RecipesPage] Loaded', newRecipes.length, 'recipes');
 
       if (reset) {
         setRecipes(newRecipes);
@@ -88,7 +86,6 @@ export default function RecipesPage() {
     
     if (query.trim()) {
       try {
-        console.log('🔍 [RecipesPage] Searching:', query);
         const searchResults = await recipesApi.searchRecipes(query);
         setRecipes(searchResults);
       } catch (error: any) {

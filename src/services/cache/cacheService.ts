@@ -16,7 +16,6 @@ class CacheService {
         [RECIPES_KEY, JSON.stringify(recipes)],
         [CACHE_TIMESTAMP_KEY, timestamp],
       ]);
-      console.log(`Cached ${recipes.length} recipes at ${new Date(parseInt(timestamp)).toISOString()}`);
     } catch (error) {
       console.error('Error caching recipes:', error);
     }
@@ -31,7 +30,6 @@ class CacheService {
       if (!cached) return null;
 
       const recipes = JSON.parse(cached) as Recipe[];
-      console.log(`Retrieved ${recipes.length} recipes from cache`);
       return recipes;
     } catch (error) {
       console.error('Error retrieving cached recipes:', error);
@@ -62,7 +60,6 @@ class CacheService {
       
       if (cacheKeys.length > 0) {
         await AsyncStorage.multiRemove(cacheKeys);
-        console.log(`Cleared ${cacheKeys.length} cache entries`);
       }
     } catch (error) {
       console.error('Error clearing cache:', error);

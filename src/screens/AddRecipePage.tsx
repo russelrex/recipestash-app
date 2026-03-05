@@ -215,9 +215,6 @@ export default function AddRecipePage() {
 
     const errorKeys = Object.keys(newErrors);
     if (errorKeys.length > 0) {
-      // Log which fields failed for easier debugging
-      console.log('Validation errors:', newErrors);
-
       // Surface the first error in the snackbar so it's obvious what to fix
       const firstErrorKey = errorKeys[0];
       const firstErrorMessage = newErrors[firstErrorKey];
@@ -264,10 +261,7 @@ export default function AddRecipePage() {
   };
 
   const handleSubmit = async () => {
-    console.log('handleSubmit pressed, isEditMode:', isEditMode);
-
     if (!validateForm()) {
-      console.log('Validation failed, not submitting');
       return;
     }
 
@@ -276,7 +270,6 @@ export default function AddRecipePage() {
   };
 
   const performSubmit = async () => {
-    console.log('Performing submit');
     setLoading(true);
 
     try {
@@ -309,10 +302,8 @@ export default function AddRecipePage() {
       // Upload new featured image if selected
       let featuredImageData: string | undefined = undefined;
       if (featuredImage) {
-        console.log('Uploading featured image...');
         const uploadResult = await imageUploadService.uploadRecipeImage(featuredImage.uri, authToken);
         featuredImageData = uploadResult.url;
-        console.log('Featured image uploaded:', featuredImageData);
       } else if (existingFeaturedUrl && existingFeaturedUrl.trim()) {
         featuredImageData = existingFeaturedUrl;
       }
@@ -320,10 +311,8 @@ export default function AddRecipePage() {
       // Upload new additional images
       const uploadedAdditionalImages: string[] = [];
       for (const img of additionalImages) {
-        console.log('Uploading additional image...');
         const uploadResult = await imageUploadService.uploadRecipeImage(img.uri, authToken);
         uploadedAdditionalImages.push(uploadResult.url);
-        console.log('Additional image uploaded:', uploadResult.url);
       }
 
       // Prepare additional images (existing URLs + newly uploaded)
@@ -339,10 +328,8 @@ export default function AddRecipePage() {
 
         let imageUrl: string | undefined = step.existingImageUrl;
         if (step.image) {
-          console.log('Uploading step image...');
           const uploadResult = await imageUploadService.uploadRecipeImage(step.image.uri, authToken);
           imageUrl = uploadResult.url;
-          console.log('Step image uploaded:', uploadResult.url);
         }
 
         preparedSteps.push({
@@ -377,15 +364,6 @@ export default function AddRecipePage() {
         if (additionalImagesData.length > 0) {
           recipeData.images = additionalImagesData;
         }
-
-        console.log('Updating recipe with data:', {
-          recipeId,
-          recipeData: {
-            ...recipeData,
-            featuredImage: featuredImageData ? `${featuredImageData.substring(0, 50)}...` : undefined,
-            images: additionalImagesData.length,
-          },
-        });
 
         await recipesApi.updateRecipe(recipeId!, recipeData);
         setSnackbarType('success');

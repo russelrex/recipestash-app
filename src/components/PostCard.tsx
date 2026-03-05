@@ -170,7 +170,6 @@ export default function PostCard({
 
   const loadCurrentUserId = async () => {
     const userId = await authApi.getCurrentUserId();
-    console.log('====userId', userId);
     setCurrentUserIdLocal(userId);
   };
 
@@ -473,8 +472,6 @@ export default function PostCard({
     );
   };
 
-  console.log('currentUserId', currentUserId);
-  console.log('localPost', localPost);
 
   const postOwnerId =
     localPost.userId ??
@@ -490,7 +487,6 @@ export default function PostCard({
   const isLiked =
     localPost.isLiked === true ||
     (!!currentUserId && (localPost.likes ?? []).includes(currentUserId));
-  console.log('currentUserId', currentUserId);
 
   const visibleComments = showComments && commentsLoaded && commentsVisible
     ? comments.slice(0, maxCommentsPreview)

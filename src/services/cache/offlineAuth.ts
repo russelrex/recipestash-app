@@ -33,7 +33,6 @@ class OfflineAuth {
         [OFFLINE_EMAIL_KEY, email.toLowerCase().trim()],
         [OFFLINE_PASSWORD_HASH_KEY, hash],
       ]);
-      console.log('Stored offline credentials for:', email);
     } catch (error) {
       console.error('Error storing offline credentials:', error);
       throw error;
@@ -74,7 +73,6 @@ class OfflineAuth {
   async clearOfflineCredentials(): Promise<void> {
     try {
       await AsyncStorage.multiRemove([OFFLINE_EMAIL_KEY, OFFLINE_PASSWORD_HASH_KEY]);
-      console.log('Cleared offline credentials');
     } catch (error) {
       console.error('Error clearing offline credentials:', error);
     }
