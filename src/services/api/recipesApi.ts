@@ -1,6 +1,6 @@
+import { Subscription } from '../../types/subscription';
 import cacheService from '../cache/cacheService';
 import apiClient from './config';
-import { Subscription } from '../../types/subscription';
 
 // Simplified cooking step: just a numbered step with description and optional image.
 export interface RecipeStep {
@@ -93,6 +93,22 @@ export interface RecipeStats {
   totalRecipes: number;
   favoriteRecipes: number;
   categoryCounts: Record<string, number>;
+}
+
+export interface ScrapedRecipeData {
+  title: string;
+  description?: string;
+  prepTime?: number;
+  cookTime?: number;
+  totalTime?: number;
+  servings?: number;
+  ingredients: string[];
+  instructions: string[];
+  imageUrl?: string;
+  category?: string;
+  cuisine?: string;
+  author?: string;
+  sourceUrl: string;
 }
 
 class RecipesApi {
@@ -299,6 +315,45 @@ class RecipesApi {
     const response = await apiClient.post('/recipes/import', { recipes });
     if (response.data.success) return response.data.data;
     throw new Error(response.data.message || 'Import failed');
+  }
+
+  async importRecipe(url: string): Promise<Recipe> {
+    try {
+      const response = await apiClient.post('/recipes/import', { url });
+      const recipe = response.data?.recipe || response.data?.data;
+      if (!recipe) {
+        throw new Error('Import response did not include a recipe');
+      }
+      return recipe;
+    } catch (error: any) {
+      console.error('❌ [API] Import recipe failed:', {
+        message: error.message,
+        response: error.response?.data,
+      });
+      throw new Error(
+        error.response?.data?.message ||
+          error.message ||
+          'Failed to import recipe',
+      );
+    }
+  }
+
+  async scrapeRecipe(url: string): Promise<ScrapedRecipeData> {
+    try {
+      const response = await apiClient.post('/recipes/scrape', { url });
+      const data = response.data?.data || response.data;
+      return data as ScrapedRecipeData;
+    } catch (error: any) {
+      console.error('❌ [API] Scrape recipe failed:', {
+        message: error.message,
+        response: error.response?.data,
+      });
+      throw new Error(
+        error.response?.data?.message ||
+          error.message ||
+          'Failed to scrape recipe',
+      );
+    }
   }
 }
 

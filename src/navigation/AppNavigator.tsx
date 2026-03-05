@@ -15,6 +15,7 @@ import {
 } from '../services/api';
 import { Colors } from '../theme';
 import UpgradeModal from '../components/UpgradeModal';
+import ImportRecipeFlow from '../components/ImportRecipeFlow/ImportRecipeFlow';
 
 import AddRecipePage from '../screens/AddRecipePage';
 import CreatePostPage from '../screens/CreatePostPage';
@@ -73,6 +74,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   const [showModal, setShowModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [recipeCount, setRecipeCount] = useState(0);
+  const [showImportFlow, setShowImportFlow] = useState(false);
 
   const handleCenterPress = () => {
     setShowModal(!showModal);
@@ -206,6 +208,27 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             style={styles.actionButton}
             onPress={() => {
               setShowModal(false);
+              setShowImportFlow(true);
+            }}
+          >
+            <View style={styles.actionIconContainer}>
+              <Icon name="cloud-download" size={24} color={Colors.primary.main} />
+            </View>
+            <View style={styles.actionTextContainer}>
+              <View style={styles.actionTitleRow}>
+                <Icon name="cloud-download" size={16} color={Colors.primary.main} />
+                <Text style={styles.actionTitle}>Import Recipe</Text>
+              </View>
+              <Text style={styles.actionDescription}>From any recipe URL</Text>
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.actionDivider} />
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              setShowModal(false);
               navigation.navigate('CreatePost');
             }}
           >
@@ -236,6 +259,17 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
         visible={showUpgradeModal}
         recipeCount={recipeCount}
         onClose={() => setShowUpgradeModal(false)}
+      />
+
+      <ImportRecipeFlow
+        visible={showImportFlow}
+        onClose={() => setShowImportFlow(false)}
+        onSuccess={recipe => {
+          setShowImportFlow(false);
+          (navigation as any).navigate('RecipeDetail', {
+            recipeId: recipe._id,
+          });
+        }}
       />
     </>
   );
