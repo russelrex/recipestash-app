@@ -2,7 +2,7 @@
   "expo": {
     "name": "RecipeStash",
     "slug": "recipestash-app",
-    "version": "1.0.6",
+    "version": "1.0.1",
     "backgroundColor": "#F5F7FA",
     "orientation": "portrait",
     "icon": "./assets/images/final/recipestash-icon.png", 
@@ -16,7 +16,7 @@
       "backgroundColor": "#F5F7FA"
     },
     "android": {
-      "versionCode": 6,
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/final/recipestash-icon-foreground.png",
