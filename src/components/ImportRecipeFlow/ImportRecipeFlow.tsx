@@ -67,7 +67,6 @@ export default function ImportRecipeFlow({
       setScrapedData(response);
       setCurrentStep('preview');
     } catch (err: any) {
-      console.error('❌ Scraping failed:', err);
       const errorMessage =
         err.message || 'Failed to import recipe. Please try again.';
       setError(errorMessage);
@@ -121,7 +120,6 @@ export default function ImportRecipeFlow({
       onSuccess(createdRecipe);
       handleClose();
     } catch (err: any) {
-      console.error('❌ Recipe creation failed:', err);
       setError('Failed to create recipe. Please try again.');
     }
   };

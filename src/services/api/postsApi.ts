@@ -1,5 +1,5 @@
 import apiClient from './config';
-import { Subscription } from '../types/subscription';
+import { Subscription } from '../../types/subscription';
 
 export interface Post {
   id: string;

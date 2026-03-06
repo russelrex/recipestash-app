@@ -24,6 +24,7 @@ import {
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import EmojiPicker from '../components/EmojiPicker';
 import { Post, postsApi, Recipe, recipesApi } from '../services/api';
 import { Colors } from '../theme';
 
@@ -79,7 +80,6 @@ export default function CreatePostPage() {
       setRecipes(userRecipes);
       setFilteredRecipes(userRecipes);
     } catch (error) {
-      console.error('Error loading recipes:', error);
     } finally {
       setLoadingRecipes(false);
     }
@@ -90,7 +90,6 @@ export default function CreatePostPage() {
       const recipe = await recipesApi.getRecipe(recipeId);
       setSelectedRecipe(recipe);
     } catch (error) {
-      console.error('Error loading recipe:', error);
     }
   };
 
@@ -200,7 +199,6 @@ export default function CreatePostPage() {
         navigation.goBack();
       }, 1000);
     } catch (error: any) {
-      console.error('Error saving post:', error);
       setSnackbarType('error');
       setSnackbarMessage(error.message || 'Failed to save post');
       setSnackbarVisible(true);
@@ -467,6 +465,12 @@ export default function CreatePostPage() {
           </View>
         </Modal>
       </Portal>
+
+          <EmojiPicker
+            visible={emojiPickerVisible}
+            onClose={() => setEmojiPickerVisible(false)}
+            onEmojiSelect={handleEmojiSelect}
+          />
 
           <Snackbar 
             visible={snackbarVisible} 

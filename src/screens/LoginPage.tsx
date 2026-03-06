@@ -5,11 +5,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Snackbar, Text } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { authApi } from '../services/api';
@@ -80,6 +82,13 @@ export default function LoginPage() {
       setSnackbarMessage('Login successful! 🎉');
       setSnackbarVisible(true);
 
+      const token = await authApi.getAuthToken();
+      if (!token || token === 'null' || token.trim() === '') {
+        setSnackbarType('error');
+        setSnackbarMessage('Session could not be saved. Please try again.');
+        setSnackbarVisible(true);
+        return;
+      }
       setTimeout(() => {
         (navigation as any).reset({
           index: 0,
@@ -87,7 +96,6 @@ export default function LoginPage() {
         });
       }, 600);
     } catch (error: any) {
-      console.error('Login error:', error);
       setSnackbarType('error');
       setSnackbarMessage(error?.message || 'Invalid email or password');
       setSnackbarVisible(true);
@@ -97,12 +105,15 @@ export default function LoginPage() {
   };
 
   return (
-    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
-        <ScrollView
+    <View style={styles.root}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.container}
+          >
+            <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -210,16 +221,30 @@ export default function LoginPage() {
           ]}
         >
           {snackbarMessage}
-        </Snackbar>
-      </KeyboardAvoidingView>
-    </ImageBackground>
+            </Snackbar>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
+  root: {
     flex: 1,
+    backgroundColor: '#1a1a1a',
+  },
+  background: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     width: '100%',
+    height: '100%',
+  },
+  safeArea: {
+    flex: 1,
   },
   container: {
     flex: 1,

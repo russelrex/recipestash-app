@@ -17,7 +17,6 @@ async function hashPassword(password: string): Promise<string> {
     );
     return hash;
   } catch (error) {
-    console.error('Error hashing password:', error);
     throw new Error('Failed to hash password');
   }
 }
@@ -34,7 +33,6 @@ class OfflineAuth {
         [OFFLINE_PASSWORD_HASH_KEY, hash],
       ]);
     } catch (error) {
-      console.error('Error storing offline credentials:', error);
       throw error;
     }
   }
@@ -62,7 +60,6 @@ class OfflineAuth {
       const providedHash = await hashPassword(password);
       return providedHash === storedHash[1];
     } catch (error) {
-      console.error('Error verifying offline login:', error);
       return false;
     }
   }
@@ -74,7 +71,6 @@ class OfflineAuth {
     try {
       await AsyncStorage.multiRemove([OFFLINE_EMAIL_KEY, OFFLINE_PASSWORD_HASH_KEY]);
     } catch (error) {
-      console.error('Error clearing offline credentials:', error);
     }
   }
 

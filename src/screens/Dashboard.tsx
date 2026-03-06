@@ -33,7 +33,6 @@ export default function Dashboard() {
           setUserName(name);
         }
       } catch (error) {
-        console.error('Error loading user data:', error);
       }
     };
     loadUserData();
@@ -65,7 +64,6 @@ export default function Dashboard() {
         .slice(0, 3);
       setRecentRecipes(sortedRecipes);
     } catch (error: any) {
-      console.error('Error loading dashboard data:', error);
       setSnackbarMessage('Failed to load dashboard data');
       setSnackbarVisible(true);
     } finally {

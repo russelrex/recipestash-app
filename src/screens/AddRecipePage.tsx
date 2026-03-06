@@ -32,6 +32,7 @@ import IngredientInput from '../components/IngredientInput';
 import RecipeStepInput, {
   EditableRecipeStep,
 } from '../components/RecipeStepInput';
+import { FEATURES } from '../config/features';
 import UpgradeModal from '../components/UpgradeModal';
 import {
   authApi,
@@ -104,7 +105,7 @@ export default function AddRecipePage() {
   }, [recipeId]);
 
   useEffect(() => {
-    if (!isEditMode) {
+    if (!isEditMode && FEATURES.ENABLE_RECIPE_LIMIT_RESTRICTION) {
       (async () => {
         try {
           const result = await subscriptionApi.canCreateRecipe();
@@ -114,7 +115,7 @@ export default function AddRecipePage() {
             setShowUpgradeModal(true);
           }
         } catch (error) {
-          console.error('Error checking recipe limit on mount:', error);
+          // Allow user to continue; limit check failed
         }
       })();
     }
@@ -165,7 +166,6 @@ export default function AddRecipePage() {
         setExistingImageUrls(recipe.images);
       }
     } catch (error: any) {
-      console.error('Error loading recipe:', error);
       setSnackbarType('error');
       setSnackbarMessage(error.message || 'Failed to load recipe');
       setSnackbarVisible(true);
@@ -273,14 +273,14 @@ export default function AddRecipePage() {
     setLoading(true);
 
     try {
-      if (!isEditMode) {
+      if (!isEditMode && FEATURES.ENABLE_RECIPE_LIMIT_RESTRICTION) {
         const limitCheck = await subscriptionApi.canCreateRecipe();
         if (!limitCheck.allowed) {
           try {
             const recipes = await recipesApi.getAllRecipes();
             setRecipeCount(recipes.length);
           } catch (countError) {
-            console.error('Error fetching recipes for limit modal:', countError);
+            // Ignore
           }
           setShowUpgradeModal(true);
           setLoading(false);
@@ -412,12 +412,6 @@ export default function AddRecipePage() {
         navigation.goBack();
       }, 1000);
     } catch (error: any) {
-      console.error('Error saving recipe:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
       setSnackbarType('error');
       setSnackbarMessage(error.message || 'Failed to save recipe');
       setSnackbarVisible(true);

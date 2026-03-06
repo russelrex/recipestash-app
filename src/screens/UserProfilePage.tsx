@@ -1,20 +1,26 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
-import { ImageBackground, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import {
-  ActivityIndicator,
+  ImageBackground,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {
   Card,
   Text
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FollowButton from '../components/FollowButton';
-import PostCard from '../components/PostCard';
-import ProfileAvatar from '../components/ProfileAvatar';
 import {
   PostListSkeleton,
   ProfileCardSkeleton,
   RecipeListSkeleton,
 } from '../components/Loading/LoadingComponents';
+import PostCard from '../components/PostCard';
+import ProfileAvatar from '../components/ProfileAvatar';
 import {
   authApi,
   followsApi,
@@ -74,7 +80,6 @@ export default function UserProfilePage() {
       setPosts(userPosts);
       setRecipes(userRecipes);
     } catch (error) {
-      console.error('Error loading user profile:', error);
     } finally {
       setLoading(false);
     }
@@ -87,7 +92,6 @@ export default function UserProfilePage() {
         prev.map(post => (post.id === postId ? updatedPost : post))
       );
     } catch (error) {
-      console.error('Error toggling like:', error);
     }
   };
 
@@ -96,7 +100,6 @@ export default function UserProfilePage() {
       await postsApi.deletePost(postId);
       setPosts(prev => prev.filter(post => post.id !== postId));
     } catch (error) {
-      console.error('Error deleting post:', error);
     }
   };
 
@@ -119,24 +122,29 @@ export default function UserProfilePage() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.loadingScroll}>
-          <ProfileCardSkeleton />
+      <View style={styles.safeArea}>
+        <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+        <SafeAreaView style={styles.loadingSafe} edges={['top']}>
+          <ScrollView contentContainerStyle={styles.loadingScroll}>
+            <ProfileCardSkeleton />
           <View style={styles.loadingSectionCard}>
             <RecipeListSkeleton count={2} />
           </View>
-          <View style={styles.loadingSectionCard}>
-            <PostListSkeleton count={2} />
-          </View>
-        </ScrollView>
-      </SafeAreaView>
+            <View style={styles.loadingSectionCard}>
+              <PostListSkeleton count={2} />
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
-      <View style={styles.overlay}>
-        <ScrollView style={styles.container}>
+    <View style={styles.root}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+        <SafeAreaView style={styles.overlay} edges={['top']}>
+          <ScrollView style={styles.container}>
           <Card style={[styles.profileCard, CARD_STYLES.elevated]} elevation={0}>
             <Card.Content style={styles.profileContent}>
               <ProfileAvatar
@@ -157,10 +165,10 @@ export default function UserProfilePage() {
                   }
                 >
                   <Text variant="headlineSmall" style={styles.statNumber}>
-                    {posts.length}
+                    {recipes.length}
                   </Text>
                   <Text variant="bodySmall" style={styles.statLabel}>
-                    Posts
+                    Recipes
                   </Text>
                 </TouchableOpacity>
 
@@ -252,7 +260,7 @@ export default function UserProfilePage() {
 
           <View style={styles.postsSection}>
             <Text variant="titleLarge" style={styles.sectionTitle}>
-              Posts
+              Posts {posts.length > 0 ? `(${posts.length})` : ''}
             </Text>
             {posts.length === 0 ? (
               <Text variant="bodyMedium" style={styles.emptyText}>
@@ -269,20 +277,26 @@ export default function UserProfilePage() {
               ))
             )}
           </View>
-        </ScrollView>
-      </View>
-    </ImageBackground>
+          </ScrollView>
+        </SafeAreaView>
+      </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  loadingSafe: {
+    flex: 1,
+  },
   background: {
     flex: 1,
-    paddingTop: 24,
     width: '100%',
   },
   overlay: {

@@ -25,7 +25,6 @@ export default function FollowersPage() {
       const data = await followsApi.getFollowers(userId);
       setFollowers(data);
     } catch (error: any) {
-      console.error('Error loading followers:', error);
       setSnackbarMessage('Failed to load followers');
       setSnackbarVisible(true);
     } finally {

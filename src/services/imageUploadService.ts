@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { Platform } from 'react-native';
 import { API_BASE_URL } from './api/config';
 
 export interface UploadResponse {
@@ -30,8 +31,8 @@ class ImageUploadService {
     endpoint: string = '/upload',
     token?: string
   ): Promise<UploadResponse> {
+    const fullUrl = `${API_BASE_URL}${endpoint}`;
     try {
-
       // Get auth token if not provided
       let authToken: string | undefined = token;
       if (!authToken) {
@@ -46,68 +47,56 @@ class ImageUploadService {
         authToken = storedToken;
       }
 
-      // Create FormData
-      const formData = new FormData();
-      
-      // Get file extension
       const fileExtension = this.getFileExtension(imageUri);
       const mimeType = this.getMimeType(fileExtension);
-      
+      const fileName = `photo_${Date.now()}.${fileExtension}`;
 
-      // Append image file
+      // Normalize URI for platforms (iOS often requires stripping file://)
+      const normalizedUri =
+        Platform.OS === 'ios'
+          ? imageUri.replace('file://', '')
+          : imageUri;
+
+      const formData = new FormData();
       formData.append('file', {
-        uri: imageUri,
-        name: `photo_${Date.now()}.${fileExtension}`,
+        uri: normalizedUri,
+        name: fileName,
         type: mimeType,
       } as any);
 
-      // Prepare headers
-      // NOTE: Do NOT set the Content-Type manually here.
-      // Axios will set the correct multipart/form-data boundary automatically
-      // when sending FormData. Manually setting it can cause the backend
-      // to see an empty payload.
       const headers: any = {
         Accept: 'application/json',
+        'Content-Type': 'multipart/form-data',
         Authorization: `Bearer ${authToken}`,
       };
 
-
-      // Upload
-      const response = await axios.post(
-        `${API_BASE_URL}${endpoint}`,
-        formData,
-        {
-          headers,
-          timeout: 60000, // 60 seconds for uploads
-          onUploadProgress: (progressEvent) => {
-            if (progressEvent.total) {
-              const percentCompleted = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total
-              );
-            }
-          },
-        }
-      );
-
+      const response = await axios.post(fullUrl, formData, {
+        headers,
+        timeout: 60000,
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+          }
+        },
+      });
 
       return response.data;
     } catch (error: any) {
-      console.error('Upload error:', error);
-
+      const hasResponse = !!error.response;
+      const hasRequest = !!error.request;
       if (error.response) {
-        console.error('Server response:', error.response.data);
-        console.error('Status code:', error.response.status);
         throw new Error(
-          error.response.data.message || 'Upload failed. Please try again.'
+          error.response.data?.message || 'Upload failed. Please try again.'
         );
-      } else if (error.request) {
-        console.error('No response received');
-        throw new Error(
-          'Could not connect to server. Please check your internet connection.'
-        );
-      } else {
-        throw new Error(error.message || 'Upload failed. Please try again.');
       }
+      if (error.request) {
+        throw new Error(
+          'Could not connect to server. Please check your internet connection and try again.'
+        );
+      }
+      throw new Error(error.message || 'Upload failed. Please try again.');
     }
   }
 
@@ -115,17 +104,47 @@ class ImageUploadService {
     imageUri: string,
     token?: string
   ): Promise<UploadResponse> {
-    // Use the dedicated profile-picture endpoint on the recipes controller.
-    // This matches the backend signature:
-    // POST /api/recipes/profile-picture with field name "file".
-    return this.uploadImage(imageUri, '/users/profile-picture', token);
+    const endpoint = '/users/profile-picture';
+
+    // Backend may return either:
+    // { url, filename, size }  OR  { success, message, profilePicture }
+    const raw: any = await this.uploadImage(imageUri, endpoint, token);
+
+    const resolvedUrl: string | undefined =
+      raw?.url ?? raw?.profilePicture ?? raw?.avatarUrl;
+
+    const normalized: UploadResponse = {
+      url: resolvedUrl || '',
+      filename: raw?.filename ?? 'profile-picture',
+      size: typeof raw?.size === 'number' ? raw.size : 0,
+    };
+
+    return normalized;
   }
 
   async uploadRecipeImage(
     imageUri: string,
     token?: string
   ): Promise<UploadResponse> {
-    return this.uploadImage(imageUri, '/recipes/upload-image', token);
+    const endpoint = '/recipes/upload-image';
+
+    // Backend may return either:
+    // { url, filename, size }  OR  { imageUrl, featuredImage, success, message }
+    const raw: any = await this.uploadImage(imageUri, endpoint, token);
+
+    const resolvedUrl: string | undefined =
+      raw?.url ??
+      raw?.imageUrl ??
+      raw?.featuredImage ??
+      raw?.fileUrl;
+
+    const normalized: UploadResponse = {
+      url: resolvedUrl || '',
+      filename: raw?.filename ?? 'recipe-image',
+      size: typeof raw?.size === 'number' ? raw.size : 0,
+    };
+
+    return normalized;
   }
 }
 

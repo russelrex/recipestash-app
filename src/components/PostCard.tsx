@@ -122,11 +122,11 @@ export default function PostCard({
 
       try {
         const userProfile = await authApi.getUserProfile(localPost.userId);
+     
         if (!cancelled && userProfile.avatarUrl) {
           setUserAvatarUrl(userProfile.avatarUrl);
         }
       } catch (error) {
-        console.warn('Failed to load user avatar:', error);
       }
     };
 
@@ -182,7 +182,6 @@ export default function PostCard({
       setComments(fetchedComments);
       setCommentsLoaded(true);
     } catch (error) {
-      console.error('Error loading comments:', error);
     } finally {
       setLoadingComments(false);
     }
@@ -232,7 +231,6 @@ export default function PostCard({
         commentsCount: localPost.commentsCount + 1,
       });
     } catch (error) {
-      console.error('Error adding comment:', error);
       Alert.alert('Error', 'Failed to add comment');
     } finally {
       setSubmittingComment(false);
@@ -248,7 +246,6 @@ export default function PostCard({
         commentsCount: Math.max(0, localPost.commentsCount - 1),
       });
     } catch (error) {
-      console.error('Error deleting comment:', error);
       Alert.alert('Error', 'Failed to delete comment');
     }
   };

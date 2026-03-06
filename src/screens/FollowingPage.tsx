@@ -26,7 +26,6 @@ export default function FollowingPage() {
       const data = await followsApi.getFollowing(userId);
       setFollowing(data);
     } catch (error: any) {
-      console.error('Error loading following:', error);
       setSnackbarType('error');
       setSnackbarMessage('Failed to load following');
       setSnackbarVisible(true);

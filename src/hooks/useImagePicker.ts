@@ -63,7 +63,6 @@ export const useImagePicker = (options: UseImagePickerOptions = {}) => {
 
       return true;
     } catch (error) {
-      console.error('Permission request error:', error);
       setError('Failed to request permissions');
       return false;
     }
@@ -101,7 +100,7 @@ export const useImagePicker = (options: UseImagePickerOptions = {}) => {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing,
         aspect,
         quality,
@@ -131,7 +130,6 @@ export const useImagePicker = (options: UseImagePickerOptions = {}) => {
         fileSize: image.fileSize,
       };
     } catch (error: any) {
-      console.error('Error picking image from library:', error);
       setError(error.message || 'Failed to pick image');
       Alert.alert('Error', 'Failed to select image. Please try again.');
       setIsLoading(false);
@@ -181,7 +179,6 @@ export const useImagePicker = (options: UseImagePickerOptions = {}) => {
         fileSize: image.fileSize,
       };
     } catch (error: any) {
-      console.error('Error taking photo:', error);
       setError(error.message || 'Failed to take photo');
       Alert.alert('Error', 'Failed to take photo. Please try again.');
       setIsLoading(false);

@@ -17,7 +17,6 @@ class CacheService {
         [CACHE_TIMESTAMP_KEY, timestamp],
       ]);
     } catch (error) {
-      console.error('Error caching recipes:', error);
     }
   }
 
@@ -32,7 +31,6 @@ class CacheService {
       const recipes = JSON.parse(cached) as Recipe[];
       return recipes;
     } catch (error) {
-      console.error('Error retrieving cached recipes:', error);
       return null;
     }
   }
@@ -45,7 +43,6 @@ class CacheService {
       const timestamp = await AsyncStorage.getItem(CACHE_TIMESTAMP_KEY);
       return timestamp ? parseInt(timestamp, 10) : null;
     } catch (error) {
-      console.error('Error retrieving cache timestamp:', error);
       return null;
     }
   }
@@ -62,7 +59,6 @@ class CacheService {
         await AsyncStorage.multiRemove(cacheKeys);
       }
     } catch (error) {
-      console.error('Error clearing cache:', error);
     }
   }
 

@@ -8,6 +8,7 @@ import {
   Modal,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -73,7 +74,6 @@ export default function RecipeDetailPage() {
       setRecipe(recipeData);
       setRelatedPosts(posts);
     } catch (error: any) {
-      console.error('Error loading recipe:', error);
       setSnackbarType('error');
       setSnackbarMessage('Failed to load recipe details');
       setSnackbarVisible(true);
@@ -127,7 +127,6 @@ export default function RecipeDetailPage() {
       );
       setSnackbarVisible(true);
     } catch (error: any) {
-      console.error('Error toggling featured status:', error);
       setSnackbarType('error');
       setSnackbarMessage(error.message || 'Failed to update featured status');
       setSnackbarVisible(true);
@@ -163,7 +162,6 @@ export default function RecipeDetailPage() {
                 navigation.goBack();
               }, 1500);
             } catch (error: any) {
-              console.error('Error deleting recipe:', error);
               setSnackbarType('error');
               setSnackbarMessage(error.message || 'Failed to delete recipe');
               setSnackbarVisible(true);
@@ -249,14 +247,15 @@ export default function RecipeDetailPage() {
   // RENDER
   // ═══════════════════════════════════════════════════
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <View style={styles.root}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <View style={styles.container}>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
-        {/* ─── Hero ──────────────────────────────────── */}
+        {/* ─── Hero (full width, starts at top edge) ─── */}
         <View style={styles.heroWrapper}>
           {hasImages ? (
-            <Image source={{ uri: allImages[selectedImageIndex] }} style={styles.heroImage} />
+            <Image source={{ uri: allImages[selectedImageIndex] }} style={styles.heroImage} resizeMode="cover" />
           ) : (
             <View style={[styles.heroImage, styles.placeholderBox]}>
               <Icon name="food" size={72} color={Colors.text.disabled} />
@@ -264,43 +263,45 @@ export default function RecipeDetailPage() {
             </View>
           )}
 
-          {/* gradient overlay */}
+          {/* gradient overlay for button visibility */}
           <View style={styles.heroOverlay} />
 
-          {/* back */}
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={22} color="#fff" />
-          </TouchableOpacity>
-
-          {/* fav + menu */}
-          <View style={styles.heroActions}>
-            <TouchableOpacity style={styles.heroActionBtn} onPress={handleToggleFavorite}>
-              <Icon
-                name={recipe.isFavorite ? 'heart' : 'heart-outline'}
-                size={22}
-                color={recipe.isFavorite ? Colors.interaction.like : '#fff'}
-              />
-            </TouchableOpacity>
-            {isOwnRecipe && (
-              <Menu
-                visible={menuVisible}
-                onDismiss={() => setMenuVisible(false)}
-                anchor={
-                  <TouchableOpacity style={styles.heroActionBtn} onPress={() => setMenuVisible(true)}>
-                    <Icon name="dots-vertical" size={22} color="#fff" />
-                  </TouchableOpacity>
-                }
-              >
-                <Menu.Item onPress={handleEdit} title="Edit" leadingIcon="pencil" />
-                <Menu.Item 
-                  onPress={handleToggleFeatured} 
-                  title={recipe.featured ? "Remove from featured" : "Set as featured"} 
-                  leadingIcon={recipe.featured ? "star-off" : "star"} 
-                />
-                <Menu.Item onPress={handleDelete} title="Delete" leadingIcon="delete" />
-              </Menu>
-            )}
-          </View>
+          {/* header buttons over image (safe area for notch/status bar) */}
+          <SafeAreaView style={styles.heroHeaderSafe} edges={['top']}>
+            <View style={styles.heroHeaderRow}>
+              <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                <Icon name="arrow-left" size={22} color="#fff" />
+              </TouchableOpacity>
+              <View style={styles.heroActions}>
+                <TouchableOpacity style={styles.heroActionBtn} onPress={handleToggleFavorite}>
+                  <Icon
+                    name={recipe.isFavorite ? 'heart' : 'heart-outline'}
+                    size={22}
+                    color={recipe.isFavorite ? Colors.interaction.like : '#fff'}
+                  />
+                </TouchableOpacity>
+                {isOwnRecipe && (
+                  <Menu
+                    visible={menuVisible}
+                    onDismiss={() => setMenuVisible(false)}
+                    anchor={
+                      <TouchableOpacity style={styles.heroActionBtn} onPress={() => setMenuVisible(true)}>
+                        <Icon name="dots-vertical" size={22} color="#fff" />
+                      </TouchableOpacity>
+                    }
+                  >
+                    <Menu.Item onPress={handleEdit} title="Edit" leadingIcon="pencil" />
+                    <Menu.Item 
+                      onPress={handleToggleFeatured} 
+                      title={recipe.featured ? "Remove from featured" : "Set as featured"} 
+                      leadingIcon={recipe.featured ? "star-off" : "star"} 
+                    />
+                    <Menu.Item onPress={handleDelete} title="Delete" leadingIcon="delete" />
+                  </Menu>
+                )}
+              </View>
+            </View>
+          </SafeAreaView>
 
           {/* counter badge */}
           {hasMultiple && (
@@ -577,7 +578,7 @@ export default function RecipeDetailPage() {
           {snackbarMessage}
         </Snackbar>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -585,8 +586,8 @@ export default function RecipeDetailPage() {
 // STYLES
 // ═══════════════════════════════════════════════════════════════
 const styles = StyleSheet.create({
-  // ─── root ──────────────────────────────────────────────────
-  safeArea: {
+  // ─── root (no top safe area so hero can go edge-to-edge) ─────
+  root: {
     flex: 1,
     backgroundColor: Colors.background.default,
   },
@@ -631,15 +632,31 @@ const styles = StyleSheet.create({
     position: 'absolute', inset: 0,
     backgroundColor: 'rgba(12,22,7,0.32)',
   },
+  heroHeaderSafe: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2,
+  },
+  heroHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
   backBtn: {
-    position: 'absolute', top: 50, left: 16,
-    width: 38, height: 38, borderRadius: 19,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: 'rgba(0,0,0,0.38)',
-    justifyContent: 'center', alignItems: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   heroActions: {
-    position: 'absolute', top: 50, right: 16,
-    flexDirection: 'row', gap: 10,
+    flexDirection: 'row',
+    gap: 10,
   },
   heroActionBtn: {
     width: 38, height: 38, borderRadius: 19,

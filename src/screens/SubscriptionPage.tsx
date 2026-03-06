@@ -40,7 +40,6 @@ export default function SubscriptionPage({ navigation }: any) {
       const data = await subscriptionApi.getSubscription();
       setSubscription(data);
     } catch (error) {
-      console.error('Error loading subscription:', error);
     } finally {
       setLoading(false);
     }

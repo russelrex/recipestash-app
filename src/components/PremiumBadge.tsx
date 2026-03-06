@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { FEATURES } from '../config/features';
 import { Subscription } from '../types/subscription';
 import { COLORS } from '../styles/modernStyles';
 
@@ -17,6 +18,8 @@ export const PremiumBadge: React.FC<PremiumBadgeProps> = ({
   size = 16,
   style,
 }) => {
+  if (!FEATURES.SHOW_PREMIUM_BADGES) return null;
+
   // Check if user is premium (from subscription or legacy boolean)
   const userIsPremium =
     subscription?.isPremium === true || isPremium === true;
@@ -66,6 +69,7 @@ export const PremiumBadgeSolid: React.FC<PremiumBadgeProps> = ({
   size = 16,
   style,
 }) => {
+  if (!FEATURES.SHOW_PREMIUM_BADGES) return null;
   const userIsPremium =
     subscription?.isPremium === true || isPremium === true;
   if (!userIsPremium) return null;
@@ -86,6 +90,7 @@ export const PremiumBadgeGold: React.FC<PremiumBadgeProps> = ({
   size = 16,
   style,
 }) => {
+  if (!FEATURES.SHOW_PREMIUM_BADGES) return null;
   const userIsPremium =
     subscription?.isPremium === true || isPremium === true;
   if (!userIsPremium) return null;

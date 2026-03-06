@@ -164,7 +164,6 @@ class RecipesApi {
         throw new Error(response.data.message || 'Failed to fetch public recipes');
       }
     } catch (error: any) {
-      console.error('❌ [API] Error fetching public recipes:', error);
       throw new Error(error.response?.data?.message || 'Failed to fetch public recipes');
     }
   }
@@ -242,16 +241,9 @@ class RecipesApi {
         return response.data.data;
       } else {
         const errorMsg = response.data.message || 'Failed to update recipe';
-        console.error('Update failed:', errorMsg);
         throw new Error(errorMsg);
       }
     } catch (error: any) {
-      console.error('Update recipe error:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-      });
       throw new Error(error.response?.data?.message || error.message || 'Failed to update recipe');
     }
   }
@@ -310,10 +302,6 @@ class RecipesApi {
       }
       return recipe;
     } catch (error: any) {
-      console.error('❌ [API] Import recipe failed:', {
-        message: error.message,
-        response: error.response?.data,
-      });
       throw new Error(
         error.response?.data?.message ||
           error.message ||
@@ -328,10 +316,6 @@ class RecipesApi {
       const data = response.data?.data || response.data;
       return data as ScrapedRecipeData;
     } catch (error: any) {
-      console.error('❌ [API] Scrape recipe failed:', {
-        message: error.message,
-        response: error.response?.data,
-      });
       throw new Error(
         error.response?.data?.message ||
           error.message ||

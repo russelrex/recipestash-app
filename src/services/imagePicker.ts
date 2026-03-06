@@ -8,7 +8,6 @@ if (Platform.OS !== 'web') {
   try {
     ImageResizer = require('react-native-image-resizer').default;
   } catch (error) {
-    console.warn('ImageResizer not available:', error);
   }
 }
 
@@ -36,7 +35,6 @@ class ImagePickerService {
 
       return await this.processImage(result, imageType);
     } catch (error) {
-      console.error('Error picking image from gallery:', error);
       Alert.alert('Error', ImageUploadMessages.uploadFailed);
       return null;
     }
@@ -59,7 +57,6 @@ class ImagePickerService {
 
       return await this.processImage(result, imageType);
     } catch (error) {
-      console.error('Error taking photo:', error);
       Alert.alert('Error', ImageUploadMessages.uploadFailed);
       return null;
     }
@@ -175,7 +172,6 @@ class ImagePickerService {
         size: processedSize,
       };
     } catch (error) {
-      console.error('Error processing image:', error);
       Alert.alert('Error', ImageUploadMessages.processingError);
       return null;
     }

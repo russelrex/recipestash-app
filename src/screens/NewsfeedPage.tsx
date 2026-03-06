@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, ImageBackground, RefreshControl, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Snackbar, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,6 +31,10 @@ export default function NewsfeedPage() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [postToDelete, setPostToDelete] = useState<Post | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const loadingMoreRef = useRef(false);
+  const initialLoadInFlightRef = useRef(false);
+  const lastFocusLoadAtRef = useRef(0);
+  const FOCUS_LOAD_COOLDOWN_MS = 2000;
 
   const loadCurrentUserId = useCallback(async () => {
     let id: string | null = null;
@@ -54,16 +58,11 @@ export default function NewsfeedPage() {
     loadCurrentUserId();
   }, [loadCurrentUserId]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadCurrentUserId();
-      loadPosts(1);
-    }, [loadCurrentUserId]),
-  );
-
-  const loadPosts = async (pageNum: number = 1) => {
+  const loadPosts = useCallback(async (pageNum: number = 1) => {
     try {
       if (pageNum === 1) {
+        if (initialLoadInFlightRef.current) return;
+        initialLoadInFlightRef.current = true;
         setLoading(true);
       } else {
         setLoadingMore(true);
@@ -80,27 +79,39 @@ export default function NewsfeedPage() {
       setHasMore(response.hasMore);
       setPage(pageNum);
     } catch (error: any) {
-      console.error('Error loading posts:', error);
       setSnackbarMessage('Failed to load posts');
       setSnackbarVisible(true);
+      if (pageNum === 1) setHasMore(false);
     } finally {
       setLoading(false);
       setRefreshing(false);
       setLoadingMore(false);
+      if (pageNum === 1) initialLoadInFlightRef.current = false;
+      if (pageNum > 1) loadingMoreRef.current = false;
     }
-  };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadCurrentUserId();
+      const now = Date.now();
+      if (now - lastFocusLoadAtRef.current < FOCUS_LOAD_COOLDOWN_MS) return;
+      lastFocusLoadAtRef.current = now;
+      loadPosts(1);
+    }, [loadCurrentUserId, loadPosts]),
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
     loadPosts(1);
   };
 
-  const loadMore = () => {
-    if (!loadingMore && hasMore) {
-      setLoadingMore(true);
-      loadPosts(page + 1);
-    }
-  };
+  const loadMore = useCallback(() => {
+    if (posts.length === 0 || loadingMore || !hasMore || loadingMoreRef.current) return;
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    loadPosts(page + 1);
+  }, [posts.length, loadingMore, hasMore, page]);
 
   const handleLike = async (postId: string) => {
     const post = posts.find(p => p.id === postId);
@@ -327,6 +338,9 @@ export default function NewsfeedPage() {
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   background: {
     flex: 1,
     width: '100%',

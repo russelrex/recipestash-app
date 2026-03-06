@@ -103,7 +103,6 @@ export default function OfflineLoginPage() {
         });
       }, 500);
     } catch (error: any) {
-      console.error('Offline login error:', error);
       setSnackbarMessage(error.message || 'Offline login failed');
       setSnackbarVisible(true);
     } finally {

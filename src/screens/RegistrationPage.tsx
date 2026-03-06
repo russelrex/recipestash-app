@@ -117,7 +117,6 @@ export default function RegistrationPage() {
         });
       }, 600);
     } catch (error: any) {
-      console.error('Registration error:', error);
       setSnackbarType('error');
       setSnackbarMessage(error?.message || 'Registration failed. Please try again.');
       setSnackbarVisible(true);

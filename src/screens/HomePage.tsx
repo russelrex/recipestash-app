@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import React from 'react';
-import { ImageBackground, StyleSheet, View } from 'react-native';
+import { ImageBackground, StatusBar, StyleSheet, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CARD_STYLES, COLORS, TYPOGRAPHY } from '../styles/modernStyles';
@@ -10,67 +10,74 @@ const bgImage = require('../../assets/images/placeholder_bg.jpg');
 export default function HomePage() {
   const navigation = useNavigation();
 
-  const content = (
-    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
-    <View style={styles.overlay}>
-      {/* Center Section - Authentication */}
-      <View style={styles.centerSection}>
-        <View style={[styles.authCard, CARD_STYLES.elevated]}>
-          <Text style={styles.welcomeText}>Welcome!</Text>
-          <Text style={styles.subText}>
-            Sign in or create an account to get started
-          </Text>
-
-          <Button
-            mode="contained"
-            onPress={() => navigation.navigate('Login' as never)}
-            style={styles.primaryButton}
-            contentStyle={styles.buttonContent}
-            buttonColor={COLORS.primary}
-          >
-            Sign In
-          </Button>
-
-          <Button
-            mode="outlined"
-            onPress={() => navigation.navigate('Registration' as never)}
-            style={styles.secondaryButton}
-            contentStyle={styles.buttonContent}
-            textColor={COLORS.primary}
-          >
-            Create Account
-          </Button>
-        </View>
-      </View>
-
-      {/* Bottom Section - Description */}
-      <View style={styles.bottomSection}>
-        <Text variant="bodyMedium" style={styles.description}>
-          Organize, save, and discover your favorite recipes all in one place
-        </Text>
-        <Text variant="bodySmall" style={styles.tagline}>
-          Your personal cooking companion
-        </Text>
-      </View>
-    </View>
-    </ImageBackground>
-  );
-
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <View style={styles.background}>{content}</View>
-    </SafeAreaView>
+    <View style={styles.root}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+          <View style={styles.overlay}>
+            {/* Center Section - Authentication */}
+            <View style={styles.centerSection}>
+              <View style={[styles.authCard, CARD_STYLES.elevated]}>
+                <Text style={styles.welcomeText}>Welcome!</Text>
+                <Text style={styles.subText}>
+                  Sign in or create an account to get started
+                </Text>
+
+                <Button
+                  mode="contained"
+                  onPress={() => navigation.navigate('Login' as never)}
+                  style={styles.primaryButton}
+                  contentStyle={styles.buttonContent}
+                  buttonColor={COLORS.primary}
+                >
+                  Sign In
+                </Button>
+
+                <Button
+                  mode="outlined"
+                  onPress={() => navigation.navigate('Registration' as never)}
+                  style={styles.secondaryButton}
+                  contentStyle={styles.buttonContent}
+                  textColor={COLORS.primary}
+                >
+                  Create Account
+                </Button>
+              </View>
+            </View>
+
+            {/* Bottom Section - Description */}
+            <View style={styles.bottomSection}>
+              <Text variant="bodyMedium" style={styles.description}>
+                Organize, save, and discover your favorite recipes all in one place
+              </Text>
+              <Text variant="bodySmall" style={styles.tagline}>
+                Your personal cooking companion
+              </Text>
+            </View>
+          </View>
+        </SafeAreaView>
+      </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
+  root: {
     flex: 1,
+    backgroundColor: '#1a1a1a',
+  },
+  background: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     width: '100%',
+    height: '100%',
   },
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   overlay: {
     flex: 1,

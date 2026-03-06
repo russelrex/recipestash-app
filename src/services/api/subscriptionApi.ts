@@ -50,11 +50,6 @@ class SubscriptionApi {
       const response = await apiClient.get('/subscriptions');
       return response.data;
     } catch (error: any) {
-      console.error('❌ [API] Get subscription failed:', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-      });
       throw new Error(
         error.response?.data?.message || 'Failed to fetch subscription',
       );
@@ -68,11 +63,6 @@ class SubscriptionApi {
       );
       return response.data;
     } catch (error: any) {
-      console.error('❌ [API] Recipe limit check failed:', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-      });
       const allowedFromResponse = error.response?.data?.allowed;
       if (typeof allowedFromResponse === 'boolean') {
         return {
@@ -96,11 +86,6 @@ class SubscriptionApi {
       });
       return response.data;
     } catch (error: any) {
-      console.error('❌ [API] Create checkout failed:', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-      });
       throw new Error(
         error.response?.data?.message || 'Failed to create checkout',
       );

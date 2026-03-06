@@ -23,8 +23,8 @@ export default function FollowButton({ userId, onFollowChange }: FollowButtonPro
       setChecking(true);
       const status = await followsApi.isFollowing(userId);
       setIsFollowing(status);
-    } catch (error) {
-      console.error('Error checking follow status:', error);
+    } catch {
+      // ignore
     } finally {
       setChecking(false);
     }
@@ -42,8 +42,8 @@ export default function FollowButton({ userId, onFollowChange }: FollowButtonPro
         setIsFollowing(true);
         onFollowChange?.(true);
       }
-    } catch (error: any) {
-      console.error('Error toggling follow:', error);
+    } catch {
+      // ignore
     } finally {
       setLoading(false);
     }

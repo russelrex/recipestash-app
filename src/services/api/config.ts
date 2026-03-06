@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-const BACKEND_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
+const RAW_BACKEND = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
+const BACKEND_URL = typeof RAW_BACKEND === 'string' ? RAW_BACKEND.trim().replace(/\/+$/, '') : RAW_BACKEND;
 export const API_BASE_URL = `${BACKEND_URL}/api`;
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -15,10 +15,14 @@ const apiClient = axios.create({
 // Request interceptor - Add auth token to requests
 apiClient.interceptors.request.use(
   async config => {
-    const token = await AsyncStorage.getItem('authToken');
-    // Only add token if it exists, is not "null" string, and is not "offline"
-    // Skip Authorization header for offline mode to prevent credential leakage
-    if (token && token !== 'null' && token.trim() !== '' && token !== 'offline') {
+    const raw = await AsyncStorage.getItem('authToken');
+    const token = typeof raw === 'string' ? raw.trim() : '';
+    const hasValidToken =
+      token &&
+      token !== 'null' &&
+      token !== 'offline' &&
+      token.length > 0;
+    if (hasValidToken) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -31,18 +35,6 @@ apiClient.interceptors.response.use(
     return response;
   },
   async error => {
-    if (error.response?.status === 401) {
-      console.warn(
-        'Received 401 Unauthorized from API. Endpoint:',
-        error.config?.url,
-      );
-    }
-
-    if (error.response) {
-      console.error('Error data:', error.response.data);
-    } else if (error.request) {
-      console.error('No response received');
-    }
     return Promise.reject(error);
   },
 );

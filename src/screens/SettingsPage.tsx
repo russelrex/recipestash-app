@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, ImageBackground, Linking, Platform, Modal as RNModal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Button, Divider, List, Snackbar, Switch, Text } from 'react-native-paper';
 import { authApi, followsApi, recipesApi } from '../services/api';
-import cacheService from '../services/cache/cacheService';
+import cacheStatsService, { type CacheStats } from '../services/cacheStatsService';
 import { isOfflineMode } from '../services/cache/offlineUtils';
 import { CARD_STYLES, COLORS } from '../styles/modernStyles';
 import { Colors } from '../theme';
@@ -45,29 +45,25 @@ export default function SettingsPage() {
   const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState<{ id: string; name: string; blockedAt: string }[]>([]);
   const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [cacheStats, setCacheStats] = useState<CacheStats | null>(null);
   const [cacheSize, setCacheSize] = useState<string>('Calculating...');
   const [clearingCache, setClearingCache] = useState(false);
 
   useEffect(() => {
     checkOfflineMode();
     loadPreferences();
-    calculateCacheSize();
+    loadCacheStats();
   }, []);
 
-  const calculateCacheSize = useCallback(async () => {
+  const loadCacheStats = useCallback(async () => {
     try {
-      let totalBytes = 0;
-      if (FileSystem.cacheDirectory) {
-        const dirInfo = await FileSystem.getInfoAsync(FileSystem.cacheDirectory, { size: true });
-        if (dirInfo.exists && typeof (dirInfo as { size?: number }).size === 'number') {
-          totalBytes += (dirInfo as { size: number }).size;
-        }
-      }
-      const sizeInMB = (totalBytes / (1024 * 1024)).toFixed(2);
-      setCacheSize(`${sizeInMB} MB`);
-    } catch (error) {
-      console.warn('Could not calculate cache size:', error);
+      setCacheSize('Calculating...');
+      const stats = await cacheStatsService.getStats();
+      setCacheStats(stats);
+      setCacheSize(stats.total.sizeFormatted);
+    } catch {
       setCacheSize('Unknown');
+      setCacheStats(null);
     }
   }, []);
 
@@ -81,7 +77,6 @@ export default function SettingsPage() {
       const prefs = await authApi.getPreferences();
       setPreferences(prefs);
     } catch (error: any) {
-      console.error('Error loading preferences:', error);
       setSnackbarMessage('Failed to load preferences');
       setSnackbarVisible(true);
     }
@@ -261,7 +256,7 @@ export default function SettingsPage() {
   const handleClearCache = () => {
     Alert.alert(
       'Clear Cache',
-      `This will clear ${cacheSize} of cached data including images and temporary files. This action cannot be undone.`,
+      `This will clear ${cacheSize} of cached data including images and API cache. This action cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -270,18 +265,18 @@ export default function SettingsPage() {
           onPress: async () => {
             try {
               setClearingCache(true);
-              await cacheService.clearCache();
+              await cacheStatsService.clearAll();
               if (FileSystem.cacheDirectory) {
                 try {
                   const files = await FileSystem.readDirectoryAsync(FileSystem.cacheDirectory);
                   for (const file of files) {
                     await FileSystem.deleteAsync(`${FileSystem.cacheDirectory}${file}`, { idempotent: true });
                   }
-                } catch (e) {
-                  console.warn('File cache clear:', e);
+                } catch {
+                  // ignore
                 }
               }
-              await calculateCacheSize();
+              await loadCacheStats();
               Alert.alert(
                 'Success',
                 'Cache cleared successfully! The app may take longer to load images next time.',
@@ -371,8 +366,8 @@ export default function SettingsPage() {
         index: 0,
         routes: [{ name: 'Home' }],
       });
-    } catch (error) {
-      console.error('Error during logout:', error);
+    } catch {
+      // logout failed
     }
   };
   const bgImage = require('../../assets/images/placeholder_bg.jpg');

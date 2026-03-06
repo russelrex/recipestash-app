@@ -66,7 +66,6 @@ export default function ImportRecipeModal({
         ],
       );
     } catch (err: any) {
-      console.error('❌ Import failed:', err);
       const errorMessage =
         err.message || 'Failed to import recipe. Please try again.';
       setError(errorMessage);

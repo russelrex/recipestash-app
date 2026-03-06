@@ -2,17 +2,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Subscription } from '../../types/subscription';
 import cacheService from '../cache/cacheService';
 import offlineAuth from '../cache/offlineAuth';
-import apiClient from './config';
+import apiClient, { API_BASE_URL } from './config';
 
 export interface AuthResponse {
   success: boolean;
   message: string;
   data: {
     user: {
-      _id: string;
+      id?: string;
+      _id?: string;
       name: string;
-      createdAt: string;
-      updatedAt: string;
+      email?: string;
+      createdAt?: string;
+      updatedAt?: string;
       lastLoginAt?: string;
     };
     token: string;
@@ -70,10 +72,20 @@ class AuthApi {
       });
 
       if (response.data.success) {
+        const resData = response.data.data;
+        const user = resData?.user;
+        const token = resData?.token;
+        const userId = user?.id ?? user?._id;
+        const userName = user?.name ?? '';
+        if (!token || !userId) {
+          throw new Error(
+            'Registration succeeded but the server did not return a session. Please try logging in.',
+          );
+        }
         await this.storeAuthData(
-          response.data.data.token,
-          response.data.data.user._id,
-          response.data.data.user.name,
+          typeof token === 'string' ? token : String(token).trim(),
+          String(userId),
+          userName,
         );
       }
 
@@ -81,6 +93,11 @@ class AuthApi {
     } catch (error: any) {
       if (error.response?.status === 409) {
         throw new Error('An account with this email already exists');
+      }
+      if (!error.response) {
+        throw new Error(
+          'Cannot reach server. Check your internet connection and that the app is using the correct API URL (e.g. your Railway URL on device).',
+        );
       }
       throw new Error(error.response?.data?.message || 'Registration failed');
     }
@@ -95,11 +112,17 @@ class AuthApi {
       if (response.data.success) {
         const resData = response.data.data;
         const user = resData?.user ?? resData;
-        const token = resData?.token ?? resData?.accessToken;
-        const userId = user?._id ?? user?.id ?? resData?._id ?? resData?.userId;
-        const userName = user?.name ?? resData?.name ?? '';
-        if (token && userId) {
-          await this.storeAuthData(token, String(userId), userName);
+        const token =
+          resData?.token ??
+          (resData as { accessToken?: string })?.accessToken ??
+          (resData as { access_token?: string })?.access_token;
+        const userId =
+          user?._id ??
+          (user as { id?: string })?.id ??
+          (resData as { userId?: string })?.userId;
+        const userName = user?.name ?? (resData as { name?: string })?.name ?? '';
+        if (token && typeof token === 'string' && token.trim() && userId) {
+          await this.storeAuthData(token.trim(), String(userId), userName || '');
         }
         // Store password hash for offline login
         await offlineAuth.storeOfflineCredentials(data.email, data.password);
@@ -109,6 +132,11 @@ class AuthApi {
     } catch (error: any) {
       if (error.response?.status === 401) {
         throw new Error('Invalid email or password');
+      }
+      if (!error.response) {
+        throw new Error(
+          'Cannot reach server. Check your internet connection and that the app is using the correct API URL (e.g. your Railway URL on device).',
+        );
       }
       throw new Error(error.response?.data?.message || 'Login failed');
     }
@@ -127,21 +155,14 @@ class AuthApi {
 
       return response.data.success === true;
     } catch (error: any) {
-      console.error('Token validation error:', error);
-      
       // Only clear token on actual authentication failure (401 Unauthorized)
       // Don't clear on network errors, timeouts, or other issues
       if (error.response?.status === 401) {
-        console.warn('Token is invalid or expired, clearing auth data');
         await this.logout();
       } else if (error.response?.status === 400) {
         // 400 might be a bad request format, not necessarily invalid token
-        // Log but don't clear token - let the user try again
-        console.warn('Token validation request failed with 400, but keeping token');
       } else {
-        // Network error, timeout, or other non-auth errors
-        // Don't clear token - might be temporary issue
-        console.warn('Token validation failed due to network/other error, keeping token');
+        // Network error, timeout, or other non-auth errors - don't clear token
       }
       
       return false;
@@ -220,14 +241,12 @@ class AuthApi {
       if (tokenStillExists && tokenStillExists !== 'null' && tokenStillExists.trim() !== '' && tokenStillExists !== 'offline') {
         // Token still exists, validation might have failed due to network error
         // Assume authenticated - API calls will handle actual auth failures
-        console.warn('Token validation failed but token exists, assuming authenticated (likely network error)');
         return true;
       }
       
       // Token was cleared (401 error), user is not authenticated
       return false;
     } catch (error) {
-      console.error('Error in isAuthenticated:', error);
       // On unexpected error, check if we have a token - if yes, assume authenticated
       const token = await AsyncStorage.getItem('authToken');
       return !!(token && token !== 'null' && token.trim() !== '' && token !== 'offline');
@@ -261,7 +280,6 @@ class AuthApi {
     // Verify token was stored correctly
     const storedToken = await AsyncStorage.getItem('authToken');
     if (!storedToken || storedToken !== token) {
-      console.error('Token storage verification failed');
       throw new Error('Failed to store authentication token');
     }
   }

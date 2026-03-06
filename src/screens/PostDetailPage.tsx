@@ -50,7 +50,6 @@ export default function PostDetailPage() {
       setPost(postData);
       setComments(commentsData);
     } catch (error: any) {
-      console.error('Error loading post:', error);
       setSnackbarMessage('Failed to load post');
       setSnackbarVisible(true);
     } finally {
@@ -65,7 +64,6 @@ export default function PostDetailPage() {
       const updatedPost = await postsApi.toggleLike(post.id);
       setPost(updatedPost);
     } catch (error: any) {
-      console.error('Error toggling like:', error);
       // Do NOT auto-logout on auth errors here; just show feedback.
       setSnackbarMessage(error?.message || 'Failed to update like');
       setSnackbarVisible(true);
@@ -81,7 +79,6 @@ export default function PostDetailPage() {
         navigation.goBack();
       }, 1000);
     } catch (error: any) {
-      console.error('Error deleting post:', error);
       setSnackbarMessage('Failed to delete post');
       setSnackbarVisible(true);
     }
@@ -113,7 +110,6 @@ export default function PostDetailPage() {
       setSnackbarMessage('Comment added! 💬');
       setSnackbarVisible(true);
     } catch (error: any) {
-      console.error('Error adding comment:', error);
       setSnackbarMessage('Failed to add comment');
       setSnackbarVisible(true);
     } finally {
@@ -136,7 +132,6 @@ export default function PostDetailPage() {
       setSnackbarMessage('Comment deleted');
       setSnackbarVisible(true);
     } catch (error: any) {
-      console.error('Error deleting comment:', error);
       setSnackbarMessage('Failed to delete comment');
       setSnackbarVisible(true);
     }

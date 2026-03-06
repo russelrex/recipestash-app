@@ -75,8 +75,8 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onPress }) => {
         if (!cancelled && profile.avatarUrl) {
           setAuthorAvatarUrl(profile.avatarUrl);
         }
-      } catch (error) {
-        console.warn('Failed to load recipe author avatar:', error);
+      } catch {
+        // avatar optional
       }
     };
 
@@ -183,21 +183,23 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onPress }) => {
                       />
                     </TouchableOpacity>
                   </View>
-                  <View style={styles.metaRow}>
-                    <Icon name="clock-outline" size={12} color={COLORS.text} />
-                    <Text style={styles.metaText}>
-                      {recipe.prepTime + recipe.cookTime} mins
-                    </Text>
-                    <Icon 
-                      name="account-group" 
-                      size={12} 
-                      color={COLORS.text} 
-                      style={styles.metaIcon}
-                    />
-                    <Text style={styles.metaText}>
-                      {recipe.servings} servings
-                    </Text>
-                  </View>
+                </View>
+              </View>
+
+              {/* Metadata row - full width below author */}
+              <View style={styles.metadataRow}>
+                <View style={styles.metadataItem}>
+                  <Icon name="clock-outline" size={12} color={COLORS.text} />
+                  <Text style={styles.metadataText}>
+                    {(recipe.prepTime || 0) + (recipe.cookTime || 0)} mins
+                  </Text>
+                </View>
+                <View style={styles.metadataDot} />
+                <View style={styles.metadataItem}>
+                  <Icon name="account-group" size={12} color={COLORS.text} />
+                  <Text style={styles.metadataText}>
+                    {recipe.servings} {recipe.servings === 1 ? 'serving' : 'servings'}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -350,7 +352,7 @@ const styles = StyleSheet.create({
   authorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 0,
   },
 
   byText: {
@@ -370,25 +372,37 @@ const styles = StyleSheet.create({
     ...(TYPOGRAPHY.bodySmall as object),
     fontSize: 12,
     fontWeight: '500',
-    color: '#374151', // Dark gray for secondary text
+    color: '#374151',
     flexShrink: 1,
   },
 
-  metaRow: {
+  metadataRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
+    paddingTop: 8,
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.08)',
+    gap: 8,
   },
 
-  metaIcon: {
-    marginLeft: 10,
+  metadataItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
   },
 
-  metaText: {
+  metadataDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: '#9CA3AF',
+  },
+
+  metadataText: {
     ...(TYPOGRAPHY.caption as object),
     fontSize: 11,
     fontWeight: '500',
-    marginLeft: 3,
-    color: '#374151', // Dark gray for meta text - better visibility
+    color: '#374151',
   },
 });

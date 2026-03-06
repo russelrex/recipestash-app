@@ -50,7 +50,6 @@ export default function AllMyRecipesPage({ navigation }: any) {
       const myRecipes = await recipesApi.getAllRecipes();
       setRecipes(myRecipes);
     } catch (error) {
-      console.error('❌ [AllMyRecipes] Error loading recipes:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -102,7 +101,6 @@ export default function AllMyRecipesPage({ navigation }: any) {
       setShowDeleteModal(false);
       setRecipeToDelete(null);
     } catch (error) {
-      console.error('Error deleting recipe:', error);
     } finally {
       setDeleting(false);
     }

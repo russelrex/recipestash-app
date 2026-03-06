@@ -13,9 +13,11 @@ import {
   recipesApi,
   type UserProfile,
 } from '../services/api';
+import { FEATURES, getRecipeLimit } from '../config/features';
 import { Colors } from '../theme';
 import UpgradeModal from '../components/UpgradeModal';
 import ImportRecipeFlow from '../components/ImportRecipeFlow/ImportRecipeFlow';
+import PremiumUpgradePrompt from '../components/PremiumUpgradePrompt';
 
 import AddRecipePage from '../screens/AddRecipePage';
 import CreatePostPage from '../screens/CreatePostPage';
@@ -75,6 +77,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [recipeCount, setRecipeCount] = useState(0);
   const [showImportFlow, setShowImportFlow] = useState(false);
+  const [showPremiumPrompt, setShowPremiumPrompt] = useState(false);
 
   const handleCenterPress = () => {
     setShowModal(!showModal);
@@ -167,14 +170,21 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             style={styles.actionButton}
             onPress={async () => {
               try {
+                if (!FEATURES.ENABLE_RECIPE_LIMIT_RESTRICTION) {
+                  setShowModal(false);
+                  navigation.navigate('AddRecipe');
+                  return;
+                }
+
                 const [profile, recipes] = await Promise.all([
                   authApi.getProfile(),
                   recipesApi.getAllRecipes(),
                 ]);
 
                 const premium = isPremiumUser(profile);
+                const limit = getRecipeLimit(premium);
 
-                if (premium || recipes.length < 10) {
+                if (premium || recipes.length < limit) {
                   setShowModal(false);
                   navigation.navigate('AddRecipe');
                   return;
@@ -183,8 +193,6 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                 setRecipeCount(recipes.length);
                 setShowUpgradeModal(true);
               } catch (error) {
-                console.error('Error checking subscription/recipe limit:', error);
-                // On error, allow navigation rather than blocking the user
                 setShowModal(false);
                 navigation.navigate('AddRecipe');
               }
@@ -206,9 +214,28 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => {
-              setShowModal(false);
-              setShowImportFlow(true);
+            onPress={async () => {
+              try {
+                setShowModal(false);
+
+                if (!FEATURES.ENABLE_IMPORT_RECIPE_RESTRICTION) {
+                  setShowImportFlow(true);
+                  return;
+                }
+
+                const profile = await authApi.getProfile();
+                const premium = isPremiumUser(profile);
+
+                if (!premium) {
+                  setShowPremiumPrompt(true);
+                  return;
+                }
+
+                setShowImportFlow(true);
+              } catch (error) {
+                setShowModal(false);
+                setShowPremiumPrompt(true);
+              }
             }}
           >
             <View style={styles.actionIconContainer}>
@@ -270,6 +297,13 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             recipeId: recipe._id,
           });
         }}
+      />
+
+      <PremiumUpgradePrompt
+        visible={showPremiumPrompt}
+        onClose={() => setShowPremiumPrompt(false)}
+        feature="Import Recipe from URL"
+        description="Import recipes directly from your favorite cooking websites. This feature is available for Premium members."
       />
     </>
   );
@@ -360,7 +394,6 @@ export default function AppNavigator() {
         setIsAuthenticated(authenticated);
       }
     } catch (error) {
-      console.error('Error checking connectivity/auth:', error);
       setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
@@ -374,7 +407,6 @@ export default function AppNavigator() {
         setIsAuthenticated(true);
       }
     } catch (error) {
-      console.error('Error checking offline auth:', error);
     }
   };
 

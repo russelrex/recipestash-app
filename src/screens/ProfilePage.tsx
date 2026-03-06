@@ -4,9 +4,10 @@ import {
   ImageBackground,
   RefreshControl,
   ScrollView,
+  StatusBar,
   StyleSheet,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import {
   Button,
@@ -86,7 +87,6 @@ export default function ProfilePage() {
         setUserId(id);
       }
     } catch (error) {
-      console.error('Error loading user data:', error);
     }
   };
 
@@ -107,7 +107,6 @@ export default function ProfilePage() {
       setRecipes(userRecipes);
       setPosts(userPosts);
     } catch (error: any) {
-      console.error('Error loading profile data:', error);
       setSnackbarMessage('Failed to load profile data');
       setSnackbarVisible(true);
     } finally {
@@ -165,7 +164,6 @@ export default function ProfilePage() {
       );
       setSnackbarVisible(true);
     } catch (error: any) {
-      console.error('Error toggling featured recipe:', error);
       setSnackbarMessage(error.message || 'Failed to update recipe');
       setSnackbarVisible(true);
     }
@@ -192,7 +190,6 @@ export default function ProfilePage() {
       setSnackbarMessage(`"${recipeToDelete.title}" has been deleted successfully.`);
       setSnackbarVisible(true);
     } catch (error: any) {
-      console.error('Error deleting recipe:', error);
       setSnackbarMessage(error?.message || 'Failed to delete recipe. Please try again.');
       setSnackbarVisible(true);
     } finally {
@@ -202,39 +199,39 @@ export default function ProfilePage() {
 
   if (loading && !refreshing) {
     return (
-      <SafeAreaView style={styles.background} edges={['top']}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.loadingScrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Profile header skeleton */}
-          <ProfileCardSkeleton />
-
-          {/* Featured recipes skeleton */}
+      <View style={styles.loadingRoot}>
+        <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+        <SafeAreaView style={styles.loadingSafe} edges={['top']}>
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.loadingScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <ProfileCardSkeleton />
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
               <View style={styles.skeletonTitle} />
             </View>
             <RecipeListSkeleton count={2} />
           </View>
-
-          {/* Recent posts skeleton */}
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
               <View style={styles.skeletonTitle} />
             </View>
             <PostListSkeleton count={2} />
           </View>
-        </ScrollView>
-      </SafeAreaView>
+          </ScrollView>
+        </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
-      <View style={styles.container}>
-        <ScrollView
+    <View style={styles.root}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+      <ImageBackground source={bgImage} style={styles.background} resizeMode="cover">
+        <SafeAreaView style={styles.container} edges={['top']}>
+          <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           refreshControl={
@@ -658,18 +655,28 @@ export default function ProfilePage() {
           onCancel={handleCancelDelete}
           type="danger"
         />
-      </View>
-    </ImageBackground>
+        </SafeAreaView>
+      </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+  loadingRoot: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  loadingSafe: {
+    flex: 1,
+  },
   background: {
     flex: 1,
     width: '100%',
   },
   container: {
-    paddingTop: 24,
     flex: 1,
   },
   scrollView: {
@@ -1021,14 +1028,6 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.label,
     color: COLORS.primary,
     marginRight: 8,
-  },
-  viewAllButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  viewAllText: {
-    color: COLORS.primary,
-    fontWeight: 'bold',
   },
   chip: {
     backgroundColor: COLORS.cardBackgroundAlt,

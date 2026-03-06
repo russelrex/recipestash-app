@@ -71,7 +71,6 @@ export default function RecipesPage() {
         setPage(prev => prev + 1);
       }
     } catch (error: any) {
-      console.error('❌ [RecipesPage] Error loading recipes:', error);
       setSnackbarMessage('Failed to load recipes');
       setSnackbarVisible(true);
     } finally {
@@ -89,7 +88,6 @@ export default function RecipesPage() {
         const searchResults = await recipesApi.searchRecipes(query);
         setRecipes(searchResults);
       } catch (error: any) {
-        console.error('❌ [RecipesPage] Search error:', error);
         setSnackbarMessage('Search failed');
         setSnackbarVisible(true);
       }
